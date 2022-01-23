@@ -1,0 +1,18 @@
+{
+    "compilerOptions": {
+        "target": "es2015",
+        "lib": ["dom", "es2015", "es2017.object"],
+        "checkJs": true,
+        "strict": true,
+        "noImplicitAny": false,
+        "noImplicitThis": false,
+        "noImplicitReturns": false,
+        "baseUrl": ".",
+        "paths": {
+            "src/*": ["./src/*"],
+            "zeta-dom/*": ["../zeta-dom/src/*", "node_modules/zeta-dom/*"],
+            "@jest/globals": ["node_modules/@jest/globals/build/index"],
+        }
+    },
+    "exclude": ["build", "node_modules"]
+}
