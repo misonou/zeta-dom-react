@@ -34,11 +34,11 @@ export interface FormValidationChangeEvent extends Zeta.ZetaEventBase {
     readonly message: string;
 }
 
-export class FormContext {
+export class FormContext<T extends object = Zeta.Dictionary<any>> {
     readonly isValid: boolean;
-    readonly data: Record<string, any>;
+    readonly data: Partial<T>;
 
-    constructor(initialData: Record<string, any> = {}, validateOnChange: boolean = true);
+    constructor(initialData: Partial<T> = {}, validateOnChange: boolean = true);
 
     /**
      * Registers event handlers.
@@ -47,7 +47,7 @@ export class FormContext {
      * @returns A function that will unregister the handlers when called.
      * @see {@link FormEventMap}
      */
-    on<T extends keyof FormEventMap>(event: T, handler: Zeta.ZetaEventHandler<T, FormEventMap, FormContext>): Zeta.UnregisterCallback;
+    on<E extends keyof FormEventMap>(event: E, handler: Zeta.ZetaEventHandler<E, FormEventMap, FormContext<T>>): Zeta.UnregisterCallback;
 
     /**
      * Resets all fields and clear all validation errors.
@@ -69,7 +69,7 @@ export class FormContext {
 /**
  * Creates a memoized {@link FormContext} object.
  */
-export function useFormContext(...args: ConstructorParameters<typeof FormContext>): FormContext;
+export function useFormContext<T extends object = Zeta.Dictionary<any>>(initialData: Partial<T> = {}, validateOnChange: boolean = true): FormContext<T>;
 
 export interface FormFieldState<T> {
     readonly value: T;
