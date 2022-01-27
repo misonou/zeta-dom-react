@@ -141,7 +141,6 @@ export function useFormField(props, defaultValue, prop) {
         setValueCallback = setValue;
         props = extend({}, props);
         props[prop] = value;
-        props.error = error;
     }
 
     useEffect(function () {
@@ -176,7 +175,7 @@ export function useFormField(props, defaultValue, prop) {
 
     return {
         value: props[prop],
-        error: props.error || '',
+        error: props.error || error || '',
         setValue: setValueCallback,
         setError: setError,
     };
