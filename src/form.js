@@ -44,7 +44,9 @@ export function FormContext(initialData, validateOnChange) {
     self.validateOnChange = validateOnChange !== false;
     self.data = createDataObject(self, state.eventContainer, initialData);
     self.on('dataChange', function (e) {
-        self.validate.apply(self, e.data);
+        if (self.validateOnChange) {
+            self.validate.apply(self, e.data);
+        }
     });
 }
 
