@@ -98,10 +98,10 @@ __webpack_require__.d(src_namespaceObject, {
   "FormContext": () => (FormContext),
   "FormContextProvider": () => (FormContextProvider),
   "classNames": () => (classNames),
-  "useAsyncContent": () => (useAsyncContent),
+  "useAsync": () => (useAsync),
   "useDispose": () => (useDispose),
   "useFormContext": () => (useFormContext),
-  "useFormFieldHooks": () => (useFormFieldHooks),
+  "useFormField": () => (useFormField),
   "useMemoizedFunction": () => (useMemoizedFunction),
   "useObservableProperty": () => (useObservableProperty),
   "useRefInitCallback": () => (useRefInitCallback)
@@ -214,7 +214,7 @@ function useObservableProperty(obj, key) {
   }, [obj, key]);
   return value;
 }
-function useAsyncContent(init, autoload) {
+function useAsync(init, autoload) {
   var state = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)(function () {
     return {
       loading: true,
@@ -242,7 +242,9 @@ function useAsyncContent(init, autoload) {
       }
     };
   })[0];
+  var deps = isArray(autoload);
   init = useMemoizedFunction(init);
+  autoload = autoload !== false;
   useObservableProperty(state, 'loading');
   (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
     return function () {
@@ -250,10 +252,10 @@ function useAsyncContent(init, autoload) {
     };
   }, [state]);
   (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
-    if (autoload !== false) {
+    if (autoload) {
       state.refresh();
     }
-  }, [state, autoload]);
+  }, [state, autoload].concat(deps));
   return [state.value, state];
 }
 function useRefInitCallback(init) {
@@ -324,6 +326,7 @@ function FormContext(initialData, validateOnChange) {
   var state = _(self, {
     validateCallback: {},
     validateResult: {},
+    validateOnChange: {},
     eventContainer: new ZetaEventContainer(),
     initialData: initialData || {}
   });
@@ -332,7 +335,11 @@ function FormContext(initialData, validateOnChange) {
   self.validateOnChange = validateOnChange !== false;
   self.data = createDataObject(self, state.eventContainer, initialData);
   self.on('dataChange', function (e) {
-    self.validate.apply(self, e.data);
+    if (self.validateOnChange) {
+      self.validate.apply(self, grep(e.data, function (v) {
+        return state.validateOnChange[v] !== false;
+      }));
+    }
   });
 }
 definePrototype(FormContext, {
@@ -409,7 +416,7 @@ function useFormContext(initialData, validateOnChange) {
   }, [form]);
   return form;
 }
-function useFormFieldHooks(props, defaultValue, prop) {
+function useFormField(props, defaultValue, prop) {
   var form = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useContext)(_FormContext);
   var key = props.name || '';
   var initialValue = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)(function () {
@@ -430,11 +437,12 @@ function useFormFieldHooks(props, defaultValue, prop) {
     }
   }); // put internal states on props for un-controlled mode
 
+  prop = prop || 'value';
+
   if (!(prop in props)) {
     setValueCallback = setValue;
     props = extend({}, props);
     props[prop] = value;
-    props.error = error;
   }
 
   (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
@@ -443,7 +451,11 @@ function useFormFieldHooks(props, defaultValue, prop) {
         setValue(form.data[key]);
       }
 
-      return combineFn(form.on('validationChange', function (e) {
+      return combineFn(form.on('dataChange', function (e) {
+        if (e.data.includes(key)) {
+          setValue(form.data[key]);
+        }
+      }), form.on('validationChange', function (e) {
         if (e.name === key) {
           setError(e.message);
         }
@@ -462,9 +474,14 @@ function useFormFieldHooks(props, defaultValue, prop) {
       form.data[key] = value;
     }
   }, [form, key, value]);
+  (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
+    if (form && key) {
+      _(form).validateOnChange[key] = props.validateOnChange;
+    }
+  }, [form, key, props.validateOnChange]);
   return {
     value: props[prop],
-    error: props.error || '',
+    error: props.error || error || '',
     setValue: setValueCallback,
     setError: setError
   };
