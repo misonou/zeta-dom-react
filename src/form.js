@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import { any, combineFn, createPrivateStore, definePrototype, extend, keys, makeArray, resolveAll, values } from "./include/zeta-dom/util.js";
+import { any, combineFn, createPrivateStore, definePrototype, extend, grep, keys, makeArray, resolveAll, values } from "./include/zeta-dom/util.js";
 import { ZetaEventContainer } from "./include/zeta-dom/events.js";
 import { useMemoizedFunction } from "./hooks.js";
 
@@ -37,6 +37,7 @@ export function FormContext(initialData, validateOnChange) {
     var state = _(self, {
         validateCallback: {},
         validateResult: {},
+        validateOnChange: {},
         eventContainer: new ZetaEventContainer(),
         initialData: initialData || {},
     });
@@ -45,7 +46,9 @@ export function FormContext(initialData, validateOnChange) {
     self.data = createDataObject(self, state.eventContainer, initialData);
     self.on('dataChange', function (e) {
         if (self.validateOnChange) {
-            self.validate.apply(self, e.data);
+            self.validate.apply(self, grep(e.data, function (v) {
+                return state.validateOnChange[v] !== false;
+            }));
         }
     });
 }
@@ -174,6 +177,12 @@ export function useFormField(props, defaultValue, prop) {
             form.data[key] = value;
         }
     }, [form, key, value]);
+
+    useEffect(function () {
+        if (form && key) {
+            _(form).validateOnChange[key] = props.validateOnChange;
+        }
+    }, [form, key, props.validateOnChange]);
 
     return {
         value: props[prop],

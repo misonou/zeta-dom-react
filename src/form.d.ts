@@ -6,6 +6,7 @@ export interface FormFieldProps<T = any, V = T> {
     disabled?: boolean;
     error?: string;
     showErrorMessage?: boolean;
+    validateOnChange?: boolean;
     onValidate?: ValidateCallback<V>;
     onChange?: (value: V) => void;
 }
