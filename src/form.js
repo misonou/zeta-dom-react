@@ -154,6 +154,11 @@ export function useFormField(props, defaultValue, prop) {
                 setValue(form.data[key]);
             }
             return combineFn(
+                form.on('dataChange', function (e) {
+                    if (e.data.includes(key)) {
+                        setValue(form.data[key]);
+                    }
+                }),
                 form.on('validationChange', function (e) {
                     if (e.name === key) {
                         setError(e.message);
