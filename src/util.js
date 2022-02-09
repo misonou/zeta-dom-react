@@ -1,4 +1,4 @@
-import { each, makeArray } from "./include/zeta-dom/util.js";
+import { each, extend, isFunction, kv, makeArray } from "./include/zeta-dom/util.js";
 
 export function classNames() {
     var className = [];
@@ -21,4 +21,15 @@ export function classNames() {
         });
     })(makeArray(arguments));
     return className.join(' ');
+}
+
+export function partial(setState) {
+    return function (key, value) {
+        setState(function (v) {
+            if (typeof key === 'string') {
+                key = kv(key, isFunction(value) ? value(v[key], v) : value);
+            }
+            return extend({}, v, key);
+        });
+    };
 }
