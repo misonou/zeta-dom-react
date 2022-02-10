@@ -98,6 +98,7 @@ __webpack_require__.d(src_namespaceObject, {
   "FormContext": () => (FormContext),
   "FormContextProvider": () => (FormContextProvider),
   "classNames": () => (classNames),
+  "partial": () => (partial),
   "useAsync": () => (useAsync),
   "useDispose": () => (useDispose),
   "useFormContext": () => (useFormContext),
@@ -512,6 +513,17 @@ function classNames() {
   })(makeArray(arguments));
 
   return className.join(' ');
+}
+function partial(setState) {
+  return function (key, value) {
+    setState(function (v) {
+      if (typeof key === 'string') {
+        key = kv(key, isFunction(value) ? value(v[key], v) : value);
+      }
+
+      return extend({}, v, key);
+    });
+  };
 }
 ;// CONCATENATED MODULE: ./src/index.js
 
