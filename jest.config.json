@@ -1,0 +1,16 @@
+{
+    "testEnvironment": "jsdom",
+    "modulePathIgnorePatterns": [
+        "<rootDir>/build/"
+    ],
+    "moduleNameMapper": {
+        "^src/(.*)$": "<rootDir>/src/$1",
+        "^zeta-dom/(.*)$": "<rootDir>/../zeta-dom/src/$1"
+    },
+    "extensionsToTreatAsEsm": [".jsx"],
+    "collectCoverageFrom": [
+        "src/**/*.js",
+        "!src/index.js",
+        "!src/include/**/*"
+    ]
+}
