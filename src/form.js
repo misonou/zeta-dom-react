@@ -89,7 +89,7 @@ definePrototype(FormContext, {
                 if ((result[i] || '') !== (prev[v] || '')) {
                     eventContainer.emit('validationChange', self, {
                         name: v,
-                        isValid: !!result[i],
+                        isValid: !result[i],
                         message: result[i] || ''
                     });
                 }
