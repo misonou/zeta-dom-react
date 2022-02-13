@@ -294,7 +294,7 @@ var _ = createPrivateStore();
 // @ts-ignore: type inference issue
 
 
-var _FormContext = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.createContext)(null);
+var _FormContext = /*#__PURE__*/(0,external_commonjs_react_commonjs2_react_amd_react_root_React_.createContext)(null);
 
 var FormContextProvider = _FormContext.Provider;
 
@@ -325,7 +325,6 @@ function FormContext(initialData, validateOnChange) {
   var self = this;
 
   var state = _(self, {
-    validateCallback: {},
     validateResult: {},
     validateOnChange: {},
     eventContainer: new ZetaEventContainer(),
@@ -372,7 +371,7 @@ definePrototype(FormContext, {
     var props = makeArray(arguments);
 
     if (!props.length) {
-      props = keys(state.validateCallback);
+      props = keys(self.data);
     }
 
     var prev = extend({}, validateResult);
@@ -389,7 +388,7 @@ definePrototype(FormContext, {
         if ((result[i] || '') !== (prev[v] || '')) {
           eventContainer.emit('validationChange', self, {
             name: v,
-            isValid: !!result[i],
+            isValid: !result[i],
             message: result[i] || ''
           });
         }
