@@ -35,7 +35,6 @@ function createDataObject(context, eventContainer, initialData) {
 export function FormContext(initialData, validateOnChange) {
     var self = this;
     var state = _(self, {
-        validateCallback: {},
         validateResult: {},
         validateOnChange: {},
         eventContainer: new ZetaEventContainer(),
@@ -75,7 +74,7 @@ definePrototype(FormContext, {
         var eventContainer = state.eventContainer;
         var props = makeArray(arguments);
         if (!props.length) {
-            props = keys(state.validateCallback);
+            props = keys(self.data);
         }
         var prev = extend({}, validateResult);
         var promise = resolveAll(props.map(function (v) {
