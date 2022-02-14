@@ -481,7 +481,7 @@ function useFormField(props, defaultValue, prop) {
   }, [form, key, props.validateOnChange]);
   return {
     value: props[prop],
-    error: props.error || error || '',
+    error: String(props.error || error || ''),
     setValue: setValueCallback,
     setError: setError
   };
