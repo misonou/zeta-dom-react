@@ -1,4 +1,9 @@
-export type ValidateCallback<T = any> = (value: T, name: string) => Promise<string | null | undefined> | string | null | undefined;
+export type ValidateCallback<T = any> = (value: T, name: string) => Promise<string | Stringifiable | null | undefined> | string | Stringifiable | null | undefined;
+
+export interface Stringifiable {
+    toString(): string;
+    [Symbol.toPrimitive](): string;
+}
 
 export interface FormFieldProps<T = any, V = T> {
     name?: string;

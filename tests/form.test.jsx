@@ -144,6 +144,25 @@ describe('FormContext#validate', () => {
         expect(result).toBe(false);
     });
 
+    it('should accept string-coercible object as failed result', async () => {
+        const obj = { message: 'error1' };
+        const cb = mockFn().mockReturnValue({
+            toString() { return obj.message; },
+            [Symbol.toPrimitive]() { return obj.message; }
+        });
+        const { form, wrapper } = createFormContext();
+        const { result, rerender } = renderHook(() => useFormField({ name: 'foo', onValidate: cb }, 'foo_value'), { wrapper });
+
+        let isValid;
+        await act(async () => void (isValid = await form.validate()));
+        expect(isValid).toBe(false);
+        expect(result.current.error).toBe('error1');
+
+        obj.message = 'error2';
+        rerender();
+        expect(result.current.error).toBe('error2');
+    });
+
     it('should consider empty string resolved from onValidate being passed', async () => {
         const cb = mockFn().mockReturnValue('');
         const { form, wrapper } = createFormContext();

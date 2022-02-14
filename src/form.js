@@ -190,7 +190,7 @@ export function useFormField(props, defaultValue, prop) {
 
     return {
         value: props[prop],
-        error: props.error || error || '',
+        error: String(props.error || error || ''),
         setValue: setValueCallback,
         setError: setError,
     };
