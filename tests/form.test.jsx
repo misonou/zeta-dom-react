@@ -1,4 +1,5 @@
 import React from "react";
+import { render } from "@testing-library/react";
 import { act, renderHook } from '@testing-library/react-hooks'
 import { FormContextProvider, useFormContext, useFormField } from "src/form";
 import { mockFn, verifyCalls } from "./testUtil";
@@ -13,6 +14,52 @@ function createFormContext(initialData) {
         )
     };
 }
+
+describe('useFormContext', () => {
+    it('should cause re-render when data has changed', async () => {
+        let form;
+        const Field = function () {
+            useFormField({ name: 'foo' }, '');
+            return <></>;
+        };
+        const Component = function () {
+            form = useFormContext({ foo: 'bar' });
+            return (
+                <FormContextProvider value={form}>
+                    <Field />
+                    <div>{form.data.foo}</div>
+                </FormContextProvider>
+            );
+        };
+        const { getByText, findByText } = render(<Component />);
+        getByText('bar');
+
+        form.data.foo = 'baz';
+        await findByText('baz');
+    });
+
+    it('should cause re-render when isValid state has changed', async () => {
+        let form;
+        const Field = function () {
+            useFormField({ name: 'foo', onValidate: () => 'error' }, '');
+            return <></>;
+        };
+        const Component = function () {
+            form = useFormContext();
+            return (
+                <FormContextProvider value={form}>
+                    <Field />
+                    <div>{form.isValid ? 'valid' : 'invalid'}</div>
+                </FormContextProvider>
+            );
+        };
+        const { getByText, findByText } = render(<Component />);
+        getByText('valid');
+
+        form.data.foo = 'bar';
+        await findByText('invalid');
+    });
+});
 
 describe('useFormField', () => {
     it('should set initial value to default value if value is not provided', () => {

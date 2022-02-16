@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { any, combineFn, createPrivateStore, defineObservableProperty, definePrototype, extend, grep, keys, makeArray, resolveAll } from "./include/zeta-dom/util.js";
 import { ZetaEventContainer } from "./include/zeta-dom/events.js";
-import { useMemoizedFunction } from "./hooks.js";
+import { useMemoizedFunction, useObservableProperty } from "./hooks.js";
 
 const _ = createPrivateStore();
 
@@ -115,6 +115,7 @@ export function useFormContext(initialData, validateOnChange) {
         return new FormContext(initialData, validateOnChange);
     })[0];
     const forceUpdate = useState(0)[1];
+    useObservableProperty(form, 'isValid');
     useEffect(function () {
         return form.on('dataChange', function () {
             forceUpdate(function (v) {
