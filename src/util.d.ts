@@ -32,3 +32,9 @@ export function classNames(...args: ClassName[]): string;
  * @param setState A state updating callback returned from {@link React.useState}.
  */
 export function partial<T extends Zeta.Dictionary<any>>(setState: React.Dispatch<React.SetStateAction<T>>): SetPartialCallback<T>;
+
+/**
+ * Converts a mutable ref object into ref callback. If input object is already a ref callback, the same callback is returned.
+ * @param ref A ref.
+ */
+export function toRefCallback<T>(ref: React.Ref<T>): React.RefCallback<T>;
