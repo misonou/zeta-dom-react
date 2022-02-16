@@ -8,10 +8,12 @@ export interface Stringifiable {
 export interface FormFieldProps<T = any, V = T> {
     name?: string;
     value?: T;
+    required?: boolean;
     disabled?: boolean;
     error?: string;
     showErrorMessage?: boolean;
     validateOnChange?: boolean;
+    isEmpty?: (value: V) => boolean;
     onValidate?: ValidateCallback<V>;
     onChange?: (value: V) => void;
 }

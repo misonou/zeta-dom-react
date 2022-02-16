@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import { any, combineFn, createPrivateStore, definePrototype, extend, grep, keys, makeArray, resolveAll, values } from "./include/zeta-dom/util.js";
+import { any, combineFn, createPrivateStore, defineObservableProperty, definePrototype, extend, grep, keys, makeArray, resolveAll } from "./include/zeta-dom/util.js";
 import { ZetaEventContainer } from "./include/zeta-dom/events.js";
 import { useMemoizedFunction } from "./hooks.js";
 
@@ -34,19 +34,27 @@ function createDataObject(context, eventContainer, initialData) {
 
 export function FormContext(initialData, validateOnChange) {
     var self = this;
+    var fields = {};
+    var errors = {};
+    var eventContainer = new ZetaEventContainer();
     var state = _(self, {
-        validateResult: {},
-        validateOnChange: {},
-        eventContainer: new ZetaEventContainer(),
+        fields: fields,
+        errors: errors,
+        eventContainer: eventContainer,
         initialData: initialData || {},
+        setValid: defineObservableProperty(this, 'isValid', true, function () {
+            return !any(fields, function (v, i) {
+                return !v.disabled && (errors[i] || (v.required && (v.isEmpty ? v.isEmpty(self.data[i]) : !self.data[i])));
+            });
+        })
     });
     self.isValid = true;
     self.validateOnChange = validateOnChange !== false;
-    self.data = createDataObject(self, state.eventContainer, initialData);
+    self.data = createDataObject(self, eventContainer, initialData);
     self.on('dataChange', function (e) {
         if (self.validateOnChange) {
             self.validate.apply(self, grep(e.data, function (v) {
-                return state.validateOnChange[v] !== false;
+                return fields[v].validateOnChange !== false;
             }));
         }
     });
@@ -70,13 +78,13 @@ definePrototype(FormContext, {
     validate: function () {
         var self = this;
         var state = _(self);
-        var validateResult = state.validateResult;
+        var errors = state.errors;
         var eventContainer = state.eventContainer;
         var props = makeArray(arguments);
         if (!props.length) {
             props = keys(self.data);
         }
-        var prev = extend({}, validateResult);
+        var prev = extend({}, errors);
         var promise = resolveAll(props.map(function (v) {
             return eventContainer.emit('validate', self, {
                 name: v,
@@ -85,7 +93,7 @@ definePrototype(FormContext, {
         }));
         return promise.then(function (result) {
             props.forEach(function (v, i) {
-                validateResult[v] = result[i];
+                errors[v] = result[i];
                 if ((result[i] || '') !== (prev[v] || '')) {
                     eventContainer.emit('validationChange', self, {
                         name: v,
@@ -94,9 +102,7 @@ definePrototype(FormContext, {
                     });
                 }
             });
-            self.isValid = !any(values(validateResult), function (v) {
-                return v;
-            });
+            state.setValid();
             return !any(result, function (v) {
                 return v;
             });
@@ -149,10 +155,15 @@ export function useFormField(props, defaultValue, prop) {
 
     useEffect(function () {
         if (form && key) {
+            var state = _(form);
             if (key in form.data) {
                 setValue(form.data[key]);
             }
             return combineFn(
+                function () {
+                    delete state.fields[key];
+                    state.setValid();
+                },
                 form.on('dataChange', function (e) {
                     if (e.data.includes(key)) {
                         setValue(form.data[key]);
@@ -184,9 +195,10 @@ export function useFormField(props, defaultValue, prop) {
 
     useEffect(function () {
         if (form && key) {
-            _(form).validateOnChange[key] = props.validateOnChange;
+            _(form).fields[key] = props;
+            _(form).setValid();
         }
-    }, [form, key, props.validateOnChange]);
+    }, [form, key, props.validateOnChange, props.disabled, props.required]);
 
     return {
         value: props[prop],

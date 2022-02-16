@@ -91,6 +91,42 @@ describe('useFormField', () => {
     });
 });
 
+describe('FormContext#isValid', () => {
+    it('should return false for required field being empty before validate has ever been called', () => {
+        const { form, wrapper, unmount } = createFormContext();
+        renderHook(() => useFormField({ name: 'foo', required: true }, ''), { wrapper });
+        expect(form.isValid).toBe(false);
+        unmount();
+    });
+
+    it('should invoke isEmpty callback supplied to useFormField hook for checking emptiness of a field', () => {
+        const value = {};
+        const cb = mockFn().mockReturnValue(true);
+        const { form, wrapper, unmount } = createFormContext();
+        renderHook(() => useFormField({ name: 'foo', required: true, isEmpty: cb }, value), { wrapper });
+        expect(form.isValid).toBe(false);
+        expect(cb).toBeCalled();
+        expect(cb.mock.calls[0]).toEqual([value]);
+        unmount();
+    });
+
+    it('should ignore errors for disabled field', async () => {
+        const cb = mockFn().mockReturnValue('error');
+        const { form, wrapper, unmount } = createFormContext();
+        const { rerender } = renderHook(({ disabled }) => useFormField({ name: 'foo', onValidate: cb, disabled }, ''), {
+            initialProps: { disabled: false },
+            wrapper
+        });
+
+        await act(async () => void await form.validate());
+        expect(form.isValid).toBe(false);
+
+        rerender({ disabled: true });
+        expect(form.isValid).toBe(true);
+        unmount();
+    });
+});
+
 describe('FormContext#validate', () => {
     it('should trigger validation from form context', async () => {
         const cb = mockFn();
