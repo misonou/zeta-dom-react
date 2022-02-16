@@ -1,6 +1,7 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { any, combineFn, createPrivateStore, defineObservableProperty, definePrototype, extend, grep, keys, makeArray, resolveAll } from "./include/zeta-dom/util.js";
 import { ZetaEventContainer } from "./include/zeta-dom/events.js";
+import dom from "./include/zeta-dom/dom.js";
 import { useMemoizedFunction, useObservableProperty } from "./hooks.js";
 
 const _ = createPrivateStore();
@@ -41,6 +42,7 @@ export function FormContext(initialData, validateOnChange) {
         fields: fields,
         errors: errors,
         eventContainer: eventContainer,
+        refs: {},
         initialData: initialData || {},
         setValid: defineObservableProperty(this, 'isValid', true, function () {
             return !any(fields, function (v, i) {
@@ -61,6 +63,16 @@ export function FormContext(initialData, validateOnChange) {
 }
 
 definePrototype(FormContext, {
+    element: function (key) {
+        var ref = _(this).refs[key];
+        return ref && ref.current;
+    },
+    focus: function (key) {
+        var element = this.element(key);
+        if (element) {
+            dom.focus(element);
+        }
+    },
     on: function (event, handler) {
         var state = _(this);
         return state.eventContainer.add(this, event, handler);
@@ -128,6 +140,7 @@ export function useFormContext(initialData, validateOnChange) {
 
 export function useFormField(props, defaultValue, prop) {
     const form = useContext(_FormContext);
+    const ref = useRef();
     const key = props.name || '';
     const initialValue = useState(function () {
         return (form && form.data[key]) || defaultValue;
@@ -157,12 +170,14 @@ export function useFormField(props, defaultValue, prop) {
     useEffect(function () {
         if (form && key) {
             var state = _(form);
+            state.refs[key] = ref;
             if (key in form.data) {
                 setValue(form.data[key]);
             }
             return combineFn(
                 function () {
                     delete state.fields[key];
+                    delete state.refs[key];
                     state.setValid();
                 },
                 form.on('dataChange', function (e) {
@@ -206,5 +221,8 @@ export function useFormField(props, defaultValue, prop) {
         error: String(props.error || error || ''),
         setValue: setValueCallback,
         setError: setError,
+        elementRef: function (v) {
+            ref.current = v;
+        }
     };
 }

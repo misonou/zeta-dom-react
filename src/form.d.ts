@@ -49,6 +49,20 @@ export class FormContext<T extends object = Zeta.Dictionary<any>> {
     constructor(initialData: Partial<T> = {}, validateOnChange: boolean = true);
 
     /**
+     * Gets the input element for the specified field.
+     * This method only works when {@link FormFieldState.elementRef} is passed to HTML elements.
+     * @param name Name of the field.
+     */
+    element(name: keyof T): HTMLElement | undefined;
+
+    /**
+     * Focus the input element for the specified field.
+     * This method only works when {@link FormFieldState.elementRef} is passed to HTML elements.
+     * @param name Name of the field.
+     */
+    focus(name: keyof T): void;
+
+    /**
      * Registers event handlers.
      * @param event Name of the event.
      * @param handler A callback function to be fired when the specified event is triggered.
@@ -84,6 +98,7 @@ export interface FormFieldState<T> {
     readonly error: string;
     setValue: React.Dispatch<React.SetStateAction<T>>;
     setError: React.Dispatch<React.SetStateAction<string>>;
+    elementRef: React.RefCallback<HTMLElement>;
 }
 
 export function useFormField<T extends FormFieldProps<any, V>, K extends keyof T, V>(props: T, defaultValue: V, prop: K = 'value'): FormFieldState<V>;
