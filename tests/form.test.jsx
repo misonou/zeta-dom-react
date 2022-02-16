@@ -4,9 +4,10 @@ import { FormContextProvider, useFormContext, useFormField } from "src/form";
 import { mockFn, verifyCalls } from "./testUtil";
 
 function createFormContext(initialData) {
-    const { result: { current: form } } = renderHook(() => useFormContext(initialData));
+    const { result: { current: form }, unmount } = renderHook(() => useFormContext(initialData));
     return {
         form,
+        unmount,
         wrapper: ({ children }) => (
             <FormContextProvider value={form}>{children}</FormContextProvider>
         )
@@ -93,7 +94,7 @@ describe('useFormField', () => {
 describe('FormContext#validate', () => {
     it('should trigger validation from form context', async () => {
         const cb = mockFn();
-        const { form, wrapper } = createFormContext();
+        const { form, wrapper, unmount } = createFormContext();
         renderHook(() => [
             useFormField({ name: 'foo', onValidate: cb }, 'foo_value'),
             useFormField({ name: 'bar', onValidate: cb }, 'bar_value'),
@@ -104,11 +105,12 @@ describe('FormContext#validate', () => {
             ['foo_value', 'foo'],
             ['bar_value', 'bar'],
         ]);
+        unmount();
     });
 
     it('should trigger validation of specified field from form context', async () => {
         const cb = mockFn();
-        const { form, wrapper } = createFormContext();
+        const { form, wrapper, unmount } = createFormContext();
         renderHook(() => [
             useFormField({ name: 'foo', onValidate: cb }, 'foo_value'),
             useFormField({ name: 'bar', onValidate: cb }, 'bar_value'),
@@ -116,11 +118,12 @@ describe('FormContext#validate', () => {
 
         await act(async () => void await form.validate('foo'));
         verifyCalls(cb, [['foo_value', 'foo']]);
+        unmount();
     });
 
     it('should return true if all validations passed', async () => {
         const cb = mockFn().mockResolvedValue('');
-        const { form, wrapper } = createFormContext();
+        const { form, wrapper, unmount } = createFormContext();
         renderHook(() => [
             useFormField({ name: 'foo', onValidate: cb }, 'foo_value'),
             useFormField({ name: 'bar', onValidate: cb }, 'bar_value'),
@@ -129,11 +132,12 @@ describe('FormContext#validate', () => {
         let result;
         await act(async () => void (result = await form.validate()));
         expect(result).toBe(true);
+        unmount();
     });
 
     it('should return false if one of the validation failed', async () => {
         const cb = mockFn().mockResolvedValueOnce('').mockResolvedValueOnce('error');
-        const { form, wrapper } = createFormContext();
+        const { form, wrapper, unmount } = createFormContext();
         renderHook(() => [
             useFormField({ name: 'foo', onValidate: cb }, 'foo_value'),
             useFormField({ name: 'bar', onValidate: cb }, 'bar_value'),
@@ -142,6 +146,7 @@ describe('FormContext#validate', () => {
         let result;
         await act(async () => void (result = await form.validate()));
         expect(result).toBe(false);
+        unmount();
     });
 
     it('should accept string-coercible object as failed result', async () => {
@@ -150,7 +155,7 @@ describe('FormContext#validate', () => {
             toString() { return obj.message; },
             [Symbol.toPrimitive]() { return obj.message; }
         });
-        const { form, wrapper } = createFormContext();
+        const { form, wrapper, unmount } = createFormContext();
         const { result, rerender } = renderHook(() => useFormField({ name: 'foo', onValidate: cb }, 'foo_value'), { wrapper });
 
         let isValid;
@@ -161,40 +166,44 @@ describe('FormContext#validate', () => {
         obj.message = 'error2';
         rerender();
         expect(result.current.error).toBe('error2');
+        unmount();
     });
 
     it('should consider empty string resolved from onValidate being passed', async () => {
         const cb = mockFn().mockReturnValue('');
-        const { form, wrapper } = createFormContext();
+        const { form, wrapper, unmount } = createFormContext();
         renderHook(() => useFormField({ name: 'foo', onValidate: cb }, 'foo_value'), { wrapper });
 
         let result;
         await act(async () => void (result = await form.validate()));
         expect(result).toBe(true);
+        unmount();
     });
 
     it('should consider undefined resolved from onValidate being passed', async () => {
         const cb = mockFn().mockReturnValue(undefined);
-        const { form, wrapper } = createFormContext();
+        const { form, wrapper, unmount } = createFormContext();
         renderHook(() => useFormField({ name: 'foo', onValidate: cb }, 'foo_value'), { wrapper });
 
         let result;
         await act(async () => void (result = await form.validate()));
         expect(result).toBe(true);
+        unmount();
     });
 
     it('should consider null resolved from onValidate being passed', async () => {
         const cb = mockFn().mockReturnValue(null);
-        const { form, wrapper } = createFormContext();
+        const { form, wrapper, unmount } = createFormContext();
         renderHook(() => useFormField({ name: 'foo', onValidate: cb }, 'foo_value'), { wrapper });
 
         let result;
         await act(async () => void (result = await form.validate()));
         expect(result).toBe(true);
+        unmount();
     });
 
     it('should fire validate event for each named field', async () => {
-        const { form, wrapper } = createFormContext();
+        const { form, wrapper, unmount } = createFormContext();
         renderHook(() => [
             useFormField({ name: 'foo', onValidate: mockFn() }, 'foo_value'),
             useFormField({ name: 'bar', onValidate: mockFn() }, 'bar_value'),
@@ -207,10 +216,11 @@ describe('FormContext#validate', () => {
             [expect.objectContaining({ type: 'validate', name: 'foo', value: 'foo_value' }), form],
             [expect.objectContaining({ type: 'validate', name: 'bar', value: 'bar_value' }), form],
         ])
+        unmount();
     });
 
     it('should fire validationChange event if error state of a named field changed', async () => {
-        const { form, wrapper } = createFormContext();
+        const { form, wrapper, unmount } = createFormContext();
         const { result } = renderHook(() => useFormField({ name: 'foo', onValidate: () => 'error' }, ''), { wrapper });
 
         const cb = mockFn();
@@ -220,53 +230,34 @@ describe('FormContext#validate', () => {
             [expect.objectContaining({ type: 'validationChange', name: 'foo', isValid: false, message: 'error' }), form]
         ])
         expect(result.current.error).toBe('error');
+        unmount();
     });
 });
 
 describe('FormContext#reset', () => {
     it('should reset named field to default value', async () => {
-        const { form, wrapper } = createFormContext();
-        const { result } = renderHook(() => useFormField({ name: 'foo' }, 'foo'), { wrapper });
+        const { form, wrapper, unmount } = createFormContext();
+        const { result, waitForValueToChange } = renderHook(() => useFormField({ name: 'foo' }, 'foo'), { wrapper });
 
-        await act(() => {
-            const promise = new Promise(resolve => {
-                form.on('dataChange', resolve);
-            });
-            form.data.foo = 'bar';
-            return promise;
-        });
+        form.data.foo = 'bar';
+        await waitForValueToChange(() => result.current);
         expect(result.current.value).toBe('bar');
 
-        await act(() => {
-            const promise = new Promise(resolve => {
-                form.on('reset', resolve);
-            });
-            form.reset();
-            return promise;
-        });
+        act(() => form.reset());
         expect(result.current.value).toBe('foo');
+        unmount();
     });
 
     it('should reset named field to initial value', async () => {
-        const { form, wrapper } = createFormContext({ foo: 'baz' });
-        const { result } = renderHook(() => useFormField({ name: 'foo' }, 'foo'), { wrapper });
+        const { form, wrapper, unmount } = createFormContext({ foo: 'baz' });
+        const { result, waitForValueToChange } = renderHook(() => useFormField({ name: 'foo' }, 'foo'), { wrapper });
 
-        await act(() => {
-            const promise = new Promise(resolve => {
-                form.on('dataChange', resolve);
-            });
-            form.data.foo = 'bar';
-            return promise;
-        });
+        form.data.foo = 'bar';
+        await waitForValueToChange(() => result.current);
         expect(result.current.value).toBe('bar');
 
-        await act(() => {
-            const promise = new Promise(resolve => {
-                form.on('reset', resolve);
-            });
-            form.reset();
-            return promise;
-        });
+        act(() => form.reset());
         expect(result.current.value).toBe('baz');
+        unmount();
     });
 });

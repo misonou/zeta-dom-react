@@ -1,7 +1,7 @@
 import React from "react";
 import { render } from "@testing-library/react";
 import { act, renderHook } from '@testing-library/react-hooks'
-import { catchAsync, watchOnce } from "zeta-dom/util";
+import { catchAsync } from "zeta-dom/util";
 import { useAsync, useDispose, useMemoizedFunction, useObservableProperty, useRefInitCallback } from "src/hooks";
 import { delay, mockFn } from "./testUtil";
 
@@ -26,26 +26,24 @@ describe('useMemoizedFunction', () => {
 describe('useObservableProperty', () => {
     it('should cause render when observed property is changed', async () => {
         const obj = { prop: 'foo' };
-        const { result } = renderHook(() => useObservableProperty(obj, 'prop'));
+        const { result, waitForNextUpdate } = renderHook(() => useObservableProperty(obj, 'prop'));
         expect(result.current).toBe('foo');
 
-        await act(async () => {
-            const p = watchOnce(obj, 'prop');
-            obj.prop = 'bar';
-            await p;
-        });
+        obj.prop = 'bar';
+        await waitForNextUpdate();
         expect(result.current).toBe('bar');
     });
 });
 
 describe('useAsync', () => {
-    it('should be initially in loading state and value is undefined', () => {
-        const { result } = renderHook(() => useAsync(() => Promise.resolve(true)));
+    it('should be initially in loading state and value is undefined', async () => {
+        const { result, waitForNextUpdate } = renderHook(() => useAsync(() => Promise.resolve(true)));
         expect(result.current[0]).toBeUndefined();
         expect(result.current[1]).toMatchObject({
             loading: true,
             error: undefined
         });
+        await waitForNextUpdate();
     });
 
     it('should update value and set loading state to false when promise is fulfilled', async () => {
