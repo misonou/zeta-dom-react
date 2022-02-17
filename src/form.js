@@ -82,7 +82,7 @@ definePrototype(FormContext, {
         var eventContainer = state.eventContainer;
         var props = makeArray(arguments);
         if (!props.length) {
-            props = keys(self.data);
+            props = keys(state.fields);
         }
         var prev = extend({}, errors);
         var promise = resolveAll(props.map(function (v) {
