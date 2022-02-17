@@ -99,6 +99,7 @@ __webpack_require__.d(src_namespaceObject, {
   "FormContextProvider": () => (FormContextProvider),
   "classNames": () => (classNames),
   "partial": () => (partial),
+  "toRefCallback": () => (toRefCallback),
   "useAsync": () => (useAsync),
   "useDispose": () => (useDispose),
   "useFormContext": () => (useFormContext),
@@ -188,6 +189,27 @@ var ZetaEventContainer = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_
 
 ;// CONCATENATED MODULE: ./src/include/zeta-dom/events.js
 
+;// CONCATENATED MODULE: ./tmp/zeta-dom/dom.js
+
+var _defaultExport = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_zeta_.dom;
+/* harmony default export */ const dom = (_defaultExport);
+var _zeta$dom = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_zeta_.dom,
+    textInputAllowed = _zeta$dom.textInputAllowed,
+    beginDrag = _zeta$dom.beginDrag,
+    beginPinchZoom = _zeta$dom.beginPinchZoom,
+    getShortcut = _zeta$dom.getShortcut,
+    setShortcut = _zeta$dom.setShortcut,
+    focusable = _zeta$dom.focusable,
+    focused = _zeta$dom.focused,
+    setModal = _zeta$dom.setModal,
+    retainFocus = _zeta$dom.retainFocus,
+    releaseFocus = _zeta$dom.releaseFocus,
+    dom_focus = _zeta$dom.focus;
+
+;// CONCATENATED MODULE: ./src/include/zeta-dom/dom.js
+
+
+/* harmony default export */ const zeta_dom_dom = (dom);
 ;// CONCATENATED MODULE: ./src/hooks.js
 
 
@@ -289,6 +311,7 @@ function useDispose() {
 
 
 
+
 var _ = createPrivateStore();
 /** @type {React.Context<import ("./form").FormContext>} */
 // @ts-ignore: type inference issue
@@ -323,26 +346,47 @@ function createDataObject(context, eventContainer, initialData) {
 
 function FormContext(initialData, validateOnChange) {
   var self = this;
+  var fields = {};
+  var errors = {};
+  var eventContainer = new ZetaEventContainer();
 
   var state = _(self, {
-    validateResult: {},
-    validateOnChange: {},
-    eventContainer: new ZetaEventContainer(),
-    initialData: initialData || {}
+    fields: fields,
+    errors: errors,
+    eventContainer: eventContainer,
+    refs: {},
+    initialData: initialData || {},
+    setValid: defineObservableProperty(this, 'isValid', true, function () {
+      return !any(fields, function (v, i) {
+        return !v.disabled && (errors[i] || v.required && (v.isEmpty ? v.isEmpty(self.data[i]) : !self.data[i]));
+      });
+    })
   });
 
   self.isValid = true;
   self.validateOnChange = validateOnChange !== false;
-  self.data = createDataObject(self, state.eventContainer, initialData);
+  self.data = createDataObject(self, eventContainer, initialData);
   self.on('dataChange', function (e) {
     if (self.validateOnChange) {
       self.validate.apply(self, grep(e.data, function (v) {
-        return state.validateOnChange[v] !== false;
+        return fields[v].validateOnChange !== false;
       }));
     }
   });
 }
 definePrototype(FormContext, {
+  element: function element(key) {
+    var ref = _(this).refs[key];
+
+    return ref && ref.current;
+  },
+  focus: function focus(key) {
+    var element = this.element(key);
+
+    if (element) {
+      zeta_dom_dom.focus(element);
+    }
+  },
   on: function on(event, handler) {
     var state = _(this);
 
@@ -366,15 +410,15 @@ definePrototype(FormContext, {
 
     var state = _(self);
 
-    var validateResult = state.validateResult;
+    var errors = state.errors;
     var eventContainer = state.eventContainer;
     var props = makeArray(arguments);
 
     if (!props.length) {
-      props = keys(self.data);
+      props = keys(state.fields);
     }
 
-    var prev = extend({}, validateResult);
+    var prev = extend({}, errors);
     var promise = resolveAll(props.map(function (v) {
       return eventContainer.emit('validate', self, {
         name: v,
@@ -383,7 +427,7 @@ definePrototype(FormContext, {
     }));
     return promise.then(function (result) {
       props.forEach(function (v, i) {
-        validateResult[v] = result[i];
+        errors[v] = result[i];
 
         if ((result[i] || '') !== (prev[v] || '')) {
           eventContainer.emit('validationChange', self, {
@@ -393,9 +437,7 @@ definePrototype(FormContext, {
           });
         }
       });
-      self.isValid = !any(values(validateResult), function (v) {
-        return v;
-      });
+      state.setValid();
       return !any(result, function (v) {
         return v;
       });
@@ -407,6 +449,7 @@ function useFormContext(initialData, validateOnChange) {
     return new FormContext(initialData, validateOnChange);
   })[0];
   var forceUpdate = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)(0)[1];
+  useObservableProperty(form, 'isValid');
   (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
     return form.on('dataChange', function () {
       forceUpdate(function (v) {
@@ -418,6 +461,7 @@ function useFormContext(initialData, validateOnChange) {
 }
 function useFormField(props, defaultValue, prop) {
   var form = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useContext)(_FormContext);
+  var ref = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useRef)();
   var key = props.name || '';
   var initialValue = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)(function () {
     return form && form.data[key] || defaultValue;
@@ -447,11 +491,19 @@ function useFormField(props, defaultValue, prop) {
 
   (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
     if (form && key) {
+      var state = _(form);
+
+      state.refs[key] = ref;
+
       if (key in form.data) {
         setValue(form.data[key]);
       }
 
-      return combineFn(form.on('dataChange', function (e) {
+      return combineFn(function () {
+        delete state.fields[key];
+        delete state.refs[key];
+        state.setValid();
+      }, form.on('dataChange', function (e) {
         if (e.data.includes(key)) {
           setValue(form.data[key]);
         }
@@ -476,14 +528,19 @@ function useFormField(props, defaultValue, prop) {
   }, [form, key, value]);
   (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
     if (form && key) {
-      _(form).validateOnChange[key] = props.validateOnChange;
+      _(form).fields[key] = props;
+
+      _(form).setValid();
     }
-  }, [form, key, props.validateOnChange]);
+  }, [form, key, props.validateOnChange, props.disabled, props.required]);
   return {
     value: props[prop],
     error: String(props.error || error || ''),
     setValue: setValueCallback,
-    setError: setError
+    setError: setError,
+    elementRef: function elementRef(v) {
+      ref.current = v;
+    }
   };
 }
 ;// CONCATENATED MODULE: ./src/util.js
@@ -523,6 +580,15 @@ function partial(setState) {
       return extend({}, v, key);
     });
   };
+}
+function toRefCallback(ref) {
+  if (ref && !isFunction(ref)) {
+    return function (v) {
+      return ref.current = v;
+    };
+  }
+
+  return ref || noop;
 }
 ;// CONCATENATED MODULE: ./src/index.js
 
