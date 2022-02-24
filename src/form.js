@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useRef, useState } from "react";
-import { any, combineFn, createPrivateStore, defineObservableProperty, definePrototype, extend, grep, keys, makeArray, resolveAll } from "./include/zeta-dom/util.js";
+import { any, combineFn, createPrivateStore, defineObservableProperty, definePrototype, each, extend, grep, isFunction, keys, makeArray, resolve, resolveAll } from "./include/zeta-dom/util.js";
 import { ZetaEventContainer } from "./include/zeta-dom/events.js";
 import dom from "./include/zeta-dom/dom.js";
 import { useMemoizedFunction, useObservableProperty } from "./hooks.js";
@@ -31,6 +31,14 @@ function createDataObject(context, eventContainer, initialData) {
             return true;
         }
     });
+}
+
+function wrapErrorResult(state, key, error) {
+    return {
+        toString: function () {
+            return error(extend({}, state.fields[key]));
+        }
+    };
 }
 
 export function FormContext(initialData, validateOnChange) {
@@ -105,12 +113,15 @@ definePrototype(FormContext, {
         }));
         return promise.then(function (result) {
             props.forEach(function (v, i) {
+                if (isFunction(result[i])) {
+                    result[i] = wrapErrorResult(state, v, result[i]);
+                }
                 errors[v] = result[i];
                 if ((result[i] || '') !== (prev[v] || '')) {
                     eventContainer.emit('validationChange', self, {
                         name: v,
                         isValid: !result[i],
-                        message: result[i] || ''
+                        message: String(result[i] || '')
                     });
                 }
             });
@@ -166,6 +177,9 @@ export function useFormField(props, defaultValue, prop) {
         props = extend({}, props);
         props[prop] = value;
     }
+    if (form && key) {
+        _(form).fields[key] = props;
+    }
 
     useEffect(function () {
         if (form && key) {
@@ -187,7 +201,7 @@ export function useFormField(props, defaultValue, prop) {
                 }),
                 form.on('validationChange', function (e) {
                     if (e.name === key) {
-                        setError(e.message);
+                        setError(state.errors[key]);
                     }
                 }),
                 form.on('validate', function (e) {
@@ -211,7 +225,6 @@ export function useFormField(props, defaultValue, prop) {
 
     useEffect(function () {
         if (form && key) {
-            _(form).fields[key] = props;
             _(form).setValid();
         }
     }, [form, key, props.validateOnChange, props.disabled, props.required]);
@@ -224,5 +237,16 @@ export function useFormField(props, defaultValue, prop) {
         elementRef: function (v) {
             ref.current = v;
         }
+    };
+}
+
+export function combineValidators() {
+    var validators = grep(makeArray(arguments), isFunction);
+    return function (value, name) {
+        return validators.reduce(function (prev, next) {
+            return prev.then(function (result) {
+                return result || next(value, name);
+            });
+        }, resolve());
     };
 }

@@ -1,4 +1,7 @@
-export type ValidateCallback<T = any> = (value: T, name: string) => Promise<string | Stringifiable | null | undefined> | string | Stringifiable | null | undefined;
+export const FormContextProvider: React.Provider<FormContext>;
+
+export type ValidateResult = null | undefined | string | Stringifiable | ((props: any) => string);
+export type ValidateCallback<T = any> = (value: T, name: string) => ValidateResult | Promise<ValidateResult>;
 
 export interface Stringifiable {
     toString(): string;
@@ -17,8 +20,6 @@ export interface FormFieldProps<T = any, V = T> {
     onValidate?: ValidateCallback<V>;
     onChange?: (value: V) => void;
 }
-
-export const FormContextProvider: React.Provider<FormContext>;
 
 interface FormEventMap {
     reset: Zeta.ZetaEventBase;
@@ -102,3 +103,11 @@ export interface FormFieldState<T> {
 }
 
 export function useFormField<T extends FormFieldProps<any, V>, K extends keyof T, V>(props: T, defaultValue: V, prop: K = 'value'): FormFieldState<V>;
+
+/**
+ * Combines one or more validator callbacks.
+ * Supplied callbacks are called sequentially after the previous one have resolved.
+ * A non-falsy value resolved from a callback is considered a validation failure and successing callbacks will **not** be called.
+ * @param validators A list of validators. Non-function items are ignored.
+ */
+export function combineValidators<T>(...validators: (ValidateCallback<T> | false | '' | 0 | undefined | null)[]): ValidateCallback<T>;

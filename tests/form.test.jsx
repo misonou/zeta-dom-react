@@ -252,6 +252,26 @@ describe('FormContext#validate', () => {
         unmount();
     });
 
+    it('should accept a callback as failed result', async () => {
+        const cb = mockFn().mockReturnValue('error')
+        const { form, wrapper, unmount } = createFormContext();
+        const { result, rerender } = renderHook(({ foo }) => useFormField({ name: 'foo', foo, onValidate: () => cb }, 'foo_value'), {
+            wrapper,
+            initialProps: { foo: 'bar' }
+        });
+
+        let isValid;
+        await act(async () => void (isValid = await form.validate()));
+        expect(isValid).toBe(false);
+        expect(result.current.error).toBe('error');
+        expect(cb).lastCalledWith(expect.objectContaining({ foo: 'bar' }));
+
+        rerender({ foo: 'baz' });
+        expect(result.current.error).toBe('error');
+        expect(cb).lastCalledWith(expect.objectContaining({ foo: 'baz' }));
+        unmount();
+    });
+
     it('should consider empty string resolved from onValidate being passed', async () => {
         const cb = mockFn().mockReturnValue('');
         const { form, wrapper, unmount } = createFormContext();
