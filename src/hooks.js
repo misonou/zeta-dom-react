@@ -18,6 +18,7 @@ export function useObservableProperty(obj, key) {
     const sValue = useState(obj[key]);
     const value = sValue[0], setValue = sValue[1];
     useEffect(function () {
+        setValue(obj[key]);
         return watch(obj, key, function (v) {
             setValue(function () {
                 return v;

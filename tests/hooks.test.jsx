@@ -28,10 +28,23 @@ describe('useObservableProperty', () => {
         const obj = { prop: 'foo' };
         const { result, waitForNextUpdate } = renderHook(() => useObservableProperty(obj, 'prop'));
         expect(result.current).toBe('foo');
+        expect(result.all.length).toBe(1);
 
         obj.prop = 'bar';
         await waitForNextUpdate();
         expect(result.current).toBe('bar');
+    });
+
+    it('should cause render when observed property is changed before useEffect hooks', async () => {
+        const obj = { prop: 'foo' };
+        const { result } = renderHook(() => {
+            let prop = useObservableProperty(obj, 'prop');
+            if (obj.prop === 'foo') {
+                obj.prop ='bar';
+            }
+            return prop;
+        });
+        expect(result.all).toEqual(['foo', 'bar']);
     });
 });
 
