@@ -98,6 +98,7 @@ __webpack_require__.d(src_namespaceObject, {
   "FormContext": () => (FormContext),
   "FormContextProvider": () => (FormContextProvider),
   "classNames": () => (classNames),
+  "combineValidators": () => (combineValidators),
   "partial": () => (partial),
   "toRefCallback": () => (toRefCallback),
   "useAsync": () => (useAsync),
@@ -229,6 +230,7 @@ function useObservableProperty(obj, key) {
   var value = sValue[0],
       setValue = sValue[1];
   (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
+    setValue(obj[key]);
     return watch(obj, key, function (v) {
       setValue(function () {
         return v;
@@ -344,6 +346,14 @@ function createDataObject(context, eventContainer, initialData) {
   });
 }
 
+function wrapErrorResult(state, key, error) {
+  return {
+    toString: function toString() {
+      return error(extend({}, state.fields[key]));
+    }
+  };
+}
+
 function FormContext(initialData, validateOnChange) {
   var self = this;
   var fields = {};
@@ -427,13 +437,17 @@ definePrototype(FormContext, {
     }));
     return promise.then(function (result) {
       props.forEach(function (v, i) {
+        if (isFunction(result[i])) {
+          result[i] = wrapErrorResult(state, v, result[i]);
+        }
+
         errors[v] = result[i];
 
         if ((result[i] || '') !== (prev[v] || '')) {
           eventContainer.emit('validationChange', self, {
             name: v,
             isValid: !result[i],
-            message: result[i] || ''
+            message: String(result[i] || '')
           });
         }
       });
@@ -489,6 +503,10 @@ function useFormField(props, defaultValue, prop) {
     props[prop] = value;
   }
 
+  if (form && key) {
+    _(form).fields[key] = props;
+  }
+
   (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
     if (form && key) {
       var state = _(form);
@@ -509,7 +527,7 @@ function useFormField(props, defaultValue, prop) {
         }
       }), form.on('validationChange', function (e) {
         if (e.name === key) {
-          setError(e.message);
+          setError(state.errors[key]);
         }
       }), form.on('validate', function (e) {
         if (e.name === key) {
@@ -528,8 +546,6 @@ function useFormField(props, defaultValue, prop) {
   }, [form, key, value]);
   (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
     if (form && key) {
-      _(form).fields[key] = props;
-
       _(form).setValid();
     }
   }, [form, key, props.validateOnChange, props.disabled, props.required]);
@@ -541,6 +557,16 @@ function useFormField(props, defaultValue, prop) {
     elementRef: function elementRef(v) {
       ref.current = v;
     }
+  };
+}
+function combineValidators() {
+  var validators = grep(makeArray(arguments), isFunction);
+  return function (value, name) {
+    return validators.reduce(function (prev, next) {
+      return prev.then(function (result) {
+        return result || next(value, name);
+      });
+    }, resolve());
   };
 }
 ;// CONCATENATED MODULE: ./src/util.js
