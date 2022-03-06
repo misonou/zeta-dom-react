@@ -166,7 +166,7 @@ export function useFormField(props, defaultValue, prop) {
         if (!props.onChange) {
             console.warn('onChange not supplied');
         } else {
-            props.onChange(typeof v === 'function' ? v(value) : v);
+            props.onChange(typeof v === 'function' ? v(props[prop]) : v);
         }
     });
 

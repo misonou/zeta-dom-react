@@ -130,11 +130,25 @@ describe('useFormField', () => {
         expect(result.current.value).toBe('bar');
     });
 
+    it('should call setValue callback with current value for controlled field', () => {
+        const cb = mockFn();
+        const { result } = renderHook(() => useFormField({ value: 'foo', onChange: () => { } }, ''));
+        act(() => result.current.setValue(cb));
+        verifyCalls(cb, [['foo']]);
+    });
+
     it('should call onChange callback for controlled field', () => {
         const cb = mockFn();
         const { result } = renderHook(() => useFormField({ value: '', onChange: cb }, ''));
         act(() => result.current.setValue('foo'));
         verifyCalls(cb, [['foo']]);
+    });
+
+    it('should call onChange callback with value returned from setValue callback for controlled field', () => {
+        const cb = mockFn();
+        const { result } = renderHook(() => useFormField({ value: 'foo', onChange: cb }, ''));
+        act(() => result.current.setValue(() => 'bar'));
+        verifyCalls(cb, [['bar']]);
     });
 });
 
