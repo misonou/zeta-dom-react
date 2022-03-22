@@ -63,9 +63,12 @@ export function FormContext(initialData, validateOnChange) {
     self.data = createDataObject(self, eventContainer, initialData);
     self.on('dataChange', function (e) {
         if (self.validateOnChange) {
-            self.validate.apply(self, grep(e.data, function (v) {
+            var fieldsToValidate = grep(e.data, function (v) {
                 return fields[v].validateOnChange !== false;
-            }));
+            });
+            if (fieldsToValidate[0]) {
+                self.validate.apply(self, fieldsToValidate);
+            }
         }
     });
 }

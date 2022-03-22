@@ -4,8 +4,8 @@ import { act, renderHook } from '@testing-library/react-hooks'
 import { FormContextProvider, useFormContext, useFormField } from "src/form";
 import { mockFn, verifyCalls } from "./testUtil";
 
-function createFormContext(initialData) {
-    const { result: { current: form }, unmount } = renderHook(() => useFormContext(initialData));
+function createFormContext(initialData, validateOnChange) {
+    const { result: { current: form }, unmount } = renderHook(() => useFormContext(initialData, validateOnChange));
     return {
         form,
         unmount,
@@ -58,6 +58,56 @@ describe('useFormContext', () => {
 
         form.data.foo = 'bar';
         await findByText('invalid');
+    });
+
+    it('should trigger validation for updated fields if validateOnChange is set to true', async () => {
+        const cb = mockFn();
+        const { form, wrapper, unmount } = createFormContext();
+        renderHook(() => [
+            useFormField({ name: 'foo', onValidate: cb }, 'foo'),
+            useFormField({ name: 'baz', onValidate: cb }, 'baz'),
+        ], { wrapper });
+
+        expect(form.validateOnChange).toBe(true);
+        await act(async () => {
+            form.data.foo = 'bar';
+        });
+        verifyCalls(cb, [
+            ['bar', 'foo'],
+        ]);
+        unmount();
+    });
+
+    it('should not trigger validation for updated fields if the field has validateOnChange set to false', async () => {
+        const cb = mockFn();
+        const { form, wrapper, unmount } = createFormContext();
+        renderHook(() => [
+            useFormField({ name: 'foo', onValidate: cb, validateOnChange: false }, 'foo'),
+            useFormField({ name: 'baz', onValidate: cb }, 'baz'),
+        ], { wrapper });
+
+        expect(form.validateOnChange).toBe(true);
+        await act(async () => {
+            form.data.foo = 'bar';
+        });
+        expect(cb).not.toBeCalled();
+        unmount();
+    });
+
+    it('should not trigger validation for updated fields if validateOnChange is set to false', async () => {
+        const cb = mockFn();
+        const { form, wrapper, unmount } = createFormContext({}, false);
+        renderHook(() => [
+            useFormField({ name: 'foo', onValidate: cb }, 'foo'),
+            useFormField({ name: 'baz', onValidate: cb }, 'baz'),
+        ], { wrapper });
+
+        expect(form.validateOnChange).toBe(false);
+        await act(async () => {
+            form.data.foo = 'bar';
+        });
+        expect(cb).not.toBeCalled();
+        unmount();
     });
 });
 
