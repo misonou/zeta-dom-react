@@ -203,6 +203,7 @@ var _zeta$dom = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_
     focusable = _zeta$dom.focusable,
     focused = _zeta$dom.focused,
     setModal = _zeta$dom.setModal,
+    releaseModal = _zeta$dom.releaseModal,
     retainFocus = _zeta$dom.retainFocus,
     releaseFocus = _zeta$dom.releaseFocus,
     dom_focus = _zeta$dom.focus;
@@ -378,9 +379,13 @@ function FormContext(initialData, validateOnChange) {
   self.data = createDataObject(self, eventContainer, initialData);
   self.on('dataChange', function (e) {
     if (self.validateOnChange) {
-      self.validate.apply(self, grep(e.data, function (v) {
+      var fieldsToValidate = grep(e.data, function (v) {
         return fields[v].validateOnChange !== false;
-      }));
+      });
+
+      if (fieldsToValidate[0]) {
+        self.validate.apply(self, fieldsToValidate);
+      }
     }
   });
 }
@@ -491,7 +496,7 @@ function useFormField(props, defaultValue, prop) {
     if (!props.onChange) {
       console.warn('onChange not supplied');
     } else {
-      props.onChange(typeof v === 'function' ? v(value) : v);
+      props.onChange(typeof v === 'function' ? v(props[prop]) : v);
     }
   }); // put internal states on props for un-controlled mode
 
