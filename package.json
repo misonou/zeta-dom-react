@@ -1,6 +1,6 @@
 {
   "name": "zeta-dom-react",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "",
   "type": "module",
   "main": "src/index.js",

@@ -245,12 +245,14 @@ function useAsync(init, autoload) {
     return {
       loading: true,
       refresh: function refresh() {
+        var promise = resolve().then(init);
         extend(state, {
+          promise: promise,
           loading: true,
           error: undefined
         });
-        always(resolve().then(init), function (resolved, value) {
-          if (!state.disposed) {
+        always(promise, function (resolved, value) {
+          if (!state.disposed && state.promise === promise) {
             if (resolved) {
               extend(state, {
                 loading: false,
@@ -536,7 +538,7 @@ function useFormField(props, defaultValue, prop) {
         }
       }), form.on('validate', function (e) {
         if (e.name === key) {
-          return onValidate(e.value, e.name);
+          return onValidate(e.value, e.name, form);
         }
       }), form.on('reset', function () {
         setValue(initialValue);
