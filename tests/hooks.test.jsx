@@ -40,7 +40,7 @@ describe('useObservableProperty', () => {
         const { result } = renderHook(() => {
             let prop = useObservableProperty(obj, 'prop');
             if (obj.prop === 'foo') {
-                obj.prop ='bar';
+                obj.prop = 'bar';
             }
             return prop;
         });
@@ -94,6 +94,20 @@ describe('useAsync', () => {
 
         await act(async () => result.current[1].refresh());
         await act(async () => delay());
+        expect(result.current[0]).toBe('bar');
+    });
+
+    it('should return result from latest call', async () => {
+        const promise1 = delay(100).then(() => 'foo');
+        const promise2 = delay(500).then(() => 'bar');
+        const cb = mockFn().mockReturnValueOnce(promise1).mockReturnValueOnce(promise2);
+        const { result } = renderHook(() => useAsync(cb));
+
+        await act(async () => delay());
+        result.current[1].refresh();
+
+        await act(async () => void await promise2);
+        expect(cb).toBeCalledTimes(2);
         expect(result.current[0]).toBe('bar');
     });
 });

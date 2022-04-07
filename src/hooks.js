@@ -33,9 +33,10 @@ export function useAsync(init, autoload) {
         return {
             loading: true,
             refresh: function () {
-                extend(state, { loading: true, error: undefined });
-                always(resolve().then(init), function (resolved, value) {
-                    if (!state.disposed) {
+                var promise = resolve().then(init);
+                extend(state, { promise: promise, loading: true, error: undefined });
+                always(promise, function (resolved, value) {
+                    if (!state.disposed && state.promise === promise) {
                         if (resolved) {
                             extend(state, { loading: false, value: value });
                         } else {
