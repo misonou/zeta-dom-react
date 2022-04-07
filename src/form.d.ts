@@ -1,7 +1,7 @@
 export const FormContextProvider: React.Provider<FormContext>;
 
 export type ValidateResult = null | undefined | string | Stringifiable | ((props: any) => string);
-export type ValidateCallback<T = any> = (value: T, name: string) => ValidateResult | Promise<ValidateResult>;
+export type ValidateCallback<T = any> = (value: T, name: string, form: FormContext) => ValidateResult | Promise<ValidateResult>;
 
 export interface Stringifiable {
     toString(): string;

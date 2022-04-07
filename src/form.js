@@ -209,7 +209,7 @@ export function useFormField(props, defaultValue, prop) {
                 }),
                 form.on('validate', function (e) {
                     if (e.name === key) {
-                        return onValidate(e.value, e.name);
+                        return onValidate(e.value, e.name, form);
                     }
                 }),
                 form.on('reset', function () {

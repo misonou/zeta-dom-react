@@ -73,7 +73,7 @@ describe('useFormContext', () => {
             form.data.foo = 'bar';
         });
         verifyCalls(cb, [
-            ['bar', 'foo'],
+            ['bar', 'foo', form],
         ]);
         unmount();
     });
@@ -249,8 +249,8 @@ describe('FormContext#validate', () => {
 
         await act(async () => void await form.validate());
         verifyCalls(cb, [
-            ['foo_value', 'foo'],
-            ['bar_value', 'bar'],
+            ['foo_value', 'foo', form],
+            ['bar_value', 'bar', form],
         ]);
         unmount();
     });
@@ -264,7 +264,7 @@ describe('FormContext#validate', () => {
         ], { wrapper });
 
         await act(async () => void await form.validate('foo'));
-        verifyCalls(cb, [['foo_value', 'foo']]);
+        verifyCalls(cb, [['foo_value', 'foo', form]]);
         unmount();
     });
 
