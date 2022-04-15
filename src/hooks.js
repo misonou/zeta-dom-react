@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
-import { always, combineFn, extend, isArray, makeArray, resolve, setAdd, watch } from "./include/zeta-dom/util.js";
+import { lock } from "./include/zeta-dom/domLock.js";
+import { ZetaEventContainer } from "./include/zeta-dom/events.js";
+import { always, catchAsync, combineFn, extend, isArray, makeArray, resolve, setAdd, watch } from "./include/zeta-dom/util.js";
 
 const fnWeakMap = new WeakMap();
+const container = new ZetaEventContainer();
 
 export function useMemoizedFunction(callback) {
     const fn = useState(function () {
@@ -30,20 +33,39 @@ export function useObservableProperty(obj, key) {
 
 export function useAsync(init, autoload) {
     const state = useState(function () {
+        var element;
+        var emitErrorEvent = function (error) {
+            return container.emit('error', state, { error }, true);
+        };
         return {
             loading: true,
+            elementRef: function (current) {
+                element = current;
+            },
+            onError: function (handler) {
+                return container.add(state, 'error', handler);
+            },
             refresh: function () {
-                var promise = resolve().then(init);
-                extend(state, { promise: promise, loading: true, error: undefined });
-                always(promise, function (resolved, value) {
-                    if (!state.disposed && state.promise === promise) {
+                var promise;
+                var shouldNotify = function () {
+                    return !state.disposed && state.promise === promise;
+                };
+                promise = always(resolve().then(init), function (resolved, value) {
+                    if (shouldNotify()) {
                         if (resolved) {
                             extend(state, { loading: false, value: value });
                         } else {
                             extend(state, { loading: false, value: undefined, error: value });
+                            if (!emitErrorEvent(value)) {
+                                throw value;
+                            }
                         }
                     }
                 });
+                extend(state, { promise: promise, loading: true, error: undefined });
+                if (element) {
+                    catchAsync(lock(element, promise));
+                }
             }
         };
     })[0];

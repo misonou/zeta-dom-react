@@ -8,7 +8,13 @@ export type DisposeCallback = Zeta.UnregisterCallback & {
     push: (...args: Zeta.UnregisterCallback[]) => void;
 };
 
-export interface AsyncContentState {
+export interface AsyncContentState<T = any> {
+    /**
+     * Gets the value returned by the init callback.
+     * The value is identical to the first element of the returned array from {@link useAsync},
+     * and is `undefined` in initial state or when {@link AsyncContentState.error} is truthy.
+     */
+    readonly value: T | undefined;
     /**
      * Gets whether the promise returned from init callback is still pending.
      */
@@ -18,9 +24,18 @@ export interface AsyncContentState {
      */
     readonly error: any;
     /**
+     * When suppied to the `ref` property of a React element, an `error` event is emitted from the rendered element,
+     * if the error is not handled by handlers registered by {@link AsyncContentState.onError}.
+     */
+    readonly elementRef: React.RefCallback<HTMLElement>;
+    /**
      * Sets loading state to `true` and loads the data again.
      */
     refresh(): void;
+    /**
+     * Registers a handler to handle errors thrown from the data init callback.
+     */
+    onError(handler: Zeta.ZetaEventHandler<'error', { error: Zeta.ZetaErrorEvent }, AsyncContentState<T>>): Zeta.UnregisterCallback;
 }
 
 /**
@@ -48,7 +63,7 @@ export function useObservableProperty<T extends object, P extends keyof T>(obj: 
  * @param autoload Whether to autoload the data once the component is mounted, defaults to `true`.
  * @returns An array containing the data when available, and a state object, see {@link AsyncContentState}.
  */
-export function useAsync<T>(init: () => T | Promise<T>, autoload: boolean = true): [value: T | undefined, state: AsyncContentState];
+export function useAsync<T>(init: () => T | Promise<T>, autoload: boolean = true): [value: T | undefined, state: AsyncContentState<T>];
 
 /**
  * Gets asynchronous data and refreshes the components once data is ready or error has occurred.
@@ -57,7 +72,7 @@ export function useAsync<T>(init: () => T | Promise<T>, autoload: boolean = true
  * @param deps Triggers reload if the values in the list change.
  * @returns An array containing the data when available, and a state object, see {@link AsyncContentState}.
  */
-export function useAsync<T>(init: () => T | Promise<T>, deps: React.DependencyList): [value: T | undefined, state: AsyncContentState];
+export function useAsync<T>(init: () => T | Promise<T>, deps: React.DependencyList): [value: T | undefined, state: AsyncContentState<T>];
 
 /**
  * Creates a React ref callback, that will invoke the supplied callback only once for each a new DOM element created.

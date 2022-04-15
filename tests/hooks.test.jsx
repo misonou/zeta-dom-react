@@ -1,9 +1,11 @@
-import React from "react";
-import { render } from "@testing-library/react";
+import React, { useEffect, useRef } from "react";
+import { act as reactAct, render } from "@testing-library/react";
 import { act, renderHook } from '@testing-library/react-hooks'
-import { catchAsync } from "zeta-dom/util";
+import { catchAsync } from "src/include/zeta-dom/util";
+import dom from "src/include/zeta-dom/dom";
+import { combineRef } from "src/util";
 import { useAsync, useDispose, useMemoizedFunction, useObservableProperty, useRefInitCallback } from "src/hooks";
-import { delay, mockFn } from "./testUtil";
+import { delay, mockFn, verifyCalls, _ } from "./testUtil";
 
 describe('useMemoizedFunction', () => {
     it('should return the same callback every cycle', () => {
@@ -109,6 +111,62 @@ describe('useAsync', () => {
         await act(async () => void await promise2);
         expect(cb).toBeCalledTimes(2);
         expect(result.current[0]).toBe('bar');
+    });
+
+    it('should invoke onError handler when promise is rejected', async () => {
+        const cb = mockFn();
+        const error = new Error();
+        const promise = Promise.reject(error);
+        const { result } = renderHook(() => useAsync(() => promise));
+        result.current[1].onError(cb);
+        await act(async () => void await catchAsync(promise));
+
+        verifyCalls(cb, [
+            [expect.objectContaining({ type: 'error', error }), result.current[1]]
+        ]);
+    });
+
+    it('should emit error event when promise is rejected', async () => {
+        const cb = mockFn();
+        const error = new Error();
+        const promise = Promise.reject(error);
+        const Component = function () {
+            const ref = useRef();
+            const [, state] = useAsync(() => promise);
+            useEffect(() => {
+                return dom.on(ref.current, 'error', cb);
+            }, []);
+            return (<div ref={combineRef(ref, state.elementRef)}></div>);
+        };
+        render(<Component />);
+        await reactAct(async () => void await catchAsync(promise));
+
+        verifyCalls(cb, [
+            [expect.objectContaining({ type: 'error', error }), _]
+        ]);
+    });
+
+    it('should not emit error event when error is handled by onError handler', async () => {
+        const cb = mockFn().mockReturnValue(true);
+        const error = new Error();
+        const promise = Promise.reject(error);
+        const Component = function () {
+            const ref = useRef();
+            const [, state] = useAsync(() => promise);
+            useEffect(() => {
+                return state.onError(cb);
+            }, [state]);
+            useEffect(() => {
+                return dom.on(ref.current, 'error', cb);
+            }, []);
+            return (<div ref={combineRef(ref, state.elementRef)}></div>);
+        };
+        render(<Component />);
+        await reactAct(async () => void await catchAsync(promise));
+
+        verifyCalls(cb, [
+            [expect.objectContaining({ type: 'error', error }), _]
+        ]);
     });
 });
 
