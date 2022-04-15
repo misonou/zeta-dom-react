@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { any, combineFn, createPrivateStore, defineObservableProperty, definePrototype, each, extend, grep, isFunction, keys, makeArray, resolve, resolveAll } from "./include/zeta-dom/util.js";
 import { ZetaEventContainer } from "./include/zeta-dom/events.js";
-import dom from "./include/zeta-dom/dom.js";
+import { focus } from "./include/zeta-dom/dom.js";
 import { useMemoizedFunction, useObservableProperty } from "./hooks.js";
 
 const _ = createPrivateStore();
@@ -81,7 +81,7 @@ definePrototype(FormContext, {
     focus: function (key) {
         var element = this.element(key);
         if (element) {
-            dom.focus(element);
+            focus(element);
         }
     },
     on: function (event, handler) {
