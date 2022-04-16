@@ -1,4 +1,4 @@
-import { each, extend, isFunction, kv, makeArray, noop } from "./include/zeta-dom/util.js";
+import { combineFn, each, extend, isFunction, kv, makeArray, noop } from "./include/zeta-dom/util.js";
 
 export function classNames() {
     var className = [];
@@ -32,6 +32,10 @@ export function partial(setState) {
             return extend({}, v, key);
         });
     };
+}
+
+export function combineRef() {
+    return combineFn(makeArray(arguments).map(toRefCallback));
 }
 
 export function toRefCallback(ref) {

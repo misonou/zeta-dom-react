@@ -34,6 +34,12 @@ export function classNames(...args: ClassName[]): string;
 export function partial<T extends Zeta.Dictionary<any>>(setState: React.Dispatch<React.SetStateAction<T>>): SetPartialCallback<T>;
 
 /**
+ * Combines multiple mutable ref objects or ref callbacks into a single ref callback.
+ * @param ref List of refs.
+ */
+export function combineRef<T>(...ref: React.Ref<T>[]): React.RefCallback<T>;
+
+/**
  * Converts a mutable ref object into ref callback. If input object is already a ref callback, the same callback is returned.
  * @param ref A ref.
  */
