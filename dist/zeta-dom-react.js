@@ -98,6 +98,7 @@ __webpack_require__.d(src_namespaceObject, {
   "FormContext": () => (FormContext),
   "FormContextProvider": () => (FormContextProvider),
   "classNames": () => (classNames),
+  "combineRef": () => (combineRef),
   "combineValidators": () => (combineValidators),
   "partial": () => (partial),
   "toRefCallback": () => (toRefCallback),
@@ -145,10 +146,14 @@ var _zeta$util = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root
     combineFn = _zeta$util.combineFn,
     executeOnce = _zeta$util.executeOnce,
     createPrivateStore = _zeta$util.createPrivateStore,
+    util_setTimeout = _zeta$util.setTimeout,
     setTimeoutOnce = _zeta$util.setTimeoutOnce,
+    util_setInterval = _zeta$util.setInterval,
+    setIntervalSafe = _zeta$util.setIntervalSafe,
     setImmediate = _zeta$util.setImmediate,
     setImmediateOnce = _zeta$util.setImmediateOnce,
     throwNotFunction = _zeta$util.throwNotFunction,
+    errorWithCode = _zeta$util.errorWithCode,
     keys = _zeta$util.keys,
     values = _zeta$util.values,
     util_hasOwnProperty = _zeta$util.hasOwnProperty,
@@ -193,7 +198,7 @@ var ZetaEventContainer = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_
 ;// CONCATENATED MODULE: ./tmp/zeta-dom/dom.js
 
 var _defaultExport = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_zeta_.dom;
-/* harmony default export */ const dom = (_defaultExport);
+/* harmony default export */ const zeta_dom_dom = ((/* unused pure expression or super */ null && (_defaultExport)));
 var _zeta$dom = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_zeta_.dom,
     textInputAllowed = _zeta$dom.textInputAllowed,
     beginDrag = _zeta$dom.beginDrag,
@@ -206,16 +211,29 @@ var _zeta$dom = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_
     releaseModal = _zeta$dom.releaseModal,
     retainFocus = _zeta$dom.retainFocus,
     releaseFocus = _zeta$dom.releaseFocus,
+    iterateFocusPath = _zeta$dom.iterateFocusPath,
     dom_focus = _zeta$dom.focus;
 
 ;// CONCATENATED MODULE: ./src/include/zeta-dom/dom.js
 
 
-/* harmony default export */ const zeta_dom_dom = (dom);
+/* harmony default export */ const include_zeta_dom_dom = ((/* unused pure expression or super */ null && (dom)));
+;// CONCATENATED MODULE: ./tmp/zeta-dom/domLock.js
+
+var domLock_zeta$dom = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_zeta_.dom,
+    lock = domLock_zeta$dom.lock,
+    locked = domLock_zeta$dom.locked,
+    cancelLock = domLock_zeta$dom.cancelLock;
+
+;// CONCATENATED MODULE: ./src/include/zeta-dom/domLock.js
+
 ;// CONCATENATED MODULE: ./src/hooks.js
 
 
+
+
 var fnWeakMap = new WeakMap();
+var container = new ZetaEventContainer();
 function useMemoizedFunction(callback) {
   var fn = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)(function () {
     return function fn() {
@@ -242,17 +260,31 @@ function useObservableProperty(obj, key) {
 }
 function useAsync(init, autoload) {
   var state = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)(function () {
+    var element;
+
+    var emitErrorEvent = function emitErrorEvent(error) {
+      return container.emit('error', state, {
+        error: error
+      }, true);
+    };
+
     return {
       loading: true,
+      elementRef: function elementRef(current) {
+        element = current;
+      },
+      onError: function onError(handler) {
+        return container.add(state, 'error', handler);
+      },
       refresh: function refresh() {
-        var promise = resolve().then(init);
-        extend(state, {
-          promise: promise,
-          loading: true,
-          error: undefined
-        });
-        always(promise, function (resolved, value) {
-          if (!state.disposed && state.promise === promise) {
+        var promise;
+
+        var shouldNotify = function shouldNotify() {
+          return !state.disposed && state.promise === promise;
+        };
+
+        promise = always(resolve().then(init), function (resolved, value) {
+          if (shouldNotify()) {
             if (resolved) {
               extend(state, {
                 loading: false,
@@ -264,9 +296,22 @@ function useAsync(init, autoload) {
                 value: undefined,
                 error: value
               });
+
+              if (!emitErrorEvent(value)) {
+                throw value;
+              }
             }
           }
         });
+        extend(state, {
+          promise: promise,
+          loading: true,
+          error: undefined
+        });
+
+        if (element) {
+          catchAsync(lock(element, promise));
+        }
       }
     };
   })[0];
@@ -401,7 +446,7 @@ definePrototype(FormContext, {
     var element = this.element(key);
 
     if (element) {
-      zeta_dom_dom.focus(element);
+      dom_focus(element);
     }
   },
   on: function on(event, handler) {
@@ -613,6 +658,9 @@ function partial(setState) {
       return extend({}, v, key);
     });
   };
+}
+function combineRef() {
+  return combineFn(makeArray(arguments).map(toRefCallback));
 }
 function toRefCallback(ref) {
   if (ref && !isFunction(ref)) {
