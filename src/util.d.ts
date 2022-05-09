@@ -34,6 +34,13 @@ export function classNames(...args: ClassName[]): string;
 export function partial<T extends Zeta.Dictionary<any>>(setState: React.Dispatch<React.SetStateAction<T>>): SetPartialCallback<T>;
 
 /**
+ * Returns a callback that set the specific property of a composite state.
+ * @param setState A state updating callback returned from {@link React.useState}.
+ * @param key Property to update.
+ */
+export function partial<T extends Zeta.Dictionary<any>, P extends keyof T>(setState: React.Dispatch<React.SetStateAction<T>>, key: P): React.Dispatch<React.SetStateAction<T[P]>>;
+
+/**
  * Combines multiple mutable ref objects or ref callbacks into a single ref callback.
  * @param ref List of refs.
  */

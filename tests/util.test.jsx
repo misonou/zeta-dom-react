@@ -28,6 +28,12 @@ describe('partial', () => {
             prop2: 'true',
             prop3: 'true'
         });
+        act(() => partial(result.current[1], 'prop2')('false'));
+        expect(result.current[0]).toEqual({
+            prop1: 'false',
+            prop2: 'false',
+            prop3: 'true'
+        });
     });
 
     it('should update a particular property in the composite state with callback', () => {
@@ -39,8 +45,15 @@ describe('partial', () => {
             prop2: 'true',
             prop3: 'true'
         });
+        act(() => partial(result.current[1], 'prop2')(cb));
+        expect(result.current[0]).toEqual({
+            prop1: 'false',
+            prop2: 'false',
+            prop3: 'true'
+        });
         verifyCalls(cb, [
-            ['true', partialInitialState]
+            ['true', { ...partialInitialState }],
+            ['true', { ...partialInitialState, prop1: 'false' }],
         ]);
     });
 });

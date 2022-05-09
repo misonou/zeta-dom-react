@@ -23,8 +23,8 @@ export function classNames() {
     return className.join(' ');
 }
 
-export function partial(setState) {
-    return function (key, value) {
+export function partial(setState, key) {
+    var fn = function (key, value) {
         setState(function (v) {
             if (typeof key === 'string') {
                 key = kv(key, isFunction(value) ? value(v[key], v) : value);
@@ -32,6 +32,7 @@ export function partial(setState) {
             return extend({}, v, key);
         });
     };
+    return key ? fn.bind(0, key) : fn;
 }
 
 export function combineRef() {
