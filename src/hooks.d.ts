@@ -8,6 +8,10 @@ export type DisposeCallback = Zeta.UnregisterCallback & {
     push: (...args: Zeta.UnregisterCallback[]) => void;
 };
 
+export interface ErrorSource {
+    onError(handler: (error: any) => any): Zeta.UnregisterCallback;
+}
+
 export interface AsyncContentState<T = any> {
     /**
      * Gets the value returned by the init callback.
@@ -106,3 +110,9 @@ export function useRefInitCallback<T extends object, F extends (instance: T) => 
  * ```
  */
 export function useDispose(): DisposeCallback;
+
+/**
+ * Returns a ref callback which when given to a React element, error caught from specified sources will be emitted through `error` event and be bubbled up through DOM.
+ * @param args A list of error sources. Error source must implement an `onError` method.
+ */
+export function useErrorHandlerRef<T extends Element = HTMLElement>(...args: ErrorSource[]): React.RefCallback<T>;

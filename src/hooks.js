@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import dom from "./include/zeta-dom/dom.js";
 import { lock } from "./include/zeta-dom/domLock.js";
 import { ZetaEventContainer } from "./include/zeta-dom/events.js";
-import { always, catchAsync, combineFn, extend, isArray, makeArray, resolve, setAdd, watch } from "./include/zeta-dom/util.js";
+import { always, catchAsync, combineFn, extend, isArray, makeArray, map, resolve, setAdd, watch } from "./include/zeta-dom/util.js";
 
 const fnWeakMap = new WeakMap();
 const container = new ZetaEventContainer();
@@ -111,4 +112,19 @@ export function useDispose() {
         return dispose;
     }, [dispose]);
     return dispose;
+}
+
+export function useErrorHandlerRef() {
+    const ref = useRef(null);
+    const args = makeArray(arguments);
+    useEffect(function () {
+        return combineFn(map(args, function (v) {
+            return v.onError(function (error) {
+                if (ref.current) {
+                    return dom.emit('error', ref.current, { error }, true);
+                }
+            });
+        }));
+    }, [ref].concat(args));
+    return ref;
 }
