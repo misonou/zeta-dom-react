@@ -44,7 +44,9 @@ export function useAsync(init, autoload) {
                 element = current;
             },
             onError: function (handler) {
-                return container.add(state, 'error', handler);
+                return container.add(state, 'error', function (e) {
+                    return handler.call(state, e.error);
+                });
             },
             refresh: function () {
                 var promise;

@@ -78,8 +78,9 @@ describe('useAsync', () => {
         const error = new Error();
         const promise = Promise.reject(error);
         const { result } = renderHook(() => useAsync(() => promise));
-        await act(async () => void await catchAsync(promise));
+        catchAsync(result.current[1].promise);
 
+        await act(async () => void await catchAsync(promise));
         expect(result.current[0]).toBe(undefined);
         expect(result.current[1]).toMatchObject({
             loading: false,
@@ -119,11 +120,10 @@ describe('useAsync', () => {
         const promise = Promise.reject(error);
         const { result } = renderHook(() => useAsync(() => promise));
         result.current[1].onError(cb);
-        await act(async () => void await catchAsync(promise));
+        catchAsync(result.current[1].promise);
 
-        verifyCalls(cb, [
-            [expect.objectContaining({ type: 'error', error }), result.current[1]]
-        ]);
+        await act(async () => void await catchAsync(promise));
+        verifyCalls(cb, [[error]]);
     });
 
     it('should emit error event when promise is rejected', async () => {
@@ -139,8 +139,8 @@ describe('useAsync', () => {
             return (<div ref={combineRef(ref, state.elementRef)}></div>);
         };
         render(<Component />);
-        await reactAct(async () => void await catchAsync(promise));
 
+        await reactAct(async () => void await catchAsync(promise));
         verifyCalls(cb, [
             [expect.objectContaining({ type: 'error', error }), _]
         ]);
@@ -154,7 +154,7 @@ describe('useAsync', () => {
             const ref = useRef();
             const [, state] = useAsync(() => promise);
             useEffect(() => {
-                return state.onError(cb);
+                return state.onError(() => true);
             }, [state]);
             useEffect(() => {
                 return dom.on(ref.current, 'error', cb);
@@ -162,11 +162,9 @@ describe('useAsync', () => {
             return (<div ref={combineRef(ref, state.elementRef)}></div>);
         };
         render(<Component />);
-        await reactAct(async () => void await catchAsync(promise));
 
-        verifyCalls(cb, [
-            [expect.objectContaining({ type: 'error', error }), _]
-        ]);
+        await reactAct(async () => void await catchAsync(promise));
+        expect(cb).not.toBeCalled();
     });
 });
 

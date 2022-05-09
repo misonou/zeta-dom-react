@@ -39,7 +39,7 @@ export interface AsyncContentState<T = any> {
     /**
      * Registers a handler to handle errors thrown from the data init callback.
      */
-    onError(handler: Zeta.ZetaEventHandler<'error', { error: Zeta.ZetaErrorEvent }, AsyncContentState<T>>): Zeta.UnregisterCallback;
+    onError(handler: (error: any, this: this) => any): Zeta.UnregisterCallback;
 }
 
 /**
