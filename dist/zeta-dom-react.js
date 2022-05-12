@@ -95,6 +95,7 @@ __webpack_require__.d(__webpack_exports__, {
 var src_namespaceObject = {};
 __webpack_require__.r(src_namespaceObject);
 __webpack_require__.d(src_namespaceObject, {
+  "DataView": () => (DataView),
   "FormContext": () => (FormContext),
   "FormContextProvider": () => (FormContextProvider),
   "classNames": () => (classNames),
@@ -103,7 +104,9 @@ __webpack_require__.d(src_namespaceObject, {
   "partial": () => (partial),
   "toRefCallback": () => (toRefCallback),
   "useAsync": () => (useAsync),
+  "useDataView": () => (useDataView),
   "useDispose": () => (useDispose),
+  "useErrorHandlerRef": () => (useErrorHandlerRef),
   "useFormContext": () => (useFormContext),
   "useFormField": () => (useFormField),
   "useMemoizedFunction": () => (useMemoizedFunction),
@@ -189,6 +192,79 @@ var _zeta$util = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root
 
 ;// CONCATENATED MODULE: ./src/include/zeta-dom/util.js
 
+;// CONCATENATED MODULE: ./src/dataView.js
+
+
+
+var _ = createPrivateStore();
+
+var proto = DataView.prototype;
+function DataView(filters, sortBy, sortOrder, pageSize) {
+  _(this, {});
+
+  filters = extend({}, filters);
+
+  for (var i in filters) {
+    defineObservableProperty(filters, i);
+  }
+
+  extend(this, {
+    filters: Object.freeze(filters),
+    sortBy: sortBy,
+    sortOrder: sortOrder,
+    pageSize: pageSize || DataView.pageSize
+  });
+}
+util_define(DataView, {
+  pageSize: 0
+});
+definePrototype(DataView, {
+  pageIndex: 0,
+  pageSize: 0,
+  itemCount: 0,
+  getView: function getView(items, callback) {
+    var self = this;
+
+    var state = _(self);
+
+    var pageIndex = self.pageIndex || 0;
+    var pageSize = self.pageSize || 0;
+    items = items || [];
+
+    if (items !== state.items) {
+      state.items = items;
+      state.filteredItems = items.length ? undefined : [];
+    }
+
+    var filteredItems = state.filteredItems || (state.filteredItems = (callback(state.items, self.filters, self.sortBy) || [])[self.sortOrder === 'desc' ? 'reverse' : 'slice']());
+    self.itemCount = filteredItems.length;
+    return [filteredItems.slice(pageIndex * pageSize, pageSize ? (pageIndex + 1) * pageSize : undefined), filteredItems.length];
+  }
+});
+defineObservableProperty(proto, 'sortBy');
+defineObservableProperty(proto, 'sortOrder');
+defineObservableProperty(proto, 'pageIndex');
+defineObservableProperty(proto, 'pageSize');
+function useDataView(filters, sortBy, sortOrder, pageSize) {
+  var forceUpdate = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)(false)[1];
+  var dataView = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)(function () {
+    var view = new DataView(filters, sortBy, sortOrder, pageSize);
+
+    var state = _(view);
+
+    var onUpdated = function onUpdated() {
+      state.filteredItems = state.items.length ? undefined : [];
+      forceUpdate(function (v) {
+        return !v;
+      });
+    };
+
+    watch(view, onUpdated);
+    watch(view.filters, onUpdated);
+    return view;
+  })[0];
+  return dataView;
+}
 ;// CONCATENATED MODULE: ./tmp/zeta-dom/events.js
 
 var ZetaEventContainer = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_zeta_.EventContainer;
@@ -198,7 +274,7 @@ var ZetaEventContainer = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_
 ;// CONCATENATED MODULE: ./tmp/zeta-dom/dom.js
 
 var _defaultExport = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_zeta_.dom;
-/* harmony default export */ const zeta_dom_dom = ((/* unused pure expression or super */ null && (_defaultExport)));
+/* harmony default export */ const dom = (_defaultExport);
 var _zeta$dom = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_zeta_.dom,
     textInputAllowed = _zeta$dom.textInputAllowed,
     beginDrag = _zeta$dom.beginDrag,
@@ -217,7 +293,7 @@ var _zeta$dom = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_
 ;// CONCATENATED MODULE: ./src/include/zeta-dom/dom.js
 
 
-/* harmony default export */ const include_zeta_dom_dom = ((/* unused pure expression or super */ null && (dom)));
+/* harmony default export */ const zeta_dom_dom = (dom);
 ;// CONCATENATED MODULE: ./tmp/zeta-dom/domLock.js
 
 var domLock_zeta$dom = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_zeta_.dom,
@@ -228,6 +304,7 @@ var domLock_zeta$dom = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_do
 ;// CONCATENATED MODULE: ./src/include/zeta-dom/domLock.js
 
 ;// CONCATENATED MODULE: ./src/hooks.js
+
 
 
 
@@ -274,7 +351,9 @@ function useAsync(init, autoload) {
         element = current;
       },
       onError: function onError(handler) {
-        return container.add(state, 'error', handler);
+        return container.add(state, 'error', function (e) {
+          return handler.call(state, e.error);
+        });
       },
       refresh: function refresh() {
         var promise;
@@ -355,6 +434,22 @@ function useDispose() {
   }, [dispose]);
   return dispose;
 }
+function useErrorHandlerRef() {
+  var ref = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useRef)(null);
+  var args = makeArray(arguments);
+  (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
+    return combineFn(map(args, function (v) {
+      return v.onError(function (error) {
+        if (ref.current) {
+          return zeta_dom_dom.emit('error', ref.current, {
+            error: error
+          }, true);
+        }
+      });
+    }));
+  }, [ref].concat(args));
+  return ref;
+}
 ;// CONCATENATED MODULE: ./src/form.js
 
 
@@ -362,7 +457,7 @@ function useDispose() {
 
 
 
-var _ = createPrivateStore();
+var form_ = createPrivateStore();
 /** @type {React.Context<import ("./form").FormContext>} */
 // @ts-ignore: type inference issue
 
@@ -408,7 +503,7 @@ function FormContext(initialData, validateOnChange) {
   var errors = {};
   var eventContainer = new ZetaEventContainer();
 
-  var state = _(self, {
+  var state = form_(self, {
     fields: fields,
     errors: errors,
     eventContainer: eventContainer,
@@ -438,7 +533,7 @@ function FormContext(initialData, validateOnChange) {
 }
 definePrototype(FormContext, {
   element: function element(key) {
-    var ref = _(this).refs[key];
+    var ref = form_(this).refs[key];
 
     return ref && ref.current;
   },
@@ -450,14 +545,14 @@ definePrototype(FormContext, {
     }
   },
   on: function on(event, handler) {
-    var state = _(this);
+    var state = form_(this);
 
     return state.eventContainer.add(this, event, handler);
   },
   reset: function reset() {
     var self = this;
 
-    var state = _(self);
+    var state = form_(self);
 
     for (var i in self.data) {
       delete self.data[i];
@@ -470,7 +565,7 @@ definePrototype(FormContext, {
   validate: function validate() {
     var self = this;
 
-    var state = _(self);
+    var state = form_(self);
 
     var errors = state.errors;
     var eventContainer = state.eventContainer;
@@ -556,12 +651,12 @@ function useFormField(props, defaultValue, prop) {
   }
 
   if (form && key) {
-    _(form).fields[key] = props;
+    form_(form).fields[key] = props;
   }
 
   (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
     if (form && key) {
-      var state = _(form);
+      var state = form_(form);
 
       state.refs[key] = ref;
 
@@ -598,7 +693,7 @@ function useFormField(props, defaultValue, prop) {
   }, [form, key, value]);
   (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
     if (form && key) {
-      _(form).setValid();
+      form_(form).setValid();
     }
   }, [form, key, props.validateOnChange, props.disabled, props.required]);
   return {
@@ -648,8 +743,8 @@ function classNames() {
 
   return className.join(' ');
 }
-function partial(setState) {
-  return function (key, value) {
+function partial(setState, key) {
+  var fn = function fn(key, value) {
     setState(function (v) {
       if (typeof key === 'string') {
         key = kv(key, isFunction(value) ? value(v[key], v) : value);
@@ -658,6 +753,8 @@ function partial(setState) {
       return extend({}, v, key);
     });
   };
+
+  return key ? fn.bind(0, key) : fn;
 }
 function combineRef() {
   return combineFn(makeArray(arguments).map(toRefCallback));
@@ -672,6 +769,7 @@ function toRefCallback(ref) {
   return ref || noop;
 }
 ;// CONCATENATED MODULE: ./src/index.js
+
 
 
 
