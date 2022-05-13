@@ -5,7 +5,9 @@ const _ = createPrivateStore();
 const proto = DataView.prototype;
 
 export function DataView(filters, sortBy, sortOrder, pageSize) {
-    _(this, {});
+    _(this, {
+        items: []
+    });
     filters = extend({}, filters);
     for (let i in filters) {
         defineObservableProperty(filters, i);
