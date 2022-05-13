@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { createPrivateStore, define, defineObservableProperty, definePrototype, extend, watch } from "./include/zeta-dom/util.js";
+import { useEffect, useState } from "react";
+import { combineFn, createPrivateStore, define, defineObservableProperty, definePrototype, extend, watch } from "./include/zeta-dom/util.js";
 
 const _ = createPrivateStore();
 const proto = DataView.prototype;
@@ -52,17 +52,20 @@ defineObservableProperty(proto, 'pageSize');
 export function useDataView(filters, sortBy, sortOrder, pageSize) {
     var forceUpdate = useState(false)[1];
     var dataView = useState(function () {
-        var view = new DataView(filters, sortBy, sortOrder, pageSize);
-        var state = _(view);
+        return new DataView(filters, sortBy, sortOrder, pageSize);
+    })[0];
+    useEffect(() => {
+        var state = _(dataView);
         var onUpdated = function () {
             state.filteredItems = state.items.length ? undefined : [];
             forceUpdate(function (v) {
                 return !v;
             });
         };
-        watch(view, onUpdated);
-        watch(view.filters, onUpdated);
-        return view;
-    })[0];
+        return combineFn(
+            watch(dataView, onUpdated),
+            watch(dataView.filters, onUpdated)
+        );
+    }, [dataView]);
     return dataView;
 }
