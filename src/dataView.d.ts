@@ -1,3 +1,26 @@
+export interface DataViewProps<P extends object> {
+    /**
+     * Gets the filter object.
+     */
+    filters: P;
+    /**
+     * Gets the sorting field.
+     */
+    sortBy: string | undefined;
+    /**
+     * Gets the sorting order, whether by ascending or descending of the specified field.
+     */
+    sortOrder: 'asc' | 'desc' | undefined;
+    /**
+     * Gets the page index.
+     */
+    pageIndex: number;
+    /**
+     * Gets the page size.
+     */
+    pageSize: number;
+}
+
 /**
  * Represents a filterable, sortable and paged context of list of items.
  */
@@ -6,7 +29,7 @@ export class DataView<P extends object> {
      * Gets the filter object.
      * Updating its property will trigger a component update.
      */
-    readonly filters: P;
+    filters: P;
     /**
      * Gets or sets the total number of items.
      * The value is automatically updated by {@link DataView.getView}.
@@ -45,6 +68,16 @@ export class DataView<P extends object> {
      * @returns An array containing a list of filtered and sorted items in the current page, and the total number of filtered items.
      */
     getView<T>(items: T[] | undefined, callback: (items: T[], filters: P, sortBy: string) => T[]): [items: T[], totalCount: number];
+
+    /**
+     * Gets the data view properties as a plain object for persisting states.
+     */
+    toJSON(): DataViewProps<P>
+
+    /**
+     * Resets filters, sorting and paging to default values.
+     */
+    reset(): void;;
 }
 
 /**

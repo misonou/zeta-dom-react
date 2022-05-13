@@ -1,23 +1,28 @@
 import { useEffect, useState } from "react";
-import { combineFn, createPrivateStore, define, defineObservableProperty, definePrototype, extend, watch } from "./include/zeta-dom/util.js";
+import { combineFn, createPrivateStore, define, defineObservableProperty, defineOwnProperty, definePrototype, extend, keys, pick, watch } from "./include/zeta-dom/util.js";
 
 const _ = createPrivateStore();
 const proto = DataView.prototype;
 
 export function DataView(filters, sortBy, sortOrder, pageSize) {
-    _(this, {
-        items: []
-    });
+    var self = this;
+    var defaults = {
+        filters: extend({}, filters),
+        sortBy: sortBy,
+        sortOrder: sortOrder,
+        pageIndex: 0,
+        pageSize: pageSize === undefined ? DataView.pageSize : pageSize
+    }
     filters = extend({}, filters);
     for (let i in filters) {
         defineObservableProperty(filters, i);
     }
-    extend(this, {
+    _(self, {
         filters: Object.freeze(filters),
-        sortBy: sortBy,
-        sortOrder: sortOrder,
-        pageSize: pageSize || DataView.pageSize
+        defaults: defaults,
+        items: [],
     });
+    extend(this, defaults);
 }
 
 define(DataView, {
@@ -25,8 +30,6 @@ define(DataView, {
 });
 
 definePrototype(DataView, {
-    pageIndex: 0,
-    pageSize: 0,
     itemCount: 0,
     getView: function (items, callback) {
         var self = this;
@@ -41,6 +44,15 @@ definePrototype(DataView, {
         var filteredItems = state.filteredItems || (state.filteredItems = (callback(state.items, self.filters, self.sortBy) || [])[self.sortOrder === 'desc' ? 'reverse' : 'slice']());
         self.itemCount = filteredItems.length;
         return [filteredItems.slice(pageIndex * pageSize, pageSize ? (pageIndex + 1) * pageSize : undefined), filteredItems.length];
+    },
+    toJSON: function () {
+        var self = this;
+        return extend(pick(self, keys(_(self).defaults)), {
+            filters: extend({}, self.filters)
+        });
+    },
+    reset: function () {
+        extend(this, _(this).defaults);
     }
 });
 
@@ -48,6 +60,9 @@ defineObservableProperty(proto, 'sortBy');
 defineObservableProperty(proto, 'sortOrder');
 defineObservableProperty(proto, 'pageIndex');
 defineObservableProperty(proto, 'pageSize');
+defineObservableProperty(proto, 'filters', {}, function (newValue) {
+    return extend(_(this).filters, newValue);
+});
 
 export function useDataView(filters, sortBy, sortOrder, pageSize) {
     var forceUpdate = useState(false)[1];
