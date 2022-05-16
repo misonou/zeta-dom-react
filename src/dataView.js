@@ -9,7 +9,7 @@ export function DataView(filters, sortBy, sortOrder, pageSize) {
     var defaults = {
         filters: extend({}, filters),
         sortBy: sortBy,
-        sortOrder: sortOrder,
+        sortOrder: sortOrder || (sortBy && 'asc'),
         pageIndex: 0,
         pageSize: pageSize === undefined ? DataView.pageSize : pageSize
     }

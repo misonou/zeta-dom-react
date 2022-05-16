@@ -85,7 +85,7 @@ export class DataView<P extends object> {
  * @param items An array of items. Changes of array reference will trigger component update.
  * @param filters Initial filter.
  * @param sortBy Initial sorting field if any.
- * @param sortOrder Initial sorting direction.
- * @param pageSize Initial page size. If not given, the default page size will be used.
+ * @param sortOrder Initial sorting direction, defaults to `asc` if `sortBy` is not empty.
+ * @param pageSize Initial page size. If not given, the default page size {@link DataView.pageSize} will be used.
  */
-export function useDataView<P extends object = {}>(filters: P, sortBy?: string, sortOrder?: string, pageSize?: number): DataView<P>;
+export function useDataView<P extends object = {}>(filters: P, sortBy?: string, sortOrder?: 'asc' | 'desc', pageSize?: number): DataView<P>;
