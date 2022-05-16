@@ -200,6 +200,18 @@ describe('useFormField', () => {
         act(() => result.current.setValue(() => 'bar'));
         verifyCalls(cb, [['bar']]);
     });
+
+    it('should not overwrite changes through data object', async () => {
+        const { form, wrapper, unmount } = createFormContext();
+        const { result, waitForValueToChange } = renderHook(() => useFormField({ name: 'foo' }, ''), { wrapper });
+        act(() => {
+            result.current.setValue('bar')
+            form.data.foo = 'baz';
+        });
+        expect(form.data.foo).toBe('baz');
+        await waitForValueToChange(() => result.current);
+        unmount();
+    });
 });
 
 describe('FormContext#isValid', () => {

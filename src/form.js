@@ -22,6 +22,7 @@ function createDataObject(context, eventContainer, initialData) {
         set: function (t, p, v) {
             if (typeof p === 'string' && t[p] !== v) {
                 if (p in t) {
+                    _(context).pending[p] = true;
                     eventContainer.emitAsync('dataChange', context, [p], {}, function (v, a) {
                         return v.concat(a);
                     });
@@ -51,6 +52,7 @@ export function FormContext(initialData, validateOnChange) {
         errors: errors,
         eventContainer: eventContainer,
         refs: {},
+        pending: {},
         initialData: initialData || {},
         setValid: defineObservableProperty(this, 'isValid', true, function () {
             return !any(fields, function (v, i) {
@@ -62,6 +64,7 @@ export function FormContext(initialData, validateOnChange) {
     self.validateOnChange = validateOnChange !== false;
     self.data = createDataObject(self, eventContainer, initialData);
     self.on('dataChange', function (e) {
+        state.pending = {};
         if (self.validateOnChange) {
             var fieldsToValidate = grep(e.data, function (v) {
                 return fields[v].validateOnChange !== false;
@@ -221,8 +224,10 @@ export function useFormField(props, defaultValue, prop) {
     }, [form, key, initialValue, onValidate]);
 
     useEffect(function () {
-        if (form && key) {
+        var pending = form && key && _(form).pending;
+        if (pending && !pending[key]) {
             form.data[key] = value;
+            pending[key] = false;
         }
     }, [form, key, value]);
 
