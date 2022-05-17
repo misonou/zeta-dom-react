@@ -214,6 +214,21 @@ describe('useFormField', () => {
     });
 });
 
+describe('FormContext', () => {
+    it('should fire dataChange event after reset for field not declared in initial data', async () => {
+        const { form, wrapper, unmount } = createFormContext();
+        const { result, waitForValueToChange } = renderHook(() => useFormField({ name: 'foo' }, 'foo'), { wrapper });
+        const cb = mockFn();
+        form.on('dataChange', cb);
+        form.reset();
+        form.data.foo = 'bar';
+
+        await waitForValueToChange(() => result.current);
+        expect(cb).toBeCalledTimes(1);
+        unmount();
+    });
+});
+
 describe('FormContext#isValid', () => {
     it('should return false for required field being empty before validate has ever been called', () => {
         const { form, wrapper, unmount } = createFormContext();

@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useRef, useState } from "react";
-import { any, combineFn, createPrivateStore, defineObservableProperty, definePrototype, each, extend, grep, isFunction, keys, makeArray, resolve, resolveAll } from "./include/zeta-dom/util.js";
+import { any, combineFn, createPrivateStore, defineObservableProperty, definePrototype, extend, grep, inherit, isFunction, keys, makeArray, resolve, resolveAll } from "./include/zeta-dom/util.js";
 import { ZetaEventContainer } from "./include/zeta-dom/events.js";
 import { focus } from "./include/zeta-dom/dom.js";
 import { useMemoizedFunction, useObservableProperty } from "./hooks.js";
@@ -47,13 +47,15 @@ export function FormContext(initialData, validateOnChange) {
     var fields = {};
     var errors = {};
     var eventContainer = new ZetaEventContainer();
+    var defaults = {};
     var state = _(self, {
         fields: fields,
         errors: errors,
         eventContainer: eventContainer,
         refs: {},
         pending: {},
-        initialData: initialData || {},
+        defaults: defaults,
+        initialData: inherit(defaults, initialData),
         setValid: defineObservableProperty(this, 'isValid', true, function () {
             return !any(fields, function (v, i) {
                 return !v.disabled && (errors[i] || (v.required && (v.isEmpty ? v.isEmpty(self.data[i]) : !self.data[i])));
@@ -62,7 +64,7 @@ export function FormContext(initialData, validateOnChange) {
     });
     self.isValid = true;
     self.validateOnChange = validateOnChange !== false;
-    self.data = createDataObject(self, eventContainer, initialData);
+    self.data = createDataObject(self, eventContainer, state.initialData);
     self.on('dataChange', function (e) {
         state.pending = {};
         if (self.validateOnChange) {
@@ -191,11 +193,13 @@ export function useFormField(props, defaultValue, prop) {
         if (form && key) {
             var state = _(form);
             state.refs[key] = ref;
+            state.defaults[key] = defaultValue;
             if (key in form.data) {
                 setValue(form.data[key]);
             }
             return combineFn(
                 function () {
+                    delete state.defaults[key];
                     delete state.fields[key];
                     delete state.refs[key];
                     state.setValid();
