@@ -227,6 +227,16 @@ describe('FormContext', () => {
         expect(cb).toBeCalledTimes(1);
         unmount();
     });
+
+    it('should not throw error when updating field with no rendered component', async () => {
+        const { form, wrapper, unmount } = createFormContext({ foo: 'foo1', bar: 'bar1' });
+        const { result, waitForValueToChange } = renderHook(() => useFormField({ name: 'foo' }, ''), { wrapper });
+        form.data.foo = 'foo2';
+        form.data.bar = 'bar2';
+
+        await waitForValueToChange(() => result.current);
+        unmount();
+    });
 });
 
 describe('FormContext#isValid', () => {

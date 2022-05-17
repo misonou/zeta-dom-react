@@ -69,7 +69,7 @@ export function FormContext(initialData, validateOnChange) {
         state.pending = {};
         if (self.validateOnChange) {
             var fieldsToValidate = grep(e.data, function (v) {
-                return fields[v].validateOnChange !== false;
+                return fields[v] && fields[v].validateOnChange !== false;
             });
             if (fieldsToValidate[0]) {
                 self.validate.apply(self, fieldsToValidate);
