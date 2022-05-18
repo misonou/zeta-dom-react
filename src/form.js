@@ -3,6 +3,7 @@ import { any, combineFn, createPrivateStore, defineObservableProperty, definePro
 import { ZetaEventContainer } from "./include/zeta-dom/events.js";
 import { focus } from "./include/zeta-dom/dom.js";
 import { useMemoizedFunction, useObservableProperty } from "./hooks.js";
+import { useViewState } from "./viewState.js";
 
 const _ = createPrivateStore();
 
@@ -42,7 +43,7 @@ function wrapErrorResult(state, key, error) {
     };
 }
 
-export function FormContext(initialData, validateOnChange) {
+export function FormContext(initialData, validateOnChange, viewState) {
     var self = this;
     var fields = {};
     var errors = {};
@@ -52,6 +53,7 @@ export function FormContext(initialData, validateOnChange) {
         fields: fields,
         errors: errors,
         eventContainer: eventContainer,
+        viewState: viewState,
         refs: {},
         pending: {},
         defaults: defaults,
@@ -63,8 +65,9 @@ export function FormContext(initialData, validateOnChange) {
         })
     });
     self.isValid = true;
+    self.autoPersist = true;
     self.validateOnChange = validateOnChange !== false;
-    self.data = createDataObject(self, eventContainer, state.initialData);
+    self.data = createDataObject(self, eventContainer, viewState.get() || state.initialData);
     self.on('dataChange', function (e) {
         state.pending = {};
         if (self.validateOnChange) {
@@ -93,13 +96,26 @@ definePrototype(FormContext, {
         var state = _(this);
         return state.eventContainer.add(this, event, handler);
     },
-    reset: function () {
+    persist: function () {
+        var self = this;
+        _(self).viewState.set(extend({}, self.data));
+        self.autoPersist = false;
+    },
+    restore: function () {
+        var self = this;
+        var data = _(self).viewState.get();
+        if (data) {
+            self.reset(data);
+        }
+        return !!data;
+    },
+    reset: function (data) {
         var self = this;
         var state = _(self);
         for (var i in self.data) {
             delete self.data[i];
         }
-        extend(self.data, state.initialData);
+        extend(self.data, data || state.initialData);
         self.isValid = true;
         state.eventContainer.emit('reset', self);
     },
@@ -141,18 +157,29 @@ definePrototype(FormContext, {
     }
 });
 
-export function useFormContext(initialData, validateOnChange) {
+export function useFormContext(persistKey, initialData, validateOnChange) {
+    if (typeof persistKey !== 'string') {
+        return useFormContext('', persistKey, initialData);
+    }
+    const viewState = useViewState(persistKey);
     const form = useState(function () {
-        return new FormContext(initialData, validateOnChange);
+        return new FormContext(initialData, validateOnChange, viewState);
     })[0];
     const forceUpdate = useState(0)[1];
     useObservableProperty(form, 'isValid');
     useEffect(function () {
-        return form.on('dataChange', function () {
-            forceUpdate(function (v) {
-                return ++v;
-            });
-        });
+        return combineFn(
+            form.on('dataChange', function () {
+                forceUpdate(function (v) {
+                    return ++v;
+                });
+            }),
+            function () {
+                if (form.autoPersist) {
+                    form.persist();
+                }
+            }
+        );
     }, [form]);
     return form;
 }

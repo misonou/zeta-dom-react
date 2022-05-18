@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { combineFn, createPrivateStore, define, defineObservableProperty, defineOwnProperty, definePrototype, extend, keys, pick, watch } from "./include/zeta-dom/util.js";
+import { combineFn, createPrivateStore, define, defineObservableProperty, definePrototype, extend, keys, pick, watch } from "./include/zeta-dom/util.js";
+import { useViewState } from "./viewState.js";
 
 const _ = createPrivateStore();
 const proto = DataView.prototype;
@@ -64,10 +65,14 @@ defineObservableProperty(proto, 'filters', {}, function (newValue) {
     return extend(_(this).filters, newValue);
 });
 
-export function useDataView(filters, sortBy, sortOrder, pageSize) {
+export function useDataView(persistKey, filters, sortBy, sortOrder, pageSize) {
+    if (typeof persistKey !== 'string') {
+        return useDataView('__dataView', persistKey, filters, sortBy, sortOrder);
+    }
+    var viewState = useViewState(persistKey);
     var forceUpdate = useState(false)[1];
     var dataView = useState(function () {
-        return new DataView(filters, sortBy, sortOrder, pageSize);
+        return extend(new DataView(filters, sortBy, sortOrder, pageSize), viewState.get());
     })[0];
     useEffect(() => {
         var state = _(dataView);
@@ -79,7 +84,10 @@ export function useDataView(filters, sortBy, sortOrder, pageSize) {
         };
         return combineFn(
             watch(dataView, onUpdated),
-            watch(dataView.filters, onUpdated)
+            watch(dataView.filters, onUpdated),
+            function () {
+                viewState.set(dataView.toJSON());
+            }
         );
     }, [dataView]);
     return dataView;

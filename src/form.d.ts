@@ -47,7 +47,11 @@ export class FormContext<T extends object = Zeta.Dictionary<any>> {
     readonly isValid: boolean;
     readonly data: Partial<T>;
 
-    constructor(initialData: Partial<T> = {}, validateOnChange: boolean = true);
+    /**
+     * Whether form data will be persisted in view state when component is unmounted.
+     * Default is `true`.
+     */
+    autoPersist: boolean;
 
     /**
      * Gets the input element for the specified field.
@@ -73,7 +77,19 @@ export class FormContext<T extends object = Zeta.Dictionary<any>> {
     on<E extends keyof FormEventMap>(event: E, handler: Zeta.ZetaEventHandler<E, FormEventMap, FormContext<T>>): Zeta.UnregisterCallback;
 
     /**
-     * Resets all fields and clear all validation errors.
+     * Persists form data to view state.
+     * Calling to this method will set {@link FormContext.autoPersist} to `false`.
+     */
+    persist(): void;
+
+    /**
+     * Restores form data from view state if any.
+     * @returns Whether there was persisted data restored.
+     */
+    restore(): boolean;
+
+    /**
+     * Resets all fields to initial values and clear all validation errors.
      */
     reset(): void;
 
@@ -91,8 +107,18 @@ export class FormContext<T extends object = Zeta.Dictionary<any>> {
 
 /**
  * Creates a memoized {@link FormContext} object.
+ * @param initialData Initial form data.
+ * @param validateOnChange Whether validation will be triggered upon changes to form data, default is `true`.
  */
 export function useFormContext<T extends object = Zeta.Dictionary<any>>(initialData: Partial<T> = {}, validateOnChange: boolean = true): FormContext<T>;
+
+/**
+ * Creates a memoized {@link FormContext} object.
+ * @param persistKey A unique key for enabling the persisting of form data in view state.
+ * @param initialData Initial form data.
+ * @param validateOnChange Whether validation will be triggered upon changes to form data, default is `true`.
+ */
+export function useFormContext<T extends object = Zeta.Dictionary<any>>(persistKey: string, initialData: Partial<T> = {}, validateOnChange: boolean = true): FormContext<T>;
 
 export interface FormFieldState<T> {
     readonly value: T;

@@ -82,10 +82,19 @@ export class DataView<P extends object> {
 
 /**
  * Creates a data view context with the items and filter values.
- * @param items An array of items. Changes of array reference will trigger component update.
  * @param filters Initial filter.
  * @param sortBy Initial sorting field if any.
  * @param sortOrder Initial sorting direction, defaults to `asc` if `sortBy` is not empty.
  * @param pageSize Initial page size. If not given, the default page size {@link DataView.pageSize} will be used.
  */
 export function useDataView<P extends object = {}>(filters: P, sortBy?: string, sortOrder?: 'asc' | 'desc', pageSize?: number): DataView<P>;
+
+/**
+ * Creates a data view context with the items and filter values.
+ * @param persistKey A unique key for avoiding collision when persisting view state.
+ * @param filters Initial filter.
+ * @param sortBy Initial sorting field if any.
+ * @param sortOrder Initial sorting direction, defaults to `asc` if `sortBy` is not empty.
+ * @param pageSize Initial page size. If not given, the default page size {@link DataView.pageSize} will be used.
+ */
+export function useDataView<P extends object = {}>(persistKey: string, filters: P, sortBy?: string, sortOrder?: 'asc' | 'desc', pageSize?: number): DataView<P>;
