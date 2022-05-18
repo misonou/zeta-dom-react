@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useRef, useState } from "react";
-import { any, combineFn, createPrivateStore, defineObservableProperty, definePrototype, extend, grep, inherit, isFunction, keys, makeArray, resolve, resolveAll } from "./include/zeta-dom/util.js";
+import { always, any, combineFn, createPrivateStore, defineObservableProperty, definePrototype, extend, grep, inherit, isFunction, keys, makeArray, resolve, resolveAll } from "./include/zeta-dom/util.js";
 import { ZetaEventContainer } from "./include/zeta-dom/events.js";
 import { focus } from "./include/zeta-dom/dom.js";
 import { useMemoizedFunction, useObservableProperty } from "./hooks.js";
@@ -54,6 +54,7 @@ export function FormContext(initialData, validateOnChange, viewState) {
         errors: errors,
         eventContainer: eventContainer,
         viewState: viewState,
+        vlocks: {},
         refs: {},
         pending: {},
         defaults: defaults,
@@ -122,6 +123,7 @@ definePrototype(FormContext, {
     validate: function () {
         var self = this;
         var state = _(self);
+        var vlocks = state.vlocks;
         var errors = state.errors;
         var eventContainer = state.eventContainer;
         var props = makeArray(arguments);
@@ -129,24 +131,48 @@ definePrototype(FormContext, {
             props = keys(state.fields);
         }
         var prev = extend({}, errors);
-        var promise = resolveAll(props.map(function (v) {
+        var validate = function (v) {
             return eventContainer.emit('validate', self, {
                 name: v,
                 value: self.data[v]
             });
-        }));
-        return promise.then(function (result) {
-            props.forEach(function (v, i) {
-                if (isFunction(result[i])) {
-                    result[i] = wrapErrorResult(state, v, result[i]);
-                }
-                errors[v] = result[i];
-                if ((result[i] || '') !== (prev[v] || '')) {
-                    eventContainer.emit('validationChange', self, {
-                        name: v,
-                        isValid: !result[i],
-                        message: String(result[i] || '')
+        };
+        var promises = props.map(function (v) {
+            var arr = vlocks[v] = (vlocks[v] || []);
+            var prev = arr[0];
+            if (prev) {
+                // debounce async validation
+                return arr[1] || (arr[1] = always(arr[0], function () {
+                    var next = validate(v);
+                    always(next, function () {
+                        // dismiss effects of previous validation if later one resolves earlier
+                        // so that validity always reflects on latest data
+                        if (arr[0] === prev) {
+                            arr.shift();
+                        }
                     });
+                    return next;
+                }));
+            }
+            arr[0] = resolve(validate(v));
+            return arr[0];
+        });
+        return resolveAll(promises).then(function (result) {
+            props.forEach(function (v, i) {
+                // checks if current validation is of the latest
+                if (vlocks[v][0] === promises[i]) {
+                    vlocks[v].shift();
+                    if (isFunction(result[i])) {
+                        result[i] = wrapErrorResult(state, v, result[i]);
+                    }
+                    errors[v] = result[i];
+                    if ((result[i] || '') !== (prev[v] || '')) {
+                        eventContainer.emit('validationChange', self, {
+                            name: v,
+                            isValid: !result[i],
+                            message: String(result[i] || '')
+                        });
+                    }
                 }
             });
             state.setValid();

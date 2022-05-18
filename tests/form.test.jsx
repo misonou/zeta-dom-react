@@ -2,7 +2,7 @@ import React from "react";
 import { render } from "@testing-library/react";
 import { act, renderHook } from '@testing-library/react-hooks'
 import { FormContextProvider, useFormContext, useFormField } from "src/form";
-import { mockFn, verifyCalls } from "./testUtil";
+import { delay, mockFn, verifyCalls } from "./testUtil";
 
 function createFormContext(initialData, validateOnChange) {
     const { result: { current: form }, unmount } = renderHook(() => useFormContext(initialData, validateOnChange));
@@ -434,6 +434,54 @@ describe('FormContext#validate', () => {
             [expect.objectContaining({ type: 'validationChange', name: 'foo', isValid: false, message: 'error' }), form]
         ])
         expect(result.current.error).toBe('error');
+        unmount();
+    });
+
+    it('should debounce validation of the same field', async () => {
+        const cb = mockFn().mockImplementation(() => delay(200));
+        const { form, wrapper, unmount } = createFormContext();
+        renderHook(() => useFormField({ name: 'foo', onValidate: cb }, ''), { wrapper });
+
+        form.validate('foo');
+        expect(cb).toBeCalledTimes(1);
+
+        form.validate('foo');
+        form.validate('foo');
+        await act(async () => void await form.validate());
+        expect(cb).toBeCalledTimes(2);
+        unmount();
+    });
+
+    it('should always reflects the latest validation result', async () => {
+        const cbFoo = mockFn().mockReturnValueOnce(delay(200));
+        const cbBar = mockFn().mockImplementation(() => String(form.data.bar));
+        const { form, wrapper, unmount } = createFormContext({}, false);
+        renderHook(() => [
+            useFormField({ name: 'foo', onValidate: cbFoo }, 'foo_value'),
+            useFormField({ name: 'bar', onValidate: cbBar }, 'bar_value'),
+        ], { wrapper });
+
+        const cb = mockFn();
+        form.on('validationChange', cb);
+
+        form.data.bar = '1';
+        const p1 = form.validate();
+        form.data.bar = '2';
+        const p2 = form.validate();
+
+        await act(async () => void await p2);
+        verifyCalls(cb, [
+            [expect.objectContaining({ type: 'validationChange', name: 'bar', isValid: false, message: '2' }), form]
+        ]);
+
+        await act(async () => void await p1);
+        verifyCalls(cb, [
+            [expect.objectContaining({ type: 'validationChange', name: 'bar', isValid: false, message: '2' }), form]
+        ]);
+        verifyCalls(cbBar, [
+            ['1', 'bar', form],
+            ['2', 'bar', form],
+        ]);
         unmount();
     });
 });
