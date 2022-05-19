@@ -191,14 +191,12 @@ export function useFormContext(persistKey, initialData, validateOnChange) {
     const form = useState(function () {
         return new FormContext(initialData, validateOnChange, viewState);
     })[0];
-    const forceUpdate = useState(0)[1];
+    const forceUpdate = useState()[1];
     useObservableProperty(form, 'isValid');
     useEffect(function () {
         return combineFn(
             form.on('dataChange', function () {
-                forceUpdate(function (v) {
-                    return ++v;
-                });
+                forceUpdate({});
             }),
             function () {
                 if (form.autoPersist) {

@@ -70,7 +70,7 @@ export function useDataView(persistKey, filters, sortBy, sortOrder, pageSize) {
         return useDataView('__dataView', persistKey, filters, sortBy, sortOrder);
     }
     var viewState = useViewState(persistKey);
-    var forceUpdate = useState(false)[1];
+    var forceUpdate = useState()[1];
     var dataView = useState(function () {
         return extend(new DataView(filters, sortBy, sortOrder, pageSize), viewState.get());
     })[0];
@@ -78,9 +78,7 @@ export function useDataView(persistKey, filters, sortBy, sortOrder, pageSize) {
         var state = _(dataView);
         var onUpdated = function () {
             state.filteredItems = state.items.length ? undefined : [];
-            forceUpdate(function (v) {
-                return !v;
-            });
+            forceUpdate({});
         };
         return combineFn(
             watch(dataView, onUpdated),
