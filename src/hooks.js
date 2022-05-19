@@ -19,15 +19,18 @@ export function useMemoizedFunction(callback) {
 }
 
 export function useObservableProperty(obj, key) {
-    const sValue = useState(obj[key]);
-    const value = sValue[0], setValue = sValue[1];
+    const forceUpdate = useState()[1];
+    const value = obj[key];
+    const ref = useRef();
+    ref.current = value;
     useEffect(function () {
-        setValue(obj[key]);
-        return watch(obj, key, function (v) {
-            setValue(function () {
-                return v;
-            });
-        });
+        var cb = function (v) {
+            if (v !== ref.current) {
+                forceUpdate({});
+            }
+        };
+        cb(obj[key]);
+        return watch(obj, key, cb);
     }, [obj, key]);
     return value;
 }

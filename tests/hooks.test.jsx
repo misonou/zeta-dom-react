@@ -48,6 +48,20 @@ describe('useObservableProperty', () => {
         });
         expect(result.all).toEqual(['foo', 'bar']);
     });
+
+    it('should cause component to render once when used multiple times', async () => {
+        const obj = { prop1: 'foo', prop2: 'bar' };
+        const { result, waitForNextUpdate } = renderHook(() => {
+            let prop1 = useObservableProperty(obj, 'prop1');
+            let prop2 = useObservableProperty(obj, 'prop2');
+            return { prop1, prop2 };
+        });
+        obj.prop1 = 'foo1';
+        obj.prop2 = 'bar1';
+        await waitForNextUpdate();
+        expect(result.current).toEqual({ prop1: 'foo1', prop2: 'bar1' });
+        expect(result.all.length).toBe(2);
+    });
 });
 
 describe('useAsync', () => {
