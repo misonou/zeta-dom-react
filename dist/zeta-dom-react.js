@@ -98,6 +98,7 @@ __webpack_require__.d(src_namespaceObject, {
   "DataView": () => (DataView),
   "FormContext": () => (FormContext),
   "FormContextProvider": () => (FormContextProvider),
+  "ViewStateProvider": () => (ViewStateProvider),
   "classNames": () => (classNames),
   "combineRef": () => (combineRef),
   "combineValidators": () => (combineValidators),
@@ -111,7 +112,8 @@ __webpack_require__.d(src_namespaceObject, {
   "useFormField": () => (useFormField),
   "useMemoizedFunction": () => (useMemoizedFunction),
   "useObservableProperty": () => (useObservableProperty),
-  "useRefInitCallback": () => (useRefInitCallback)
+  "useRefInitCallback": () => (useRefInitCallback),
+  "useViewState": () => (useViewState)
 });
 
 // EXTERNAL MODULE: external {"commonjs":"react","commonjs2":"react","amd":"react","root":"React"}
@@ -192,7 +194,25 @@ var _zeta$util = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root
 
 ;// CONCATENATED MODULE: ./src/include/zeta-dom/util.js
 
+;// CONCATENATED MODULE: ./src/viewState.js
+
+
+/** @type {React.Context<import("./viewState").ViewStateProvider | null>} */
+// @ts-ignore: type inference issue
+
+var ViewStateProviderContext = /*#__PURE__*/(0,external_commonjs_react_commonjs2_react_amd_react_root_React_.createContext)(null);
+var noopStorage = Object.freeze({
+  get: noop,
+  set: noop
+});
+var ViewStateProvider = ViewStateProviderContext.Provider;
+function useViewState(key) {
+  var uniqueId = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)(randomId)[0];
+  var provider = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useContext)(ViewStateProviderContext);
+  return provider && key && provider.getState(uniqueId, key) || noopStorage;
+}
 ;// CONCATENATED MODULE: ./src/dataView.js
+
 
 
 
@@ -200,27 +220,32 @@ var _ = createPrivateStore();
 
 var proto = DataView.prototype;
 function DataView(filters, sortBy, sortOrder, pageSize) {
-  _(this, {});
-
+  var self = this;
+  var defaults = {
+    filters: extend({}, filters),
+    sortBy: sortBy,
+    sortOrder: sortOrder || sortBy && 'asc',
+    pageIndex: 0,
+    pageSize: pageSize === undefined ? DataView.pageSize : pageSize
+  };
   filters = extend({}, filters);
 
   for (var i in filters) {
     defineObservableProperty(filters, i);
   }
 
-  extend(this, {
+  _(self, {
     filters: Object.freeze(filters),
-    sortBy: sortBy,
-    sortOrder: sortOrder,
-    pageSize: pageSize || DataView.pageSize
+    defaults: defaults,
+    items: []
   });
+
+  extend(this, defaults);
 }
 util_define(DataView, {
   pageSize: 0
 });
 definePrototype(DataView, {
-  pageIndex: 0,
-  pageSize: 0,
   itemCount: 0,
   getView: function getView(items, callback) {
     var self = this;
@@ -239,30 +264,46 @@ definePrototype(DataView, {
     var filteredItems = state.filteredItems || (state.filteredItems = (callback(state.items, self.filters, self.sortBy) || [])[self.sortOrder === 'desc' ? 'reverse' : 'slice']());
     self.itemCount = filteredItems.length;
     return [filteredItems.slice(pageIndex * pageSize, pageSize ? (pageIndex + 1) * pageSize : undefined), filteredItems.length];
+  },
+  toJSON: function toJSON() {
+    var self = this;
+    return extend(pick(self, keys(_(self).defaults)), {
+      filters: extend({}, self.filters)
+    });
+  },
+  reset: function reset() {
+    extend(this, _(this).defaults);
   }
 });
 defineObservableProperty(proto, 'sortBy');
 defineObservableProperty(proto, 'sortOrder');
 defineObservableProperty(proto, 'pageIndex');
 defineObservableProperty(proto, 'pageSize');
-function useDataView(filters, sortBy, sortOrder, pageSize) {
-  var forceUpdate = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)(false)[1];
-  var dataView = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)(function () {
-    var view = new DataView(filters, sortBy, sortOrder, pageSize);
+defineObservableProperty(proto, 'filters', {}, function (newValue) {
+  return extend(_(this).filters, newValue);
+});
+function useDataView(persistKey, filters, sortBy, sortOrder, pageSize) {
+  if (typeof persistKey !== 'string') {
+    return useDataView('__dataView', persistKey, filters, sortBy, sortOrder);
+  }
 
-    var state = _(view);
+  var viewState = useViewState(persistKey);
+  var forceUpdate = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)()[1];
+  var dataView = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)(function () {
+    return extend(new DataView(filters, sortBy, sortOrder, pageSize), viewState.get());
+  })[0];
+  (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
+    var state = _(dataView);
 
     var onUpdated = function onUpdated() {
       state.filteredItems = state.items.length ? undefined : [];
-      forceUpdate(function (v) {
-        return !v;
-      });
+      forceUpdate({});
     };
 
-    watch(view, onUpdated);
-    watch(view.filters, onUpdated);
-    return view;
-  })[0];
+    return combineFn(watch(dataView, onUpdated), watch(dataView.filters, onUpdated), function () {
+      viewState.set(dataView.toJSON());
+    });
+  }, [dataView]);
   return dataView;
 }
 ;// CONCATENATED MODULE: ./tmp/zeta-dom/events.js
@@ -322,16 +363,19 @@ function useMemoizedFunction(callback) {
   return fn;
 }
 function useObservableProperty(obj, key) {
-  var sValue = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)(obj[key]);
-  var value = sValue[0],
-      setValue = sValue[1];
+  var forceUpdate = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)()[1];
+  var value = obj[key];
+  var ref = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useRef)();
+  ref.current = value;
   (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
-    setValue(obj[key]);
-    return watch(obj, key, function (v) {
-      setValue(function () {
-        return v;
-      });
-    });
+    var cb = function cb(v) {
+      if (v !== ref.current) {
+        forceUpdate({});
+      }
+    };
+
+    cb(obj[key]);
+    return watch(obj, key, cb);
   }, [obj, key]);
   return value;
 }
@@ -457,6 +501,7 @@ function useErrorHandlerRef() {
 
 
 
+
 var form_ = createPrivateStore();
 /** @type {React.Context<import ("./form").FormContext>} */
 // @ts-ignore: type inference issue
@@ -476,6 +521,7 @@ function createDataObject(context, eventContainer, initialData) {
     set: function set(t, p, v) {
       if (typeof p === 'string' && t[p] !== v) {
         if (p in t) {
+          form_(context).pending[p] = true;
           eventContainer.emitAsync('dataChange', context, [p], {}, function (v, a) {
             return v.concat(a);
           });
@@ -497,18 +543,23 @@ function wrapErrorResult(state, key, error) {
   };
 }
 
-function FormContext(initialData, validateOnChange) {
+function FormContext(initialData, validateOnChange, viewState) {
   var self = this;
   var fields = {};
   var errors = {};
   var eventContainer = new ZetaEventContainer();
+  var defaults = {};
 
   var state = form_(self, {
     fields: fields,
     errors: errors,
     eventContainer: eventContainer,
+    viewState: viewState,
+    vlocks: {},
     refs: {},
-    initialData: initialData || {},
+    pending: {},
+    defaults: defaults,
+    initialData: inherit(defaults, initialData),
     setValid: defineObservableProperty(this, 'isValid', true, function () {
       return !any(fields, function (v, i) {
         return !v.disabled && (errors[i] || v.required && (v.isEmpty ? v.isEmpty(self.data[i]) : !self.data[i]));
@@ -517,12 +568,15 @@ function FormContext(initialData, validateOnChange) {
   });
 
   self.isValid = true;
+  self.autoPersist = true;
   self.validateOnChange = validateOnChange !== false;
-  self.data = createDataObject(self, eventContainer, initialData);
+  self.data = createDataObject(self, eventContainer, viewState.get() || state.initialData);
   self.on('dataChange', function (e) {
+    state.pending = {};
+
     if (self.validateOnChange) {
       var fieldsToValidate = grep(e.data, function (v) {
-        return fields[v].validateOnChange !== false;
+        return fields[v] && fields[v].validateOnChange !== false;
       });
 
       if (fieldsToValidate[0]) {
@@ -549,7 +603,25 @@ definePrototype(FormContext, {
 
     return state.eventContainer.add(this, event, handler);
   },
-  reset: function reset() {
+  persist: function persist() {
+    var self = this;
+
+    form_(self).viewState.set(extend({}, self.data));
+
+    self.autoPersist = false;
+  },
+  restore: function restore() {
+    var self = this;
+
+    var data = form_(self).viewState.get();
+
+    if (data) {
+      self.reset(data);
+    }
+
+    return !!data;
+  },
+  reset: function reset(data) {
     var self = this;
 
     var state = form_(self);
@@ -558,7 +630,7 @@ definePrototype(FormContext, {
       delete self.data[i];
     }
 
-    extend(self.data, state.initialData);
+    extend(self.data, data || state.initialData);
     self.isValid = true;
     state.eventContainer.emit('reset', self);
   },
@@ -567,6 +639,7 @@ definePrototype(FormContext, {
 
     var state = form_(self);
 
+    var vlocks = state.vlocks;
     var errors = state.errors;
     var eventContainer = state.eventContainer;
     var props = makeArray(arguments);
@@ -576,26 +649,55 @@ definePrototype(FormContext, {
     }
 
     var prev = extend({}, errors);
-    var promise = resolveAll(props.map(function (v) {
+
+    var validate = function validate(v) {
       return eventContainer.emit('validate', self, {
         name: v,
         value: self.data[v]
       });
-    }));
-    return promise.then(function (result) {
-      props.forEach(function (v, i) {
-        if (isFunction(result[i])) {
-          result[i] = wrapErrorResult(state, v, result[i]);
-        }
+    };
 
-        errors[v] = result[i];
+    var promises = props.map(function (v) {
+      var arr = vlocks[v] = vlocks[v] || [];
+      var prev = arr[0];
 
-        if ((result[i] || '') !== (prev[v] || '')) {
-          eventContainer.emit('validationChange', self, {
-            name: v,
-            isValid: !result[i],
-            message: String(result[i] || '')
+      if (prev) {
+        // debounce async validation
+        return arr[1] || (arr[1] = always(arr[0], function () {
+          var next = validate(v);
+          always(next, function () {
+            // dismiss effects of previous validation if later one resolves earlier
+            // so that validity always reflects on latest data
+            if (arr[0] === prev) {
+              arr.shift();
+            }
           });
+          return next;
+        }));
+      }
+
+      arr[0] = resolve(validate(v));
+      return arr[0];
+    });
+    return resolveAll(promises).then(function (result) {
+      props.forEach(function (v, i) {
+        // checks if current validation is of the latest
+        if (vlocks[v][0] === promises[i]) {
+          vlocks[v].shift();
+
+          if (isFunction(result[i])) {
+            result[i] = wrapErrorResult(state, v, result[i]);
+          }
+
+          errors[v] = result[i];
+
+          if ((result[i] || '') !== (prev[v] || '')) {
+            eventContainer.emit('validationChange', self, {
+              name: v,
+              isValid: !result[i],
+              message: String(result[i] || '')
+            });
+          }
         }
       });
       state.setValid();
@@ -605,17 +707,24 @@ definePrototype(FormContext, {
     });
   }
 });
-function useFormContext(initialData, validateOnChange) {
+function useFormContext(persistKey, initialData, validateOnChange) {
+  if (typeof persistKey !== 'string') {
+    return useFormContext('', persistKey, initialData);
+  }
+
+  var viewState = useViewState(persistKey);
   var form = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)(function () {
-    return new FormContext(initialData, validateOnChange);
+    return new FormContext(initialData, validateOnChange, viewState);
   })[0];
-  var forceUpdate = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)(0)[1];
+  var forceUpdate = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)()[1];
   useObservableProperty(form, 'isValid');
   (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
-    return form.on('dataChange', function () {
-      forceUpdate(function (v) {
-        return ++v;
-      });
+    return combineFn(form.on('dataChange', function () {
+      forceUpdate({});
+    }), function () {
+      if (form.autoPersist) {
+        form.persist();
+      }
     });
   }, [form]);
   return form;
@@ -659,12 +768,14 @@ function useFormField(props, defaultValue, prop) {
       var state = form_(form);
 
       state.refs[key] = ref;
+      state.defaults[key] = defaultValue;
 
       if (key in form.data) {
         setValue(form.data[key]);
       }
 
       return combineFn(function () {
+        delete state.defaults[key];
         delete state.fields[key];
         delete state.refs[key];
         state.setValid();
@@ -687,8 +798,11 @@ function useFormField(props, defaultValue, prop) {
     }
   }, [form, key, initialValue, onValidate]);
   (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
-    if (form && key) {
+    var pending = form && key && form_(form).pending;
+
+    if (pending && !pending[key]) {
       form.data[key] = value;
+      pending[key] = false;
     }
   }, [form, key, value]);
   (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
@@ -769,6 +883,7 @@ function toRefCallback(ref) {
   return ref || noop;
 }
 ;// CONCATENATED MODULE: ./src/index.js
+
 
 
 
