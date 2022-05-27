@@ -37,19 +37,21 @@ definePrototype(DataView, {
         var state = _(self);
         var pageIndex = self.pageIndex || 0;
         var pageSize = self.pageSize || 0;
-        items = items || [];
         if (items !== state.items) {
-            state.items = items;
-            state.filteredItems = items.length ? undefined : [];
+            state.items = items || [];
+            state.filteredItems = state.items.length ? undefined : [];
         }
         var filteredItems = state.filteredItems || (state.filteredItems = (callback(state.items, self.filters, self.sortBy) || [])[self.sortOrder === 'desc' ? 'reverse' : 'slice']());
-        self.itemCount = filteredItems.length;
+        if (items) {
+            self.itemCount = filteredItems.length;
+        }
         return [filteredItems.slice(pageIndex * pageSize, pageSize ? (pageIndex + 1) * pageSize : undefined), filteredItems.length];
     },
     toJSON: function () {
         var self = this;
         return extend(pick(self, keys(_(self).defaults)), {
-            filters: extend({}, self.filters)
+            filters: extend({}, self.filters),
+            itemCount: self.itemCount
         });
     },
     reset: function () {
