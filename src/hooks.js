@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import dom from "./include/zeta-dom/dom.js";
-import { lock } from "./include/zeta-dom/domLock.js";
+import { notifyAsync } from "./include/zeta-dom/domLock.js";
 import { ZetaEventContainer } from "./include/zeta-dom/events.js";
 import { always, catchAsync, combineFn, extend, isArray, makeArray, map, resolve, setAdd, watch } from "./include/zeta-dom/util.js";
 
@@ -70,7 +70,7 @@ export function useAsync(init, autoload) {
                 });
                 extend(state, { promise: promise, loading: true, error: undefined });
                 if (element) {
-                    catchAsync(lock(element, promise));
+                    notifyAsync(element, promise);
                 }
             }
         };
