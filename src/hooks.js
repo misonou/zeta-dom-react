@@ -69,9 +69,7 @@ export function useAsync(init, autoload) {
                     }
                 });
                 extend(state, { promise: promise, loading: true, error: undefined });
-                if (element) {
-                    notifyAsync(element, promise);
-                }
+                notifyAsync(element || dom.root, catchAsync(promise));
             }
         };
     })[0];
