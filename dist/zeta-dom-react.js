@@ -124,6 +124,7 @@ var external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_zeta_ = __we
 
 var _zeta$util = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_zeta_.util,
     noop = _zeta$util.noop,
+    pipe = _zeta$util.pipe,
     either = _zeta$util.either,
     is = _zeta$util.is,
     isUndefinedOrNull = _zeta$util.isUndefinedOrNull,
@@ -254,21 +255,25 @@ definePrototype(DataView, {
 
     var pageIndex = self.pageIndex || 0;
     var pageSize = self.pageSize || 0;
-    items = items || [];
 
     if (items !== state.items) {
-      state.items = items;
-      state.filteredItems = items.length ? undefined : [];
+      state.items = items || [];
+      state.filteredItems = state.items.length ? undefined : [];
     }
 
-    var filteredItems = state.filteredItems || (state.filteredItems = (callback(state.items, self.filters, self.sortBy) || [])[self.sortOrder === 'desc' ? 'reverse' : 'slice']());
-    self.itemCount = filteredItems.length;
+    var filteredItems = state.filteredItems || (state.filteredItems = ((callback || pipe)(state.items, self.filters, self.sortBy) || [])[self.sortOrder === 'desc' ? 'reverse' : 'slice']());
+
+    if (items) {
+      self.itemCount = filteredItems.length;
+    }
+
     return [filteredItems.slice(pageIndex * pageSize, pageSize ? (pageIndex + 1) * pageSize : undefined), filteredItems.length];
   },
   toJSON: function toJSON() {
     var self = this;
     return extend(pick(self, keys(_(self).defaults)), {
-      filters: extend({}, self.filters)
+      filters: extend({}, self.filters),
+      itemCount: self.itemCount
     });
   },
   reset: function reset() {
@@ -340,7 +345,9 @@ var _zeta$dom = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_
 var domLock_zeta$dom = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_zeta_.dom,
     lock = domLock_zeta$dom.lock,
     locked = domLock_zeta$dom.locked,
-    cancelLock = domLock_zeta$dom.cancelLock;
+    cancelLock = domLock_zeta$dom.cancelLock,
+    notifyAsync = domLock_zeta$dom.notifyAsync,
+    preventLeave = domLock_zeta$dom.preventLeave;
 
 ;// CONCATENATED MODULE: ./src/include/zeta-dom/domLock.js
 
@@ -431,10 +438,7 @@ function useAsync(init, autoload) {
           loading: true,
           error: undefined
         });
-
-        if (element) {
-          catchAsync(lock(element, promise));
-        }
+        notifyAsync(element || zeta_dom_dom.root, catchAsync(promise));
       }
     };
   })[0];
