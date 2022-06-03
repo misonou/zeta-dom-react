@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { combineFn, createPrivateStore, define, defineObservableProperty, definePrototype, extend, keys, pick, watch } from "./include/zeta-dom/util.js";
+import { combineFn, createPrivateStore, define, defineObservableProperty, definePrototype, extend, keys, pick, pipe, watch } from "./include/zeta-dom/util.js";
 import { useViewState } from "./viewState.js";
 
 const _ = createPrivateStore();
@@ -41,7 +41,7 @@ definePrototype(DataView, {
             state.items = items || [];
             state.filteredItems = state.items.length ? undefined : [];
         }
-        var filteredItems = state.filteredItems || (state.filteredItems = (callback(state.items, self.filters, self.sortBy) || [])[self.sortOrder === 'desc' ? 'reverse' : 'slice']());
+        var filteredItems = state.filteredItems || (state.filteredItems = ((callback || pipe)(state.items, self.filters, self.sortBy) || [])[self.sortOrder === 'desc' ? 'reverse' : 'slice']());
         if (items) {
             self.itemCount = filteredItems.length;
         }
@@ -76,7 +76,7 @@ export function useDataView(persistKey, filters, sortBy, sortOrder, pageSize) {
     var dataView = useState(function () {
         return extend(new DataView(filters, sortBy, sortOrder, pageSize), viewState.get());
     })[0];
-    useEffect(() => {
+    useEffect(function () {
         var state = _(dataView);
         var onUpdated = function () {
             state.filteredItems = state.items.length ? undefined : [];
