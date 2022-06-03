@@ -16,7 +16,7 @@
   "homepage": "https://hackmd.io/@misonou/zeta-dom-react",
   "repository": "github:misonou/zeta-dom-react",
   "dependencies": {
-    "zeta-dom": ">=0.1.15"
+    "zeta-dom": ">=0.2.3"
   },
   "peerDependencies": {
     "react": ">=16.8.0"
