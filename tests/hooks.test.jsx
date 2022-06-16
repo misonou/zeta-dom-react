@@ -140,7 +140,7 @@ describe('useAsync', () => {
         verifyCalls(cb, [[error]]);
     });
 
-    it('should emit error event when promise is rejected', async () => {
+    it('should not emit error event when promise is rejected', async () => {
         const cb = mockFn();
         const error = new Error();
         const promise = Promise.reject(error);
@@ -155,9 +155,7 @@ describe('useAsync', () => {
         render(<Component />);
 
         await reactAct(async () => void await catchAsync(promise));
-        verifyCalls(cb, [
-            [expect.objectContaining({ type: 'error', error }), _]
-        ]);
+        expect(cb).not.toBeCalled();
     });
 
     it('should not emit error event when error is handled by onError handler', async () => {
