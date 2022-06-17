@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { combineFn, createPrivateStore, define, defineObservableProperty, definePrototype, extend, keys, pick, pipe, watch } from "./include/zeta-dom/util.js";
+import { combineFn, createPrivateStore, define, defineObservableProperty, definePrototype, extend, keys, noop, pick, pipe, watch } from "./include/zeta-dom/util.js";
 import { useViewState } from "./viewState.js";
 
 const _ = createPrivateStore();
@@ -85,6 +85,10 @@ export function useDataView(persistKey, filters, sortBy, sortOrder, pageSize) {
         return combineFn(
             watch(dataView, onUpdated),
             watch(dataView.filters, onUpdated),
+            viewState.onPopState ? viewState.onPopState(function (newValue) {
+                viewState.set(dataView.toJSON());
+                extend(dataView, newValue || state.defaults);
+            }) : noop,
             function () {
                 viewState.set(dataView.toJSON());
             }
