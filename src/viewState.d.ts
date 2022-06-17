@@ -1,13 +1,23 @@
-export interface ViewState {
+export interface ViewState<T = any> {
     /**
      * Gets the value persisted by {@link ViewState.set} previously.
      */
-    get(): any;
+    get(): T | undefined;
     /**
      * Persists the value in view state.
      * @param data Any serializable data.
      */
-    set(data: any): void;
+    set(data: T): void;
+    /**
+     * Allows a consumer to react to swapping of view states.
+     * @param callback A callback that receives the new state that is going to be restored; and may persist existing state.
+     * @returns A callback that unlisten the event.
+     */
+    onPopState?(callback: (newState: T | undefined) => void): Zeta.UnregisterCallback;
+    /**
+     * Marks the view state no longer be used.
+     */
+    dispose?(): void;
 }
 
 export interface ViewStateProvider {
@@ -31,4 +41,4 @@ export const ViewStateProvider: React.Provider<ViewStateProvider>;
  * @param key A unique key. If provider provides scoping, the same key may be used simultaneously across components.
  * @returns An object that provide the interface. If there is no provider or provider did not return, an object with no-op `get` and `set` is returned.
  */
-export function useViewState(key: string): ViewState;
+export function useViewState<T = any>(key: string): ViewState<T>;
