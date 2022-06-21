@@ -102,6 +102,7 @@ __webpack_require__.d(src_namespaceObject, {
   "classNames": () => (classNames),
   "combineRef": () => (combineRef),
   "combineValidators": () => (combineValidators),
+  "createBreakpointContext": () => (createBreakpointContext),
   "partial": () => (partial),
   "toRefCallback": () => (toRefCallback),
   "useAsync": () => (useAsync),
@@ -110,6 +111,7 @@ __webpack_require__.d(src_namespaceObject, {
   "useErrorHandlerRef": () => (useErrorHandlerRef),
   "useFormContext": () => (useFormContext),
   "useFormField": () => (useFormField),
+  "useMediaQuery": () => (useMediaQuery),
   "useMemoizedFunction": () => (useMemoizedFunction),
   "useObservableProperty": () => (useObservableProperty),
   "useRefInitCallback": () => (useRefInitCallback),
@@ -175,6 +177,7 @@ var _zeta$util = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root
     watchOnce = _zeta$util.watchOnce,
     watchable = _zeta$util.watchable,
     inherit = _zeta$util.inherit,
+    freeze = _zeta$util.freeze,
     deepFreeze = _zeta$util.deepFreeze,
     iequal = _zeta$util.iequal,
     randomId = _zeta$util.randomId,
@@ -195,127 +198,49 @@ var _zeta$util = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root
 
 ;// CONCATENATED MODULE: ./src/include/zeta-dom/util.js
 
-;// CONCATENATED MODULE: ./src/viewState.js
+;// CONCATENATED MODULE: ./tmp/zeta-dom/domUtil.js
 
+var domUtil_zeta$util = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_zeta_.util,
+    domReady = domUtil_zeta$util.domReady,
+    tagName = domUtil_zeta$util.tagName,
+    isVisible = domUtil_zeta$util.isVisible,
+    matchSelector = domUtil_zeta$util.matchSelector,
+    comparePosition = domUtil_zeta$util.comparePosition,
+    connected = domUtil_zeta$util.connected,
+    containsOrEquals = domUtil_zeta$util.containsOrEquals,
+    acceptNode = domUtil_zeta$util.acceptNode,
+    combineNodeFilters = domUtil_zeta$util.combineNodeFilters,
+    iterateNode = domUtil_zeta$util.iterateNode,
+    iterateNodeToArray = domUtil_zeta$util.iterateNodeToArray,
+    getCommonAncestor = domUtil_zeta$util.getCommonAncestor,
+    parentsAndSelf = domUtil_zeta$util.parentsAndSelf,
+    selectIncludeSelf = domUtil_zeta$util.selectIncludeSelf,
+    selectClosestRelative = domUtil_zeta$util.selectClosestRelative,
+    createNodeIterator = domUtil_zeta$util.createNodeIterator,
+    createTreeWalker = domUtil_zeta$util.createTreeWalker,
+    bind = domUtil_zeta$util.bind,
+    bindUntil = domUtil_zeta$util.bindUntil,
+    dispatchDOMMouseEvent = domUtil_zeta$util.dispatchDOMMouseEvent,
+    removeNode = domUtil_zeta$util.removeNode,
+    getClass = domUtil_zeta$util.getClass,
+    setClass = domUtil_zeta$util.setClass,
+    getScrollOffset = domUtil_zeta$util.getScrollOffset,
+    getScrollParent = domUtil_zeta$util.getScrollParent,
+    getContentRect = domUtil_zeta$util.getContentRect,
+    scrollBy = domUtil_zeta$util.scrollBy,
+    scrollIntoView = domUtil_zeta$util.scrollIntoView,
+    makeSelection = domUtil_zeta$util.makeSelection,
+    getRect = domUtil_zeta$util.getRect,
+    getRects = domUtil_zeta$util.getRects,
+    toPlainRect = domUtil_zeta$util.toPlainRect,
+    rectEquals = domUtil_zeta$util.rectEquals,
+    rectCovers = domUtil_zeta$util.rectCovers,
+    rectIntersects = domUtil_zeta$util.rectIntersects,
+    pointInRect = domUtil_zeta$util.pointInRect,
+    mergeRect = domUtil_zeta$util.mergeRect,
+    elementFromPoint = domUtil_zeta$util.elementFromPoint;
 
-/** @type {React.Context<import("./viewState").ViewStateProvider | null>} */
-// @ts-ignore: type inference issue
-
-var ViewStateProviderContext = /*#__PURE__*/(0,external_commonjs_react_commonjs2_react_amd_react_root_React_.createContext)(null);
-var noopStorage = Object.freeze({
-  get: noop,
-  set: noop
-});
-var ViewStateProvider = ViewStateProviderContext.Provider;
-function useViewState(key) {
-  var uniqueId = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)(randomId)[0];
-  var provider = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useContext)(ViewStateProviderContext);
-  return provider && key && provider.getState(uniqueId, key) || noopStorage;
-}
-;// CONCATENATED MODULE: ./src/dataView.js
-
-
-
-
-var _ = createPrivateStore();
-
-var proto = DataView.prototype;
-function DataView(filters, sortBy, sortOrder, pageSize) {
-  var self = this;
-  var defaults = {
-    filters: extend({}, filters),
-    sortBy: sortBy,
-    sortOrder: sortOrder || sortBy && 'asc',
-    pageIndex: 0,
-    pageSize: pageSize === undefined ? DataView.pageSize : pageSize
-  };
-  filters = extend({}, filters);
-
-  for (var i in filters) {
-    defineObservableProperty(filters, i);
-  }
-
-  _(self, {
-    filters: Object.freeze(filters),
-    defaults: defaults,
-    items: []
-  });
-
-  extend(this, defaults);
-}
-util_define(DataView, {
-  pageSize: 0
-});
-definePrototype(DataView, {
-  itemCount: 0,
-  getView: function getView(items, callback) {
-    var self = this;
-
-    var state = _(self);
-
-    var pageIndex = self.pageIndex || 0;
-    var pageSize = self.pageSize || 0;
-
-    if (items !== state.items) {
-      state.items = items || [];
-      state.filteredItems = state.items.length ? undefined : [];
-    }
-
-    var filteredItems = state.filteredItems || (state.filteredItems = ((callback || pipe)(state.items, self.filters, self.sortBy) || [])[self.sortOrder === 'desc' ? 'reverse' : 'slice']());
-
-    if (items) {
-      self.itemCount = filteredItems.length;
-    }
-
-    return [filteredItems.slice(pageIndex * pageSize, pageSize ? (pageIndex + 1) * pageSize : undefined), filteredItems.length];
-  },
-  toJSON: function toJSON() {
-    var self = this;
-    return extend(pick(self, keys(_(self).defaults)), {
-      filters: extend({}, self.filters),
-      itemCount: self.itemCount
-    });
-  },
-  reset: function reset() {
-    extend(this, _(this).defaults);
-  }
-});
-defineObservableProperty(proto, 'sortBy');
-defineObservableProperty(proto, 'sortOrder');
-defineObservableProperty(proto, 'pageIndex');
-defineObservableProperty(proto, 'pageSize');
-defineObservableProperty(proto, 'filters', {}, function (newValue) {
-  return extend(_(this).filters, newValue);
-});
-function useDataView(persistKey, filters, sortBy, sortOrder, pageSize) {
-  if (typeof persistKey !== 'string') {
-    return useDataView('__dataView', persistKey, filters, sortBy, sortOrder);
-  }
-
-  var viewState = useViewState(persistKey);
-  var forceUpdate = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)()[1];
-  var dataView = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)(function () {
-    return extend(new DataView(filters, sortBy, sortOrder, pageSize), viewState.get());
-  })[0];
-  (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
-    var state = _(dataView);
-
-    var onUpdated = function onUpdated() {
-      state.filteredItems = state.items.length ? undefined : [];
-      forceUpdate({});
-    };
-
-    return combineFn(watch(dataView, onUpdated), watch(dataView.filters, onUpdated), function () {
-      viewState.set(dataView.toJSON());
-    });
-  }, [dataView]);
-  return dataView;
-}
-;// CONCATENATED MODULE: ./tmp/zeta-dom/events.js
-
-var ZetaEventContainer = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_zeta_.EventContainer;
-
-;// CONCATENATED MODULE: ./src/include/zeta-dom/events.js
+;// CONCATENATED MODULE: ./src/include/zeta-dom/domUtil.js
 
 ;// CONCATENATED MODULE: ./tmp/zeta-dom/dom.js
 
@@ -350,6 +275,12 @@ var domLock_zeta$dom = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_do
     preventLeave = domLock_zeta$dom.preventLeave;
 
 ;// CONCATENATED MODULE: ./src/include/zeta-dom/domLock.js
+
+;// CONCATENATED MODULE: ./tmp/zeta-dom/events.js
+
+var ZetaEventContainer = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_zeta_.EventContainer;
+
+;// CONCATENATED MODULE: ./src/include/zeta-dom/events.js
 
 ;// CONCATENATED MODULE: ./src/hooks.js
 
@@ -497,6 +428,172 @@ function useErrorHandlerRef() {
     }));
   }, [ref].concat(args));
   return ref;
+}
+;// CONCATENATED MODULE: ./src/css.js
+
+
+
+
+function useMediaQuery(query) {
+  var onDispose = useDispose();
+  var state = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)(function () {
+    var mq = matchMedia(query);
+    onDispose.push(bind(mq, 'change', function () {
+      state[1](mq.matches);
+    }));
+    return mq.matches;
+  });
+  return state[0];
+}
+/**
+ * @param {Zeta.Dictionary<string>} breakpoints
+ */
+
+function createBreakpointContext(breakpoints) {
+  var values = {};
+  watch(values, true);
+  each(breakpoints, function (i, v) {
+    var mq = matchMedia(v);
+    var setValue = defineObservableProperty(values, i, mq.matches, true);
+    bind(mq, 'change', function () {
+      setValue(mq.matches);
+    });
+  });
+  return {
+    breakpoints: Object.freeze(values),
+    useBreakpoint: function useBreakpoint() {
+      var forceUpdate = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)()[1];
+      (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
+        return watch(values, function () {
+          forceUpdate({});
+        });
+      });
+      return values;
+    }
+  };
+}
+;// CONCATENATED MODULE: ./src/viewState.js
+
+
+/** @type {React.Context<import("./viewState").ViewStateProvider | null>} */
+// @ts-ignore: type inference issue
+
+var ViewStateProviderContext = /*#__PURE__*/(0,external_commonjs_react_commonjs2_react_amd_react_root_React_.createContext)(null);
+var noopStorage = Object.freeze({
+  get: noop,
+  set: noop
+});
+var ViewStateProvider = ViewStateProviderContext.Provider;
+function useViewState(key) {
+  var uniqueId = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)(randomId)[0];
+  var provider = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useContext)(ViewStateProviderContext);
+  var state = provider && key && provider.getState(uniqueId, key) || noopStorage;
+  (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
+    return state.dispose && state.dispose.bind(state);
+  }, [state]);
+  return state;
+}
+;// CONCATENATED MODULE: ./src/dataView.js
+
+
+
+
+var _ = createPrivateStore();
+
+var proto = DataView.prototype;
+function DataView(filters, sortBy, sortOrder, pageSize) {
+  var self = this;
+  var defaults = {
+    filters: extend({}, filters),
+    sortBy: sortBy,
+    sortOrder: sortOrder || sortBy && 'asc',
+    pageIndex: 0,
+    pageSize: pageSize === undefined ? DataView.pageSize : pageSize
+  };
+  filters = extend({}, filters);
+
+  for (var i in filters) {
+    defineObservableProperty(filters, i);
+  }
+
+  _(self, {
+    filters: Object.freeze(filters),
+    defaults: defaults,
+    items: []
+  });
+
+  extend(this, defaults);
+}
+util_define(DataView, {
+  pageSize: 0
+});
+definePrototype(DataView, {
+  itemCount: 0,
+  getView: function getView(items, callback) {
+    var self = this;
+
+    var state = _(self);
+
+    var pageIndex = self.pageIndex || 0;
+    var pageSize = self.pageSize || 0;
+
+    if (items !== state.items) {
+      state.items = items || [];
+      state.filteredItems = state.items.length ? undefined : [];
+    }
+
+    var filteredItems = state.filteredItems || (state.filteredItems = ((callback || pipe)(state.items, self.filters, self.sortBy) || [])[self.sortOrder === 'desc' ? 'reverse' : 'slice']());
+
+    if (items) {
+      self.itemCount = filteredItems.length;
+    }
+
+    return [filteredItems.slice(pageIndex * pageSize, pageSize ? (pageIndex + 1) * pageSize : undefined), filteredItems.length];
+  },
+  toJSON: function toJSON() {
+    var self = this;
+    return extend(pick(self, keys(_(self).defaults)), {
+      filters: extend({}, self.filters),
+      itemCount: self.itemCount
+    });
+  },
+  reset: function reset() {
+    extend(this, _(this).defaults);
+  }
+});
+defineObservableProperty(proto, 'sortBy');
+defineObservableProperty(proto, 'sortOrder');
+defineObservableProperty(proto, 'pageIndex');
+defineObservableProperty(proto, 'pageSize');
+defineObservableProperty(proto, 'filters', {}, function (newValue) {
+  return extend(_(this).filters, newValue);
+});
+function useDataView(persistKey, filters, sortBy, sortOrder, pageSize) {
+  if (typeof persistKey !== 'string') {
+    return useDataView('__dataView', persistKey, filters, sortBy, sortOrder);
+  }
+
+  var viewState = useViewState(persistKey);
+  var forceUpdate = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)()[1];
+  var dataView = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)(function () {
+    return extend(new DataView(filters, sortBy, sortOrder, pageSize), viewState.get());
+  })[0];
+  (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
+    var state = _(dataView);
+
+    var onUpdated = function onUpdated() {
+      state.filteredItems = state.items.length ? undefined : [];
+      forceUpdate({});
+    };
+
+    return combineFn(watch(dataView, onUpdated), watch(dataView.filters, onUpdated), viewState.onPopState ? viewState.onPopState(function (newValue) {
+      viewState.set(dataView.toJSON());
+      extend(dataView, newValue || state.defaults);
+    }) : noop, function () {
+      viewState.set(dataView.toJSON());
+    });
+  }, [dataView]);
+  return dataView;
 }
 ;// CONCATENATED MODULE: ./src/form.js
 
@@ -887,6 +984,7 @@ function toRefCallback(ref) {
   return ref || noop;
 }
 ;// CONCATENATED MODULE: ./src/index.js
+
 
 
 
