@@ -52,11 +52,12 @@ export function useAsync(init, autoload) {
                 });
             },
             refresh: function () {
+                var result = resolve().then(init);
                 var promise;
                 var shouldNotify = function () {
                     return !state.disposed && state.promise === promise;
                 };
-                promise = always(resolve().then(init), function (resolved, value) {
+                promise = always(result, function (resolved, value) {
                     if (shouldNotify()) {
                         if (resolved) {
                             extend(state, { loading: false, value: value });
@@ -70,6 +71,7 @@ export function useAsync(init, autoload) {
                 });
                 extend(state, { promise: promise, loading: true, error: undefined });
                 notifyAsync(element || dom.root, catchAsync(promise));
+                return result;
             }
         };
     })[0];

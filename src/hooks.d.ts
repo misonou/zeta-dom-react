@@ -35,7 +35,7 @@ export interface AsyncContentState<T = any> {
     /**
      * Sets loading state to `true` and loads the data again.
      */
-    refresh(): void;
+    refresh(): Promise<T>;
     /**
      * Registers a handler to handle errors thrown from the data init callback.
      */
