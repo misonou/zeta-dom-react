@@ -247,6 +247,21 @@ describe('FormContext#isValid', () => {
         unmount();
     });
 
+    it('should be updated when required field has been filled or cleared', async () => {
+        const { form, wrapper, unmount } = createFormContext();
+        const { result, waitForNextUpdate } = renderHook(() => useFormField({ name: 'foo', required: true }, ''), { wrapper });
+        expect(form.isValid).toBe(false);
+
+        act(() => result.current.setValue('foo'));
+        await waitForNextUpdate();
+        expect(form.isValid).toBe(true);
+
+        act(() => result.current.setValue(''));
+        await waitForNextUpdate();
+        expect(form.isValid).toBe(false);
+        unmount();
+    });
+
     it('should invoke isEmpty callback supplied to useFormField hook for checking emptiness of a field', () => {
         const value = {};
         const cb = mockFn().mockReturnValue(true);

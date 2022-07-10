@@ -102,14 +102,12 @@ describe('useDataView', () => {
     });
 
     it('should cache filtered and sorted result', async () => {
-        const { result, unmount, waitForNextUpdate } = renderHook(() => ({
+        const { result, unmount } = renderHook(() => ({
             dataView: useDataView({ foo: 1 }, 'foo', 'asc'),
             forceUpdate: React.useState({})[1]
         }));
         const cb = mockFn();
         const items = [{}];
-        // temp fix for initial update triggered until zeta-dom is updated
-        await waitForNextUpdate();
 
         result.current.dataView.getView(items, cb);
         act(() => result.current.forceUpdate({}));
@@ -135,8 +133,6 @@ describe('useDataView', () => {
         }));
         const cb = mockFn();
         const items = [{}];
-        // temp fix for initial update triggered until zeta-dom is updated
-        await waitForNextUpdate();
 
         result.current.dataView.getView(items, cb);
         result.current.dataView.filters.foo = 2;
