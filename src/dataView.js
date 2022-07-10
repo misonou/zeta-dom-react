@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
+import { ZetaEventContainer } from "./include/zeta-dom/events.js";
 import { combineFn, createPrivateStore, define, defineObservableProperty, definePrototype, extend, keys, noop, pick, pipe, watch } from "./include/zeta-dom/util.js";
 import { useViewState } from "./viewState.js";
 
 const _ = createPrivateStore();
 const proto = DataView.prototype;
+const emitter = new ZetaEventContainer();
 
 export function DataView(filters, sortBy, sortOrder, pageSize) {
     var self = this;
@@ -32,6 +34,9 @@ define(DataView, {
 
 definePrototype(DataView, {
     itemCount: 0,
+    on: function (event, handler) {
+        return emitter.add(this, event, handler);
+    },
     getView: function (items, callback) {
         var self = this;
         var state = _(self);
@@ -81,6 +86,7 @@ export function useDataView(persistKey, filters, sortBy, sortOrder, pageSize) {
         var onUpdated = function () {
             state.filteredItems = state.items.length ? undefined : [];
             forceUpdate({});
+            emitter.emit('viewChange', dataView);
         };
         return combineFn(
             watch(dataView, onUpdated),

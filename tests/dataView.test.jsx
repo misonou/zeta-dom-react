@@ -2,8 +2,10 @@ import React from "react";
 import { jest } from "@jest/globals";
 import { act, renderHook } from '@testing-library/react-hooks'
 import { DataView, useDataView } from "src/dataView";
-import { mockFn } from "./testUtil";
+import { mockFn, verifyCalls } from "./testUtil";
 import { async } from "regenerator-runtime";
+
+const { objectContaining } = expect;
 
 Object.defineProperty(DataView, 'pageSize', {
     configurable: true,
@@ -168,6 +170,68 @@ describe('useDataView', () => {
     it('should reverse items if sortOrder is desc', () => {
         const { result, unmount } = renderHook(() => useDataView({ foo: 1 }, 'foo', 'desc'));
         expect(result.current.getView([1, 2, 3, 4, 5], v => v)[0]).toEqual([5, 4, 3, 2, 1]);
+        unmount();
+    });
+});
+
+describe('DataView', () => {
+    it('should trigger viewChange event when property of filter is updated', async () => {
+        const cb = mockFn();
+        const { result, unmount, waitForNextUpdate } = renderHook(() => useDataView({ foo: 1 }));
+        result.current.on('viewChange', cb);
+        act(() => {
+            result.current.filters.foo = 2;
+        });
+        await waitForNextUpdate();
+        verifyCalls(cb, [[objectContaining({ type: 'viewChange' }), result.current]]);
+        unmount();
+    });
+
+    it('should trigger viewChange event when pageIndex is updated', async () => {
+        const cb = mockFn();
+        const { result, unmount, waitForNextUpdate } = renderHook(() => useDataView({}));
+        result.current.on('viewChange', cb);
+        act(() => {
+            result.current.pageIndex = 1;
+        });
+        await waitForNextUpdate();
+        verifyCalls(cb, [[objectContaining({ type: 'viewChange' }), result.current]]);
+        unmount();
+    });
+
+    it('should trigger viewChange event when pageSize is updated', async () => {
+        const cb = mockFn();
+        const { result, unmount, waitForNextUpdate } = renderHook(() => useDataView({}));
+        result.current.on('viewChange', cb);
+        act(() => {
+            result.current.pageSize = 1;
+        });
+        await waitForNextUpdate();
+        verifyCalls(cb, [[objectContaining({ type: 'viewChange' }), result.current]]);
+        unmount();
+    });
+
+    it('should trigger viewChange event when sortBy is updated', async () => {
+        const cb = mockFn();
+        const { result, unmount, waitForNextUpdate } = renderHook(() => useDataView({}));
+        result.current.on('viewChange', cb);
+        act(() => {
+            result.current.sortBy = 'foo';
+        });
+        await waitForNextUpdate();
+        verifyCalls(cb, [[objectContaining({ type: 'viewChange' }), result.current]]);
+        unmount();
+    });
+
+    it('should trigger viewChange event when sortOrder is updated', async () => {
+        const cb = mockFn();
+        const { result, unmount, waitForNextUpdate } = renderHook(() => useDataView({}));
+        result.current.on('viewChange', cb);
+        act(() => {
+            result.current.sortOrder = 'desc';
+        });
+        await waitForNextUpdate();
+        verifyCalls(cb, [[objectContaining({ type: 'viewChange' }), result.current]]);
         unmount();
     });
 });
