@@ -6,6 +6,7 @@ import { useMemoizedFunction, useObservableProperty } from "./hooks.js";
 import { useViewState } from "./viewState.js";
 
 const _ = createPrivateStore();
+const emitter = new ZetaEventContainer();
 
 /** @type {React.Context<import ("./form").FormContext>} */
 // @ts-ignore: type inference issue
@@ -13,7 +14,7 @@ const _FormContext = createContext(null);
 
 export const FormContextProvider = _FormContext.Provider;
 
-function createDataObject(context, eventContainer, initialData) {
+function createDataObject(context, initialData) {
     return new Proxy(extend({}, initialData), {
         get: function (t, p) {
             if (typeof p === 'string') {
@@ -24,7 +25,7 @@ function createDataObject(context, eventContainer, initialData) {
             if (typeof p === 'string' && t[p] !== v) {
                 if (p in t) {
                     _(context).pending[p] = true;
-                    eventContainer.emitAsync('dataChange', context, [p], {}, function (v, a) {
+                    emitter.emitAsync('dataChange', context, [p], {}, function (v, a) {
                         return v.concat(a);
                     });
                 }
@@ -47,12 +48,10 @@ export function FormContext(initialData, validateOnChange, viewState) {
     var self = this;
     var fields = {};
     var errors = {};
-    var eventContainer = new ZetaEventContainer();
     var defaults = {};
     var state = _(self, {
         fields: fields,
         errors: errors,
-        eventContainer: eventContainer,
         viewState: viewState,
         vlocks: {},
         refs: {},
@@ -68,7 +67,7 @@ export function FormContext(initialData, validateOnChange, viewState) {
     self.isValid = true;
     self.autoPersist = true;
     self.validateOnChange = validateOnChange !== false;
-    self.data = createDataObject(self, eventContainer, viewState.get() || state.initialData);
+    self.data = createDataObject(self, viewState.get() || state.initialData);
     self.on('dataChange', function (e) {
         state.pending = {};
         if (self.validateOnChange) {
@@ -95,7 +94,7 @@ definePrototype(FormContext, {
     },
     on: function (event, handler) {
         var state = _(this);
-        return state.eventContainer.add(this, event, handler);
+        return emitter.add(this, event, handler);
     },
     persist: function () {
         var self = this;
@@ -118,21 +117,20 @@ definePrototype(FormContext, {
         }
         extend(self.data, data || state.initialData);
         self.isValid = true;
-        state.eventContainer.emit('reset', self);
+        emitter.emit('reset', self);
     },
     validate: function () {
         var self = this;
         var state = _(self);
         var vlocks = state.vlocks;
         var errors = state.errors;
-        var eventContainer = state.eventContainer;
         var props = makeArray(arguments);
         if (!props.length) {
             props = keys(state.fields);
         }
         var prev = extend({}, errors);
         var validate = function (v) {
-            return eventContainer.emit('validate', self, {
+            return emitter.emit('validate', self, {
                 name: v,
                 value: self.data[v]
             });
@@ -167,7 +165,7 @@ definePrototype(FormContext, {
                     }
                     errors[v] = result[i];
                     if ((result[i] || '') !== (prev[v] || '')) {
-                        eventContainer.emit('validationChange', self, {
+                        emitter.emit('validationChange', self, {
                             name: v,
                             isValid: !result[i],
                             message: String(result[i] || '')
