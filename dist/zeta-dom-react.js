@@ -338,13 +338,14 @@ function useAsync(init, autoload) {
         });
       },
       refresh: function refresh() {
+        var result = resolve().then(init);
         var promise;
 
         var shouldNotify = function shouldNotify() {
           return !state.disposed && state.promise === promise;
         };
 
-        promise = always(resolve().then(init), function (resolved, value) {
+        promise = always(result, function (resolved, value) {
           if (shouldNotify()) {
             if (resolved) {
               extend(state, {
@@ -370,6 +371,7 @@ function useAsync(init, autoload) {
           error: undefined
         });
         notifyAsync(element || zeta_dom_dom.root, catchAsync(promise));
+        return result;
       }
     };
   })[0];
@@ -498,9 +500,11 @@ function useViewState(key) {
 
 
 
+
 var _ = createPrivateStore();
 
 var proto = DataView.prototype;
+var emitter = new ZetaEventContainer();
 function DataView(filters, sortBy, sortOrder, pageSize) {
   var self = this;
   var defaults = {
@@ -529,6 +533,9 @@ util_define(DataView, {
 });
 definePrototype(DataView, {
   itemCount: 0,
+  on: function on(event, handler) {
+    return emitter.add(this, event, handler);
+  },
   getView: function getView(items, callback) {
     var self = this;
 
@@ -584,6 +591,7 @@ function useDataView(persistKey, filters, sortBy, sortOrder, pageSize) {
     var onUpdated = function onUpdated() {
       state.filteredItems = state.items.length ? undefined : [];
       forceUpdate({});
+      emitter.emit('viewChange', dataView);
     };
 
     return combineFn(watch(dataView, onUpdated), watch(dataView.filters, onUpdated), viewState.onPopState ? viewState.onPopState(function (newValue) {
@@ -604,15 +612,16 @@ function useDataView(persistKey, filters, sortBy, sortOrder, pageSize) {
 
 
 var form_ = createPrivateStore();
+
+var form_emitter = new ZetaEventContainer();
 /** @type {React.Context<import ("./form").FormContext>} */
 // @ts-ignore: type inference issue
-
 
 var _FormContext = /*#__PURE__*/(0,external_commonjs_react_commonjs2_react_amd_react_root_React_.createContext)(null);
 
 var FormContextProvider = _FormContext.Provider;
 
-function createDataObject(context, eventContainer, initialData) {
+function createDataObject(context, initialData) {
   return new Proxy(extend({}, initialData), {
     get: function get(t, p) {
       if (typeof p === 'string') {
@@ -623,7 +632,7 @@ function createDataObject(context, eventContainer, initialData) {
       if (typeof p === 'string' && t[p] !== v) {
         if (p in t) {
           form_(context).pending[p] = true;
-          eventContainer.emitAsync('dataChange', context, [p], {}, function (v, a) {
+          form_emitter.emitAsync('dataChange', context, [p], {}, function (v, a) {
             return v.concat(a);
           });
         }
@@ -648,13 +657,11 @@ function FormContext(initialData, validateOnChange, viewState) {
   var self = this;
   var fields = {};
   var errors = {};
-  var eventContainer = new ZetaEventContainer();
   var defaults = {};
 
   var state = form_(self, {
     fields: fields,
     errors: errors,
-    eventContainer: eventContainer,
     viewState: viewState,
     vlocks: {},
     refs: {},
@@ -671,7 +678,7 @@ function FormContext(initialData, validateOnChange, viewState) {
   self.isValid = true;
   self.autoPersist = true;
   self.validateOnChange = validateOnChange !== false;
-  self.data = createDataObject(self, eventContainer, viewState.get() || state.initialData);
+  self.data = createDataObject(self, viewState.get() || state.initialData);
   self.on('dataChange', function (e) {
     state.pending = {};
 
@@ -702,7 +709,7 @@ definePrototype(FormContext, {
   on: function on(event, handler) {
     var state = form_(this);
 
-    return state.eventContainer.add(this, event, handler);
+    return form_emitter.add(this, event, handler);
   },
   persist: function persist() {
     var self = this;
@@ -733,7 +740,7 @@ definePrototype(FormContext, {
 
     extend(self.data, data || state.initialData);
     self.isValid = true;
-    state.eventContainer.emit('reset', self);
+    form_emitter.emit('reset', self);
   },
   validate: function validate() {
     var self = this;
@@ -742,7 +749,6 @@ definePrototype(FormContext, {
 
     var vlocks = state.vlocks;
     var errors = state.errors;
-    var eventContainer = state.eventContainer;
     var props = makeArray(arguments);
 
     if (!props.length) {
@@ -752,7 +758,7 @@ definePrototype(FormContext, {
     var prev = extend({}, errors);
 
     var validate = function validate(v) {
-      return eventContainer.emit('validate', self, {
+      return form_emitter.emit('validate', self, {
         name: v,
         value: self.data[v]
       });
@@ -793,7 +799,7 @@ definePrototype(FormContext, {
           errors[v] = result[i];
 
           if ((result[i] || '') !== (prev[v] || '')) {
-            eventContainer.emit('validationChange', self, {
+            form_emitter.emit('validationChange', self, {
               name: v,
               isValid: !result[i],
               message: String(result[i] || '')
