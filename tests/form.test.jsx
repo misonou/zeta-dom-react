@@ -290,6 +290,21 @@ describe('FormContext#isValid', () => {
     });
 });
 
+describe('FormContext#setError', () => {
+    it('should update isValid property', () => {
+        const { form, wrapper, unmount } = createFormContext();
+        renderHook(() => useFormField({ name: 'foo' }, ''), { wrapper });
+        expect(form.isValid).toBe(true);
+
+        act(() => form.setError('foo', 'Error'));
+        expect(form.isValid).toBe(false);
+
+        act(() => form.setError('foo', ''));
+        expect(form.isValid).toBe(true);
+        unmount();
+    });
+});
+
 describe('FormContext#validate', () => {
     it('should trigger validation from form context', async () => {
         const cb = mockFn();

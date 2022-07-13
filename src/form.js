@@ -93,7 +93,6 @@ definePrototype(FormContext, {
         }
     },
     on: function (event, handler) {
-        var state = _(this);
         return emitter.add(this, event, handler);
     },
     persist: function () {
@@ -119,16 +118,32 @@ definePrototype(FormContext, {
         self.isValid = true;
         emitter.emit('reset', self);
     },
+    setError: function (key, error) {
+        var self = this;
+        var state = _(self);
+        var errors = state.errors;
+        var prev = errors[key] || '';
+        if (isFunction(error)) {
+            error = wrapErrorResult(state, key, error);
+        }
+        errors[key] = error;
+        if ((error || '') !== prev) {
+            emitter.emit('validationChange', self, {
+                name: key,
+                isValid: !error,
+                message: String(error || '')
+            });
+            state.setValid();
+        }
+    },
     validate: function () {
         var self = this;
         var state = _(self);
         var vlocks = state.vlocks;
-        var errors = state.errors;
         var props = makeArray(arguments);
         if (!props.length) {
             props = keys(state.fields);
         }
-        var prev = extend({}, errors);
         var validate = function (v) {
             return emitter.emit('validate', self, {
                 name: v,
@@ -160,17 +175,7 @@ definePrototype(FormContext, {
                 // checks if current validation is of the latest
                 if (vlocks[v][0] === promises[i]) {
                     vlocks[v].shift();
-                    if (isFunction(result[i])) {
-                        result[i] = wrapErrorResult(state, v, result[i]);
-                    }
-                    errors[v] = result[i];
-                    if ((result[i] || '') !== (prev[v] || '')) {
-                        emitter.emit('validationChange', self, {
-                            name: v,
-                            isValid: !result[i],
-                            message: String(result[i] || '')
-                        });
-                    }
+                    self.setError(v, result[i]);
                 }
             });
             state.setValid();
