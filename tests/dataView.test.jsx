@@ -225,3 +225,65 @@ describe('DataView', () => {
         unmount();
     });
 });
+
+describe('DataView#sort', () => {
+    it('should sort items using property named by sortBy', () => {
+        const items = [
+            { foo: 4 },
+            { foo: 3 },
+            { foo: 2 },
+            { foo: 1 },
+        ]
+        const { result, unmount } = renderHook(() => useDataView({ foo: 1 }, 'foo', 'asc'));
+        expect(result.current.getView(items, v => result.current.sort(v))[0]).toEqual(items.slice().reverse());
+        unmount();
+    });
+
+    it('should sort items using specified property', () => {
+        const items = [
+            { foo: 1, bar: 4 },
+            { foo: 2, bar: 3 },
+            { foo: 3, bar: 2 },
+            { foo: 4, bar: 1 },
+        ]
+        const { result, unmount } = renderHook(() => useDataView({ foo: 1 }, 'foo', 'asc'));
+        expect(result.current.getView(items, v => result.current.sort(v, 'bar'))[0]).toEqual(items.slice().reverse());
+        unmount();
+    });
+
+    it('should sort items using returned value from callback for each items', () => {
+        const items = [
+            { foo: 1 },
+            { foo: 2 },
+            { foo: 3 },
+            { foo: 4 },
+        ]
+        const { result, unmount } = renderHook(() => useDataView({ foo: 1 }));
+        expect(result.current.getView(items, v => result.current.sort(v, v => 5 - v.foo))[0]).toEqual(items.slice().reverse());
+        unmount();
+    });
+
+    it('should sort items using multiple returned values from callback for each items', () => {
+        const items = [
+            { foo: 1, bar: 1 },
+            { foo: 0, bar: 0 },
+            { foo: 1, bar: 0 },
+            { foo: 0, bar: 1 },
+        ]
+        const { result, unmount } = renderHook(() => useDataView({ foo: 1 }));
+        expect(result.current.getView(items, v => result.current.sort(v, v => [v.foo, v.bar]))[0]).toEqual([items[1], items[3], items[2], items[0]]);
+        unmount();
+    });
+
+    it('should sort items in reversed order if sortOrder is desc', () => {
+        const items = [
+            { foo: 1 },
+            { foo: 2 },
+            { foo: 3 },
+            { foo: 4 },
+        ]
+        const { result, unmount } = renderHook(() => useDataView({ foo: 1 }, 'foo', 'desc'));
+        expect(result.current.getView(items, v => result.current.sort(v))[0]).toEqual(items.slice().reverse());
+        unmount();
+    });
+});

@@ -82,6 +82,32 @@ export class DataView<P extends object> {
     getView<T>(items: T[] | undefined, callback?: (this: DataView<P>, items: T[], filters: P, sortBy: string, sortOrder: 'asc' | 'desc' | undefined) => T[]): [items: T[], totalCount: number];
 
     /**
+     * Creates a sorted list of item using the value of property named by {@link DataView.sortBy} from each object.
+     * Item order is reversed if {@link DataView.sortOrder} is set to `desc`.
+     * For items of the same order, they will preserve the previous order in the sorted list.
+     * @param items A list of items.
+     */
+    sort<T>(items: T[]): T[];
+
+    /**
+     * Creates a sorted list of item using the value of the specified property from each object.
+     * Item order is reversed if {@link DataView.sortOrder} is set to `desc`.
+     * For items of the same order, they will preserve the previous order in the sorted list.
+     * @param items A list of items.
+     * @param property The name of property of which values are used to determined ordering.
+     */
+    sort<T>(items: T[], property: string): T[];
+
+    /**
+     * Creates a sorted list of item using the values returned by a callback.
+     * Item order is reversed if {@link DataView.sortOrder} is set to `desc`.
+     * For items of the same order, they will preserve the previous order in the sorted list.
+     * @param items A list of items.
+     * @param callback A callback which returns value or a list of values to determined ordering.
+     */
+    sort<T>(items: T[], callback: (item: T) => any): T[];
+
+    /**
      * Gets the data view properties as a plain object for persisting states.
      */
     toJSON(): DataViewProps<P>

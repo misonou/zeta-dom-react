@@ -1,11 +1,23 @@
 import { useEffect, useState } from "react";
 import { ZetaEventContainer } from "./include/zeta-dom/events.js";
-import { combineFn, createPrivateStore, define, defineObservableProperty, definePrototype, extend, keys, noop, pick, pipe, watch } from "./include/zeta-dom/util.js";
+import { combineFn, createPrivateStore, define, defineObservableProperty, definePrototype, each, extend, isArray, isFunction, isUndefinedOrNull, keys, makeArray, noop, pick, pipe, single, watch } from "./include/zeta-dom/util.js";
 import { useViewState } from "./viewState.js";
 
 const _ = createPrivateStore();
 const proto = DataView.prototype;
 const emitter = new ZetaEventContainer();
+
+function compare(a, b) {
+    var x = isUndefinedOrNull(a) && -1;
+    var y = isUndefinedOrNull(b) && 1;
+    if (x || y) {
+        return x + y;
+    }
+    if (typeof a === 'string' || typeof b === 'string') {
+        return String(a).localeCompare(b, undefined, { caseFirst: 'upper' });
+    }
+    return a - b;
+}
 
 export function DataView(filters, sortBy, sortOrder, pageSize) {
     var self = this;
@@ -51,6 +63,31 @@ definePrototype(DataView, {
             self.itemCount = filteredItems.length;
         }
         return [filteredItems.slice(pageIndex * pageSize, pageSize ? (pageIndex + 1) * pageSize : undefined), filteredItems.length];
+    },
+    sort: function (items, callback) {
+        var self = this;
+        items = makeArray(items);
+        if (!isFunction(callback)) {
+            var prop = callback || self.sortBy;
+            if (!prop) {
+                return items;
+            }
+            callback = function (item) {
+                return item[prop];
+            };
+        }
+        var dir = self.sortOrder === 'desc' ? -1 : 1;
+        var values = new Map();
+        each(items, function (i, v) {
+            values.set(v, callback(v));
+        });
+        return items.sort(function (a, b) {
+            var x = values.get(a);
+            var y = values.get(b);
+            return dir * (isArray(x) ? single(x, function (v, i) {
+                return compare(v, y[i]);
+            }) : compare(x, y));
+        });
     },
     toJSON: function () {
         var self = this;
