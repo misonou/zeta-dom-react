@@ -32,12 +32,18 @@ export function DataView(filters, sortBy, sortOrder, pageSize) {
     for (let i in filters) {
         defineObservableProperty(filters, i);
     }
-    _(self, {
+    var state = _(self, {
         filters: Object.freeze(filters),
         defaults: defaults,
         items: [],
     });
+    var onUpdated = function () {
+        state.filteredItems = state.items.length ? undefined : [];
+        emitter.emitAsync('viewChange', self);
+    };
     extend(this, defaults);
+    watch(self, onUpdated);
+    watch(self.filters, onUpdated);
 }
 
 define(DataView, {
@@ -120,14 +126,10 @@ export function useDataView(persistKey, filters, sortBy, sortOrder, pageSize) {
     })[0];
     useEffect(function () {
         var state = _(dataView);
-        var onUpdated = function () {
-            state.filteredItems = state.items.length ? undefined : [];
-            forceUpdate({});
-            emitter.emit('viewChange', dataView);
-        };
         return combineFn(
-            watch(dataView, onUpdated),
-            watch(dataView.filters, onUpdated),
+            dataView.on('viewChange', function () {
+                forceUpdate({});
+            }),
             viewState.onPopState ? viewState.onPopState(function (newValue) {
                 viewState.set(dataView.toJSON());
                 extend(dataView, newValue || state.defaults);
