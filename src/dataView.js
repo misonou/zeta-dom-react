@@ -46,7 +46,7 @@ definePrototype(DataView, {
             state.items = items || [];
             state.filteredItems = state.items.length ? undefined : [];
         }
-        var filteredItems = state.filteredItems || (state.filteredItems = ((callback || pipe)(state.items, self.filters, self.sortBy) || [])[self.sortOrder === 'desc' ? 'reverse' : 'slice']());
+        var filteredItems = state.filteredItems || (state.filteredItems = (callback || pipe).call(self, state.items, self.filters, self.sortBy, self.sortOrder) || []);
         if (items) {
             self.itemCount = filteredItems.length;
         }

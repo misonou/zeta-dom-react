@@ -122,7 +122,7 @@ describe('useDataView', () => {
         const cb = mockFn();
         const items = [{}];
         result.current.getView(items, cb);
-        expect(cb).toBeCalledWith(items, { foo: 1 }, 'foo');
+        expect(cb).toBeCalledWith(items, { foo: 1 }, 'foo', 'asc');
         unmount();
     });
 
@@ -160,12 +160,6 @@ describe('useDataView', () => {
         expect(result.current.getView([1, 2, 3, 4, 5], v => v)[0]).toEqual([5]);
         result.current.pageIndex = 3;
         expect(result.current.getView([1, 2, 3, 4, 5], v => v)[0]).toEqual([]);
-        unmount();
-    });
-
-    it('should reverse items if sortOrder is desc', () => {
-        const { result, unmount } = renderHook(() => useDataView({ foo: 1 }, 'foo', 'desc'));
-        expect(result.current.getView([1, 2, 3, 4, 5], v => v)[0]).toEqual([5, 4, 3, 2, 1]);
         unmount();
     });
 });

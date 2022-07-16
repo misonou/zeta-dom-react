@@ -79,7 +79,7 @@ export class DataView<P extends object> {
      * @param callback A handler that returns a filtered and sorted array of items.
      * @returns An array containing a list of filtered and sorted items in the current page, and the total number of filtered items.
      */
-    getView<T>(items: T[] | undefined, callback?: (items: T[], filters: P, sortBy: string) => T[]): [items: T[], totalCount: number];
+    getView<T>(items: T[] | undefined, callback?: (this: DataView<P>, items: T[], filters: P, sortBy: string, sortOrder: 'asc' | 'desc' | undefined) => T[]): [items: T[], totalCount: number];
 
     /**
      * Gets the data view properties as a plain object for persisting states.
