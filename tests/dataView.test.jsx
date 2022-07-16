@@ -286,4 +286,29 @@ describe('DataView#sort', () => {
         expect(result.current.getView(items, v => result.current.sort(v))[0]).toEqual(items.slice().reverse());
         unmount();
     });
+
+    it('should maintain previous order for items that have equal order in current order', async () => {
+        const items = [
+            { foo: 0, bar: 1, baz: 0 },
+            { foo: 1, bar: 1, baz: 0 },
+            { foo: 1, bar: 0, baz: 0 },
+            { foo: 0, bar: 0, baz: 0 },
+        ]
+        const { result, unmount, waitForNextUpdate } = renderHook(() => useDataView({ foo: 1 }, 'bar', 'asc'));
+        expect(result.current.getView(items, v => result.current.sort(v))[0]).toEqual([items[2], items[3], items[0], items[1]]);
+
+        act(() => {
+            result.current.sortBy = 'foo';
+            result.current.sortOrder = 'desc';
+        });
+        await waitForNextUpdate();
+        expect(result.current.getView(items, v => result.current.sort(v))[0]).toEqual([items[2], items[1], items[3], items[0]]);
+
+        act(() => {
+            result.current.sortBy = 'baz';
+        });
+        await waitForNextUpdate();
+        expect(result.current.getView(items, v => result.current.sort(v))[0]).toEqual([items[2], items[1], items[3], items[0]]);
+        unmount();
+    });
 });

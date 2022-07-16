@@ -38,7 +38,10 @@ export function DataView(filters, sortBy, sortOrder, pageSize) {
         items: [],
     });
     var onUpdated = function () {
-        state.filteredItems = state.items.length ? undefined : [];
+        state.sorted = state.items.length ? undefined : [];
+        if (this !== self) {
+            state.filtered = state.sorted;
+        }
         emitter.emitAsync('viewChange', self);
     };
     extend(this, defaults);
@@ -62,9 +65,11 @@ definePrototype(DataView, {
         var pageSize = self.pageSize || 0;
         if (items !== state.items) {
             state.items = items || [];
-            state.filteredItems = state.items.length ? undefined : [];
+            state.filtered = state.items.length ? undefined : [];
+            state.sorted = state.filtered;
         }
-        var filteredItems = state.filteredItems || (state.filteredItems = (callback || pipe).call(self, state.items, self.filters, self.sortBy, self.sortOrder) || []);
+        var filteredItems = state.sorted || (state.sorted = (callback || pipe).call(self, state.filtered || state.items, self.filters, self.sortBy, self.sortOrder) || []);
+        state.filtered = filteredItems;
         if (items) {
             self.itemCount = filteredItems.length;
         }
