@@ -226,6 +226,20 @@ describe('DataView', () => {
     });
 });
 
+describe('DataView#getView', () => {
+    it('should sort items if callback is not supplied', () => {
+        const items = [
+            { foo: 4 },
+            { foo: 3 },
+            { foo: 2 },
+            { foo: 1 },
+        ]
+        const { result, unmount } = renderHook(() => useDataView({ foo: 1 }, 'foo', 'asc'));
+        expect(result.current.getView(items)[0]).toEqual(items.slice().reverse());
+        unmount();
+    });
+});
+
 describe('DataView#sort', () => {
     it('should sort items using property named by sortBy', () => {
         const items = [

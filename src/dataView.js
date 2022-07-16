@@ -68,7 +68,10 @@ definePrototype(DataView, {
             state.filtered = state.items.length ? undefined : [];
             state.sorted = state.filtered;
         }
-        var filteredItems = state.sorted || (state.sorted = (callback || pipe).call(self, state.filtered || state.items, self.filters, self.sortBy, self.sortOrder) || []);
+        callback = callback || function (items) {
+            return self.sort(items);
+        };
+        var filteredItems = state.sorted || (state.sorted = callback.call(self, state.filtered || state.items, self.filters, self.sortBy, self.sortOrder) || []);
         state.filtered = filteredItems;
         if (items) {
             self.itemCount = filteredItems.length;
