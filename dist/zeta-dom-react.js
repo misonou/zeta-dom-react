@@ -505,6 +505,24 @@ var _ = createPrivateStore();
 
 var proto = DataView.prototype;
 var emitter = new ZetaEventContainer();
+
+function compare(a, b) {
+  var x = isUndefinedOrNull(a) && -1;
+  var y = isUndefinedOrNull(b) && 1;
+
+  if (x || y) {
+    return x + y;
+  }
+
+  if (typeof a === 'string' || typeof b === 'string') {
+    return String(a).localeCompare(b, undefined, {
+      caseFirst: 'upper'
+    });
+  }
+
+  return a - b;
+}
+
 function DataView(filters, sortBy, sortOrder, pageSize) {
   var self = this;
   var defaults = {
@@ -520,13 +538,25 @@ function DataView(filters, sortBy, sortOrder, pageSize) {
     defineObservableProperty(filters, i);
   }
 
-  _(self, {
+  var state = _(self, {
     filters: Object.freeze(filters),
     defaults: defaults,
     items: []
   });
 
+  var onUpdated = function onUpdated() {
+    state.sorted = state.items.length ? undefined : [];
+
+    if (this !== self) {
+      state.filtered = state.sorted;
+    }
+
+    emitter.emitAsync('viewChange', self);
+  };
+
   extend(this, defaults);
+  watch(self, onUpdated);
+  watch(self.filters, onUpdated);
 }
 util_define(DataView, {
   pageSize: 0
@@ -546,16 +576,51 @@ definePrototype(DataView, {
 
     if (items !== state.items) {
       state.items = items || [];
-      state.filteredItems = state.items.length ? undefined : [];
+      state.filtered = state.items.length ? undefined : [];
+      state.sorted = state.filtered;
     }
 
-    var filteredItems = state.filteredItems || (state.filteredItems = ((callback || pipe)(state.items, self.filters, self.sortBy) || [])[self.sortOrder === 'desc' ? 'reverse' : 'slice']());
+    callback = callback || function (items) {
+      return self.sort(items);
+    };
+
+    var filteredItems = state.sorted || (state.sorted = callback.call(self, state.filtered || state.items, self.filters, self.sortBy, self.sortOrder) || []);
+    state.filtered = filteredItems;
 
     if (items) {
       self.itemCount = filteredItems.length;
     }
 
     return [filteredItems.slice(pageIndex * pageSize, pageSize ? (pageIndex + 1) * pageSize : undefined), filteredItems.length];
+  },
+  sort: function sort(items, callback) {
+    var self = this;
+    items = makeArray(items);
+
+    if (!isFunction(callback)) {
+      var prop = callback || self.sortBy;
+
+      if (!prop) {
+        return items;
+      }
+
+      callback = function callback(item) {
+        return item[prop];
+      };
+    }
+
+    var dir = self.sortOrder === 'desc' ? -1 : 1;
+    var values = new Map();
+    each(items, function (i, v) {
+      values.set(v, callback(v));
+    });
+    return items.sort(function (a, b) {
+      var x = values.get(a);
+      var y = values.get(b);
+      return dir * (isArray(x) ? single(x, function (v, i) {
+        return compare(v, y[i]);
+      }) : compare(x, y));
+    });
   },
   toJSON: function toJSON() {
     var self = this;
@@ -588,13 +653,9 @@ function useDataView(persistKey, filters, sortBy, sortOrder, pageSize) {
   (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
     var state = _(dataView);
 
-    var onUpdated = function onUpdated() {
-      state.filteredItems = state.items.length ? undefined : [];
+    return combineFn(dataView.on('viewChange', function () {
       forceUpdate({});
-      emitter.emit('viewChange', dataView);
-    };
-
-    return combineFn(watch(dataView, onUpdated), watch(dataView.filters, onUpdated), viewState.onPopState ? viewState.onPopState(function (newValue) {
+    }), viewState.onPopState ? viewState.onPopState(function (newValue) {
       viewState.set(dataView.toJSON());
       extend(dataView, newValue || state.defaults);
     }) : noop, function () {
@@ -707,8 +768,6 @@ definePrototype(FormContext, {
     }
   },
   on: function on(event, handler) {
-    var state = form_(this);
-
     return form_emitter.add(this, event, handler);
   },
   persist: function persist() {
@@ -742,20 +801,40 @@ definePrototype(FormContext, {
     self.isValid = true;
     form_emitter.emit('reset', self);
   },
+  setError: function setError(key, error) {
+    var self = this;
+
+    var state = form_(self);
+
+    var errors = state.errors;
+    var prev = errors[key] || '';
+
+    if (isFunction(error)) {
+      error = wrapErrorResult(state, key, error);
+    }
+
+    errors[key] = error;
+
+    if ((error || '') !== prev) {
+      form_emitter.emit('validationChange', self, {
+        name: key,
+        isValid: !error,
+        message: String(error || '')
+      });
+      state.setValid();
+    }
+  },
   validate: function validate() {
     var self = this;
 
     var state = form_(self);
 
     var vlocks = state.vlocks;
-    var errors = state.errors;
     var props = makeArray(arguments);
 
     if (!props.length) {
       props = keys(state.fields);
     }
-
-    var prev = extend({}, errors);
 
     var validate = function validate(v) {
       return form_emitter.emit('validate', self, {
@@ -791,20 +870,7 @@ definePrototype(FormContext, {
         // checks if current validation is of the latest
         if (vlocks[v][0] === promises[i]) {
           vlocks[v].shift();
-
-          if (isFunction(result[i])) {
-            result[i] = wrapErrorResult(state, v, result[i]);
-          }
-
-          errors[v] = result[i];
-
-          if ((result[i] || '') !== (prev[v] || '')) {
-            form_emitter.emit('validationChange', self, {
-              name: v,
-              isValid: !result[i],
-              message: String(result[i] || '')
-            });
-          }
+          self.setError(v, result[i]);
         }
       });
       state.setValid();
