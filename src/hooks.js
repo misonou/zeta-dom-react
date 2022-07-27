@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import dom from "./include/zeta-dom/dom.js";
 import { notifyAsync } from "./include/zeta-dom/domLock.js";
 import { ZetaEventContainer } from "./include/zeta-dom/events.js";
@@ -35,7 +35,7 @@ export function useObservableProperty(obj, key) {
     return value;
 }
 
-export function useAsync(init, autoload) {
+export function useAsync(init, deps) {
     const state = useState(function () {
         var element;
         var emitErrorEvent = function (error) {
@@ -75,21 +75,26 @@ export function useAsync(init, autoload) {
             }
         };
     })[0];
-    const deps = isArray(autoload);
+    deps = [deps !== false].concat(isArray(deps) || []);
     init = useMemoizedFunction(init);
-    autoload = autoload !== false;
-
-    useObservableProperty(state, 'loading');
     useEffect(function () {
         return function () {
             state.disposed = true;
         };
     }, [state]);
     useEffect(function () {
-        if (autoload) {
+        if (deps[0]) {
+            // keep call to refresh in useEffect to avoid double invocation
+            // in strict mode in development environment
             state.refresh();
         }
-    }, [state, autoload].concat(deps));
+    }, deps);
+    useMemo(function () {
+        if (deps[0]) {
+            state.loading = true;
+        }
+    }, deps);
+    useObservableProperty(state, 'loading');
     return [state.value, state];
 }
 
