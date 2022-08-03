@@ -1,4 +1,5 @@
-import { combineFn, each, extend, isFunction, kv, makeArray, noop } from "./include/zeta-dom/util.js";
+import { createElement, Fragment, lazy, Suspense } from "react";
+import { combineFn, each, extend, isFunction, isPlainObject, kv, makeArray, noop } from "./include/zeta-dom/util.js";
 
 export function classNames() {
     var className = [];
@@ -21,6 +22,10 @@ export function classNames() {
         });
     })(makeArray(arguments));
     return className.join(' ');
+}
+
+export function innerTextOrHTML(text) {
+    return isPlainObject(text) ? { dangerouslySetInnerHTML: text } : { children: text };
 }
 
 export function partial(setState, key) {
@@ -46,4 +51,15 @@ export function toRefCallback(ref) {
         };
     }
     return ref || noop;
+}
+
+export function withSuspense(factory, fallback) {
+    fallback = fallback || Fragment;
+    if (isFunction(fallback)) {
+        fallback = createElement(fallback);
+    }
+    const Component = lazy(factory);
+    return function (props) {
+        return createElement(Suspense, { fallback }, createElement(Component, props));
+    };
 }

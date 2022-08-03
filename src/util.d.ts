@@ -28,6 +28,12 @@ export interface SetPartialCallback<T> {
 export function classNames(...args: ClassName[]): string;
 
 /**
+ * Returns an object with either `children` or `dangerouslySetInnerHTML` property depending on the input.
+ * @param text A string or an object with `__html` property as content of a React element.
+ */
+export function innerTextOrHTML(text: string | { __html: string }): { children?: string; dangerouslySetInnerHTML?: { __html: string } };
+
+/**
  * Returns a callback that set only part of a composite state.
  * @param setState A state updating callback returned from {@link React.useState}.
  */
@@ -51,3 +57,10 @@ export function combineRef<T>(...ref: React.Ref<T>[]): React.RefCallback<T>;
  * @param ref A ref.
  */
 export function toRefCallback<T>(ref: React.Ref<T>): React.RefCallback<T>;
+
+/**
+ * Creates a lazy exotic component wrapped in a `Suspense` component.
+ * @param factory Callback to import the component.
+ * @param fallback Fallback content before the component is ready.
+ */
+export function withSuspense<T = any>(factory: () => Promise<{ default: React.ComponentType<T>; }>, fallback?: React.ComponentType | JSX.Element): React.FC<T>;
