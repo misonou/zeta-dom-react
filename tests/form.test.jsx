@@ -201,6 +201,16 @@ describe('useFormField', () => {
         verifyCalls(cb, [['bar']]);
     });
 
+    it('should call onChange callback for uncontrolled field', async () => {
+        const cb = mockFn();
+        const { wrapper, unmount } = createFormContext();
+        const { result, waitForValueToChange } = renderHook(() => useFormField({ name: 'foo', onChange: cb }, ''), { wrapper });
+        act(() => result.current.setValue('foo'));
+        verifyCalls(cb, [['foo']]);
+        await waitForValueToChange(() => result.current);
+        unmount();
+    });
+
     it('should not overwrite changes through data object', async () => {
         const { form, wrapper, unmount } = createFormContext();
         const { result, waitForValueToChange } = renderHook(() => useFormField({ name: 'foo' }, ''), { wrapper });

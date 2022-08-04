@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useRef, useState } from "react";
-import { always, any, combineFn, createPrivateStore, defineObservableProperty, definePrototype, extend, grep, inherit, isFunction, keys, makeArray, resolve, resolveAll } from "./include/zeta-dom/util.js";
+import { always, any, combineFn, createPrivateStore, defineObservableProperty, definePrototype, extend, grep, inherit, isFunction, keys, makeArray, noop, resolve, resolveAll } from "./include/zeta-dom/util.js";
 import { ZetaEventContainer } from "./include/zeta-dom/events.js";
 import { focus } from "./include/zeta-dom/dom.js";
 import { useMemoizedFunction, useObservableProperty } from "./hooks.js";
@@ -212,6 +212,7 @@ export function useFormContext(persistKey, initialData, validateOnChange) {
 }
 
 export function useFormField(props, defaultValue, prop) {
+    prop = prop || 'value';
     const form = useContext(_FormContext);
     const ref = useRef();
     const key = props.name || '';
@@ -221,21 +222,22 @@ export function useFormField(props, defaultValue, prop) {
     const sValue = useState(initialValue);
     const sError = useState('');
     const onValidate = useMemoizedFunction(props.onValidate);
+    const controlled = prop in props;
     const value = sValue[0], setValue = sValue[1];
     const error = sError[0], setError = sError[1];
 
     var setValueCallback = useMemoizedFunction(function (v) {
-        if (!props.onChange) {
+        var value = typeof v === 'function' ? v(props[prop]) : v;
+        if (!controlled) {
+            setValue(value);
+        } else if (!props.onChange) {
             console.warn('onChange not supplied');
-        } else {
-            props.onChange(typeof v === 'function' ? v(props[prop]) : v);
         }
+        (props.onChange || noop)(value);
     });
 
     // put internal states on props for un-controlled mode
-    prop = prop || 'value';
-    if (!(prop in props)) {
-        setValueCallback = setValue;
+    if (!controlled) {
         props = extend({}, props);
         props[prop] = value;
     }
