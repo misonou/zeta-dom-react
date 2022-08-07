@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import dom from "./include/zeta-dom/dom.js";
 import { notifyAsync } from "./include/zeta-dom/domLock.js";
 import { ZetaEventContainer } from "./include/zeta-dom/events.js";
-import { always, catchAsync, combineFn, extend, isArray, makeArray, map, resolve, setAdd, watch } from "./include/zeta-dom/util.js";
+import { always, catchAsync, combineFn, extend, isArray, makeArray, makeAsync, map, setAdd, watch } from "./include/zeta-dom/util.js";
 
 const fnWeakMap = new WeakMap();
 const container = new ZetaEventContainer();
@@ -52,7 +52,7 @@ export function useAsync(init, deps) {
                 });
             },
             refresh: function () {
-                var result = resolve().then(init);
+                var result = makeAsync(init)();
                 var promise;
                 var shouldNotify = function () {
                     return !state.disposed && state.promise === promise;
