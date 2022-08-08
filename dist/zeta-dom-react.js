@@ -103,6 +103,7 @@ __webpack_require__.d(src_namespaceObject, {
   "combineRef": () => (combineRef),
   "combineValidators": () => (combineValidators),
   "createBreakpointContext": () => (createBreakpointContext),
+  "innerTextOrHTML": () => (innerTextOrHTML),
   "partial": () => (partial),
   "toRefCallback": () => (toRefCallback),
   "useAsync": () => (useAsync),
@@ -115,7 +116,8 @@ __webpack_require__.d(src_namespaceObject, {
   "useMemoizedFunction": () => (useMemoizedFunction),
   "useObservableProperty": () => (useObservableProperty),
   "useRefInitCallback": () => (useRefInitCallback),
-  "useViewState": () => (useViewState)
+  "useViewState": () => (useViewState),
+  "withSuspense": () => (withSuspense)
 });
 
 // EXTERNAL MODULE: external {"commonjs":"react","commonjs2":"react","amd":"react","root":"React"}
@@ -144,8 +146,10 @@ var _zeta$util = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root
     any = _zeta$util.any,
     single = _zeta$util.single,
     kv = _zeta$util.kv,
+    fill = _zeta$util.fill,
     pick = _zeta$util.pick,
     exclude = _zeta$util.exclude,
+    mapObject = _zeta$util.mapObject,
     mapGet = _zeta$util.mapGet,
     mapRemove = _zeta$util.mapRemove,
     arrRemove = _zeta$util.arrRemove,
@@ -162,6 +166,7 @@ var _zeta$util = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root
     setImmediateOnce = _zeta$util.setImmediateOnce,
     throwNotFunction = _zeta$util.throwNotFunction,
     errorWithCode = _zeta$util.errorWithCode,
+    isErrorWithCode = _zeta$util.isErrorWithCode,
     keys = _zeta$util.keys,
     values = _zeta$util.values,
     util_hasOwnProperty = _zeta$util.hasOwnProperty,
@@ -194,7 +199,9 @@ var _zeta$util = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root
     always = _zeta$util.always,
     resolveAll = _zeta$util.resolveAll,
     catchAsync = _zeta$util.catchAsync,
-    setPromiseTimeout = _zeta$util.setPromiseTimeout;
+    setPromiseTimeout = _zeta$util.setPromiseTimeout,
+    delay = _zeta$util.delay,
+    makeAsync = _zeta$util.makeAsync;
 
 ;// CONCATENATED MODULE: ./src/include/zeta-dom/util.js
 
@@ -317,7 +324,7 @@ function useObservableProperty(obj, key) {
   }, [obj, key]);
   return value;
 }
-function useAsync(init, autoload) {
+function useAsync(init, deps) {
   var state = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)(function () {
     var element;
 
@@ -338,7 +345,7 @@ function useAsync(init, autoload) {
         });
       },
       refresh: function refresh() {
-        var result = resolve().then(init);
+        var result = makeAsync(init)();
         var promise;
 
         var shouldNotify = function shouldNotify() {
@@ -375,20 +382,26 @@ function useAsync(init, autoload) {
       }
     };
   })[0];
-  var deps = isArray(autoload);
+  deps = [deps !== false].concat(isArray(deps) || []);
   init = useMemoizedFunction(init);
-  autoload = autoload !== false;
-  useObservableProperty(state, 'loading');
   (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
     return function () {
       state.disposed = true;
     };
   }, [state]);
   (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
-    if (autoload) {
+    if (deps[0]) {
+      // keep call to refresh in useEffect to avoid double invocation
+      // in strict mode in development environment
       state.refresh();
     }
-  }, [state, autoload].concat(deps));
+  }, deps);
+  (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useMemo)(function () {
+    if (deps[0]) {
+      state.loading = true;
+    }
+  }, deps);
+  useObservableProperty(state, 'loading');
   return [state.value, state];
 }
 function useRefInitCallback(init) {
@@ -903,6 +916,7 @@ function useFormContext(persistKey, initialData, validateOnChange) {
   return form;
 }
 function useFormField(props, defaultValue, prop) {
+  prop = prop || 'value';
   var form = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useContext)(_FormContext);
   var ref = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useRef)();
   var key = props.name || '';
@@ -912,22 +926,24 @@ function useFormField(props, defaultValue, prop) {
   var sValue = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)(initialValue);
   var sError = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)('');
   var onValidate = useMemoizedFunction(props.onValidate);
+  var controlled = (prop in props);
   var value = sValue[0],
       setValue = sValue[1];
   var error = sError[0],
       setError = sError[1];
   var setValueCallback = useMemoizedFunction(function (v) {
-    if (!props.onChange) {
+    var value = typeof v === 'function' ? v(props[prop]) : v;
+
+    if (!controlled) {
+      setValue(value);
+    } else if (!props.onChange) {
       console.warn('onChange not supplied');
-    } else {
-      props.onChange(typeof v === 'function' ? v(props[prop]) : v);
     }
+
+    (props.onChange || noop)(value);
   }); // put internal states on props for un-controlled mode
 
-  prop = prop || 'value';
-
-  if (!(prop in props)) {
-    setValueCallback = setValue;
+  if (!controlled) {
     props = extend({}, props);
     props[prop] = value;
   }
@@ -1005,6 +1021,7 @@ function combineValidators() {
 }
 ;// CONCATENATED MODULE: ./src/util.js
 
+
 function classNames() {
   var className = [];
 
@@ -1030,6 +1047,13 @@ function classNames() {
 
   return className.join(' ');
 }
+function innerTextOrHTML(text) {
+  return isPlainObject(text) ? {
+    dangerouslySetInnerHTML: text
+  } : {
+    children: text
+  };
+}
 function partial(setState, key) {
   var fn = function fn(key, value) {
     setState(function (v) {
@@ -1054,6 +1078,20 @@ function toRefCallback(ref) {
   }
 
   return ref || noop;
+}
+function withSuspense(factory, fallback) {
+  fallback = fallback || external_commonjs_react_commonjs2_react_amd_react_root_React_.Fragment;
+
+  if (isFunction(fallback)) {
+    fallback = /*#__PURE__*/(0,external_commonjs_react_commonjs2_react_amd_react_root_React_.createElement)(fallback);
+  }
+
+  var Component = /*#__PURE__*/(0,external_commonjs_react_commonjs2_react_amd_react_root_React_.lazy)(factory);
+  return function (props) {
+    return /*#__PURE__*/(0,external_commonjs_react_commonjs2_react_amd_react_root_React_.createElement)(external_commonjs_react_commonjs2_react_amd_react_root_React_.Suspense, {
+      fallback: fallback
+    }, /*#__PURE__*/(0,external_commonjs_react_commonjs2_react_amd_react_root_React_.createElement)(Component, props));
+  };
 }
 ;// CONCATENATED MODULE: ./src/index.js
 
