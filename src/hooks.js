@@ -52,6 +52,7 @@ export function useAsync(init, deps) {
                 });
             },
             refresh: function () {
+                extend(state, { loading: true, error: undefined });
                 var result = makeAsync(init)();
                 var promise;
                 var shouldNotify = function () {
@@ -69,7 +70,7 @@ export function useAsync(init, deps) {
                         }
                     }
                 });
-                extend(state, { promise: promise, loading: true, error: undefined });
+                state.promise = promise;
                 notifyAsync(element || dom.root, catchAsync(promise));
                 return result;
             }

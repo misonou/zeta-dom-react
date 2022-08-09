@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import { act as reactAct, render } from "@testing-library/react";
 import { act, renderHook } from '@testing-library/react-hooks'
-import { catchAsync } from "src/include/zeta-dom/util";
+import { catchAsync, watch } from "src/include/zeta-dom/util";
 import dom from "src/include/zeta-dom/dom";
 import { combineRef } from "src/util";
 import { useAsync, useDispose, useMemoizedFunction, useObservableProperty, useRefInitCallback } from "src/hooks";
@@ -100,6 +100,25 @@ describe('useAsync', () => {
             loading: false,
             error: error
         });
+    });
+
+    it('should trigger component updates at the start and end of loading', async () => {
+        const cb = mockFn();
+        const promise = Promise.resolve({});
+        const { result, waitForNextUpdate } = renderHook(() => useAsync(() => promise));
+        await waitForNextUpdate();
+
+        const state = result.current[1];
+        expect(result.all.length).toBe(2);
+        expect(state.loading).toBe(false);
+
+        watch(state, 'loading', cb);
+        await act(async () => void await state.refresh());
+        expect(result.all.length).toBe(4);
+        verifyCalls(cb, [
+            [true, false, 'loading', expect.sameObject(state)],
+            [false, true, 'loading', expect.sameObject(state)],
+        ]);
     });
 
     it('should invoke callback when calling refresh and set value to the latest value', async () => {
