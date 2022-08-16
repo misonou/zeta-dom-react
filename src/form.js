@@ -44,7 +44,19 @@ function wrapErrorResult(state, key, error) {
     };
 }
 
-export function FormContext(initialData, validateOnChange, viewState) {
+function normalizeOptions(options) {
+    if (typeof options === 'boolean') {
+        options = {
+            validateOnChange: options
+        };
+    }
+    return extend({
+        autoPersist: true,
+        validateOnChange: true
+    }, options);
+}
+
+export function FormContext(initialData, options, viewState) {
     var self = this;
     var fields = {};
     var errors = {};
@@ -64,9 +76,8 @@ export function FormContext(initialData, validateOnChange, viewState) {
             });
         })
     });
+    extend(self, normalizeOptions(options));
     self.isValid = true;
-    self.autoPersist = true;
-    self.validateOnChange = validateOnChange !== false;
     self.data = createDataObject(self, viewState.get() || state.initialData);
     self.on('dataChange', function (e) {
         state.pending = {};
@@ -186,13 +197,13 @@ definePrototype(FormContext, {
     }
 });
 
-export function useFormContext(persistKey, initialData, validateOnChange) {
+export function useFormContext(persistKey, initialData, options) {
     if (typeof persistKey !== 'string') {
         return useFormContext('', persistKey, initialData);
     }
     const viewState = useViewState(persistKey);
     const form = useState(function () {
-        return new FormContext(initialData, validateOnChange, viewState);
+        return new FormContext(initialData, options, viewState);
     })[0];
     const forceUpdate = useState()[1];
     useObservableProperty(form, 'isValid');

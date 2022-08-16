@@ -53,6 +53,23 @@ export interface FormValidationChangeEvent extends Zeta.ZetaEventBase {
     readonly message: string;
 }
 
+export interface FormContextOptions {
+    /**
+     * Whether form data will be persisted in view state when component is unmounted.
+     * Default is `true`.
+     */
+    autoPersist?: boolean;
+    /**
+     * Whether validation will be triggered upon changes to form data.
+     * Default is `true`.
+     */
+    validateOnChange?: boolean;
+    /**
+     * Sets the default action label (or icon) to present for the enter key on virtual keyboards.
+     */
+    enterKeyHint?: 'enter' | 'done' | 'go' | 'next' | 'previous' | 'search' | 'send';
+}
+
 export class FormContext<T extends object = Zeta.Dictionary<any>> {
     readonly isValid: boolean;
     readonly data: Partial<T>;
@@ -62,6 +79,15 @@ export class FormContext<T extends object = Zeta.Dictionary<any>> {
      * Default is `true`.
      */
     autoPersist: boolean;
+    /**
+     * Whether validation will be triggered upon changes to form data.
+     * Default is `true`.
+     */
+    validateOnChange: boolean;
+    /**
+     * Sets the default action label (or icon) to present for the enter key on virtual keyboards.
+     */
+    enterKeyHint?: 'enter' | 'done' | 'go' | 'next' | 'previous' | 'search' | 'send';
 
     /**
      * Gets the input element for the specified field.
@@ -126,17 +152,17 @@ export class FormContext<T extends object = Zeta.Dictionary<any>> {
 /**
  * Creates a memoized {@link FormContext} object.
  * @param initialData Initial form data.
- * @param validateOnChange Whether validation will be triggered upon changes to form data, default is `true`.
+ * @param options If boolean is given, it sets the {@link FormContextOptions.validateOnChange} flag. Default is `true`.
  */
-export function useFormContext<T extends object = Zeta.Dictionary<any>>(initialData: Partial<T> = {}, validateOnChange: boolean = true): FormContext<T>;
+export function useFormContext<T extends object = Zeta.Dictionary<any>>(initialData: Partial<T> = {}, options: boolean | FormContextOptions = true): FormContext<T>;
 
 /**
  * Creates a memoized {@link FormContext} object.
  * @param persistKey A unique key for enabling the persisting of form data in view state.
  * @param initialData Initial form data.
- * @param validateOnChange Whether validation will be triggered upon changes to form data, default is `true`.
+ * @param options If boolean is given, it sets the {@link FormContextOptions.validateOnChange} flag. Default is `true`.
  */
-export function useFormContext<T extends object = Zeta.Dictionary<any>>(persistKey: string, initialData: Partial<T> = {}, validateOnChange: boolean = true): FormContext<T>;
+export function useFormContext<T extends object = Zeta.Dictionary<any>>(persistKey: string, initialData: Partial<T> = {}, options: boolean | FormContextOptions = true): FormContext<T>;
 
 export function useFormField<T extends FormFieldProps>(props: T, defaultValue: FieldValueType<T>, prop: keyof T = 'value'): FormFieldState<FieldValueType<T>>;
 
