@@ -38,9 +38,7 @@ export function useObservableProperty(obj, key) {
 export function useAsync(init, deps) {
     const state = useState(function () {
         var element;
-        var emitErrorEvent = function (error) {
-            return container.emit('error', state, { error }, true);
-        };
+        var currentPromise;
         return {
             loading: true,
             elementRef: function (current) {
@@ -54,23 +52,19 @@ export function useAsync(init, deps) {
             refresh: function () {
                 extend(state, { loading: true, error: undefined });
                 var result = makeAsync(init)();
-                var promise;
-                var shouldNotify = function () {
-                    return !state.disposed && state.promise === promise;
-                };
-                promise = always(result, function (resolved, value) {
-                    if (shouldNotify()) {
+                var promise = always(result, function (resolved, value) {
+                    if (!state.disposed && currentPromise === promise) {
                         if (resolved) {
                             extend(state, { loading: false, value: value });
                         } else {
                             extend(state, { loading: false, value: undefined, error: value });
-                            if (!emitErrorEvent(value)) {
+                            if (!container.emit('error', state, { error: value })) {
                                 throw value;
                             }
                         }
                     }
                 });
-                state.promise = promise;
+                currentPromise = promise;
                 notifyAsync(element || dom.root, catchAsync(promise));
                 return result;
             }
@@ -136,6 +130,6 @@ export function useErrorHandlerRef() {
                 }
             });
         }));
-    }, [ref].concat(args));
+    }, args);
     return ref;
 }
