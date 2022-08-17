@@ -24,6 +24,7 @@ export interface FormFieldProps<T = any, V = T> {
 }
 
 export interface FormFieldState<T> {
+    readonly form: FormContext | undefined;
     readonly value: T;
     readonly error: string;
     setValue: React.Dispatch<React.SetStateAction<T>>;

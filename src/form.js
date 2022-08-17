@@ -309,6 +309,7 @@ export function useFormField(props, defaultValue, prop) {
     }, [form, key, props.validateOnChange, props.disabled, props.required]);
 
     return {
+        form: form,
         value: props[prop],
         error: String(props.error || error || ''),
         setValue: setValueCallback,
