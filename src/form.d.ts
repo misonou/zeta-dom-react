@@ -4,10 +4,16 @@ export type ValidateResult = null | undefined | string | Stringifiable | ((props
 export type ValidateCallback<T = any> = (value: T, name: string, form: FormContext) => ValidateResult | Promise<ValidateResult>;
 
 type FieldValueType<T> = T extends FormFieldProps<any, infer V> ? V : any;
+type FieldPostHookCallback = <S extends FormFieldState, P extends FormFieldProps>(state: S, props: P) => S;
 
 export interface Stringifiable {
     toString(): string;
     [Symbol.toPrimitive](): string;
+}
+
+export interface FieldTypeOptions {
+    valueProperty?: string;
+    postHook?: FieldPostHookCallback;
 }
 
 export interface FormFieldProps<T = any, V = T> {
@@ -167,6 +173,8 @@ export function useFormContext<T extends object = Zeta.Dictionary<any>>(persistK
 
 export function useFormField<T extends FormFieldProps>(props: T, defaultValue: FieldValueType<T>, prop: keyof T = 'value'): FormFieldState<FieldValueType<T>>;
 
+export function useFormField<K extends keyof Zeta.ReactFieldTypes, T extends Parameters<Zeta.ReactFieldTypes[K]>[0]>(type: K, props: T, defaultValue: FieldValueType<T>, prop?: keyof T): ReturnType<Zeta.ReactFieldTypes<T>[K]>;
+
 /**
  * Combines one or more validator callbacks.
  * Supplied callbacks are called sequentially after the previous one have resolved.
@@ -174,3 +182,82 @@ export function useFormField<T extends FormFieldProps>(props: T, defaultValue: F
  * @param validators A list of validators. Non-function items are ignored.
  */
 export function combineValidators<T>(...validators: (ValidateCallback<T> | false | '' | 0 | undefined | null)[]): ValidateCallback<T>;
+
+export function registerFieldType(type: string, postHook: FieldPostHookCallback): void;
+
+export function registerFieldType(type: string, options: FieldTypeOptions): void;
+
+/*
+ * Type declaration in global namespace for extensibility
+ */
+declare global {
+    namespace Zeta {
+        type ReactFieldType<P, S> = (props: P) => S;
+        type ReactFieldValueType<T> = FieldValueType<T>;
+
+        interface ReactFieldTypes<T = any> {
+            text: ReactFieldType<TextFieldProps, TextFieldState<FieldValueType<T>>>;
+            toggle: ReactFieldType<ToggleFieldProps, ToggleFieldState>;
+            choice: ReactFieldType<ChoiceFieldProps, ChoiceFieldState<T extends ChoiceFieldProps<infer V> ? V : ChoiceItem>>;
+        }
+    }
+}
+
+export type TextInputAttributes = Pick<React.InputHTMLAttributes<HTMLInputElement>, 'autoComplete' | 'enterKeyHint' | 'inputMode' | 'maxLength' | 'placeholder' | 'type'>;
+
+export interface TextFieldProps<T = string, V = T> extends FormFieldProps<T, V>, TextInputAttributes {
+    /**
+     * Specifies the text input type.
+     */
+    type?: 'color' | 'date' | 'datetime-local' | 'email' | 'month' | 'number' | 'password' | 'tel' | 'text' | 'time' | 'url' | 'week' | string & {};
+}
+
+export interface TextFieldState<T> extends FormFieldState<T> {
+    /**
+     * Returns HTML attributes to be applied to an input element.
+     */
+    readonly inputProps: TextInputAttributes;
+}
+
+export interface ToggleFieldProps<T = string> extends FormFieldProps<T, boolean> {
+    checked?: boolean;
+}
+
+export interface ToggleFieldState extends FormFieldState<boolean> {
+}
+
+type ChoiceItemValueType<T extends ChoiceItem> = T extends ChoiceItem<infer U> ? U : any;
+
+export interface ChoiceItem<T = any> {
+    value: T;
+    label: string;
+    hidden?: boolean;
+    disabled?: boolean;
+}
+
+export interface ChoiceFieldProps<T extends ChoiceItem = ChoiceItem> extends FormFieldProps<ChoiceItemValueType<T> | ''> {
+    /**
+     * A list of items as choices.
+     * Primitive values in the list will be normalized as {@link ChoiceItem}.
+     */
+    items: readonly (T | Extract<T['value'], number | string | boolean>)[];
+    /**
+     * Whether the field can be empty, i.e. none of the choices are selected.
+     */
+    allowUnselect?: boolean;
+}
+
+export interface ChoiceFieldState<T extends ChoiceItem = ChoiceItem> extends FormFieldState<ChoiceItemValueType<T> | ''> {
+    /**
+     * Returns a list of choices as normalized items.
+     */
+    readonly items: T[];
+    /**
+     * Returns the index of selected item, `-1` if there's none.
+     */
+    readonly selectedIndex: number;
+    /**
+     * Returns the selected item.
+     */
+    readonly selectedItem: T | undefined;
+}

@@ -1,5 +1,5 @@
-import { createContext, useContext, useEffect, useRef, useState } from "react";
-import { always, any, combineFn, createPrivateStore, defineObservableProperty, definePrototype, extend, grep, inherit, isFunction, keys, makeArray, noop, resolve, resolveAll } from "./include/zeta-dom/util.js";
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { always, any, combineFn, createPrivateStore, defineObservableProperty, definePrototype, extend, grep, inherit, isFunction, keys, makeArray, noop, pick, pipe, resolve, resolveAll, throwNotFunction } from "./include/zeta-dom/util.js";
 import { ZetaEventContainer } from "./include/zeta-dom/events.js";
 import { focus } from "./include/zeta-dom/dom.js";
 import { useMemoizedFunction, useObservableProperty } from "./hooks.js";
@@ -7,6 +7,7 @@ import { useViewState } from "./viewState.js";
 
 const _ = createPrivateStore();
 const emitter = new ZetaEventContainer();
+const fieldTypes = {};
 
 /** @type {React.Context<import ("./form").FormContext>} */
 // @ts-ignore: type inference issue
@@ -222,8 +223,15 @@ export function useFormContext(persistKey, initialData, options) {
     return form;
 }
 
-export function useFormField(props, defaultValue, prop) {
-    prop = prop || 'value';
+export function useFormField(type, props, defaultValue, prop) {
+    if (typeof type !== 'string') {
+        prop = defaultValue;
+        defaultValue = props;
+        props = type;
+        type = '';
+    }
+    const preset = fieldTypes[type] || {};
+    prop = prop || preset.valueProperty || 'value';
     const form = useContext(_FormContext);
     const ref = useRef();
     const key = props.name || '';
@@ -308,7 +316,7 @@ export function useFormField(props, defaultValue, prop) {
         }
     }, [form, key, props.validateOnChange, props.disabled, props.required]);
 
-    return {
+    return (preset.postHook || pipe)({
         form: form,
         value: props[prop],
         error: String(props.error || error || ''),
@@ -317,7 +325,7 @@ export function useFormField(props, defaultValue, prop) {
         elementRef: function (v) {
             ref.current = v;
         }
-    };
+    }, props);
 }
 
 export function combineValidators() {
@@ -330,3 +338,53 @@ export function combineValidators() {
         }, resolve());
     };
 }
+
+export function registerFieldType(type, options) {
+    if (isFunction(options)) {
+        options = {
+            postHook: options
+        };
+    }
+    fieldTypes[type] = options;
+}
+
+registerFieldType('text', function (state, props) {
+    var form = state.form;
+    var inputProps = pick(props, ['type', 'autoComplete', 'maxLength', 'inputMode', 'placeholder', 'enterKeyHint']);
+    if (props.type === 'password' && !inputProps.autoComplete) {
+        inputProps.autoComplete = 'current-password';
+    }
+    inputProps.type = inputProps.type || 'text';
+    inputProps.enterKeyHint = inputProps.enterKeyHint || (form && form.enterKeyHint);
+    return extend(state, {
+        inputProps: inputProps
+    });
+});
+
+registerFieldType('choice', function (state, props) {
+    var items = useMemo(function () {
+        return props.items.map(function (v) {
+            return typeof v === 'object' ? v : { label: String(v), value: v };
+        });
+    }, [props.items]);
+    var selectedIndex = items.findIndex(function (v) {
+        return v.value === state.value;
+    });
+    useEffect(function () {
+        if (selectedIndex < 0) {
+            var newValue = props.allowUnselect || !items[0] ? '' : items[0].value;
+            if (newValue !== state.value) {
+                state.setValue(newValue);
+            }
+        }
+    });
+    return extend(state, {
+        items: items,
+        selectedIndex: selectedIndex,
+        selectedItem: items[selectedIndex]
+    });
+});
+
+registerFieldType('toggle', {
+    valueProperty: 'checked'
+});

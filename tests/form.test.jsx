@@ -224,6 +224,80 @@ describe('useFormField', () => {
     });
 });
 
+describe('useFormField - text', () => {
+    it('should pass text input attributes as inputProps', () => {
+        /** @type {import("src/form").TextInputAttributes} */
+        const inputProps = {
+            autoComplete: 'username',
+            enterKeyHint: 'go',
+            inputMode: 'email',
+            maxLength: 10,
+            placeholder: 'foo',
+            type: 'email'
+        };
+        const { result } = renderHook(() => useFormField('text', { ...inputProps }, ''));
+        expect(result.current.inputProps).toEqual(inputProps);
+    });
+
+    it('should get enterKeyHint value from form context', () => {
+        const { wrapper, unmount } = createFormContext({}, { enterKeyHint: 'go' });
+        const { result } = renderHook(() => useFormField('text', {}, ''), { wrapper });
+        expect(result.current.inputProps.enterKeyHint).toBe('go');
+        unmount();
+    });
+
+    it('should default autoComplete to current-password for password field', () => {
+        const { result } = renderHook(() => useFormField('text', { type: 'password' }, ''));
+        expect(result.current.inputProps.autoComplete).toBe('current-password');
+    });
+});
+
+describe('useFormField - choice', () => {
+    it('should return normalized items', () => {
+        const items = [
+            'foo',
+            { value: 'bar', label: 'bar' }
+        ];
+        const { result } = renderHook(() => useFormField('choice', { items }, ''));
+        expect(result.current.items).toEqual([
+            { value: 'foo', label: 'foo' },
+            { value: 'bar', label: 'bar' },
+        ]);
+    });
+
+    it('should default value to first item if allowUnselected is false', () => {
+        const { result } = renderHook(() => useFormField('choice', { items: ['foo', 'bar'] }, ''));
+        expect(result.current.value).toBe('foo');
+        expect(result.current.selectedIndex).toBe(0);
+
+        act(() => result.current.setValue('baz'));
+        expect(result.current.value).toBe('foo');
+    });
+
+    it('should default value to empty string if allowUnselected is true', () => {
+        const { result } = renderHook(() => useFormField('choice', { items: ['foo', 'bar'], allowUnselect: true }, 'baz'));
+        expect(result.current.value).toBe('');
+        expect(result.current.selectedIndex).toBe(-1);
+
+        act(() => result.current.setValue('baz'));
+        expect(result.current.value).toBe('');
+    });
+
+    it('should return newly selected item and index after update', () => {
+        const { result } = renderHook(() => useFormField('choice', { items: ['foo', 'bar'] }, ''));
+        act(() => result.current.setValue('bar'));
+        expect(result.current.selectedItem.value).toBe('bar');
+        expect(result.current.selectedIndex).toBe(1);
+    });
+});
+
+describe('useFormField - toggle', () => {
+    it('should take value from checked prop', () => {
+        const { result } = renderHook(() => useFormField('toggle', { checked: true }, false));
+        expect(result.current.value).toBe(true);
+    });
+});
+
 describe('FormContext', () => {
     it('should fire dataChange event after reset for field not declared in initial data', async () => {
         const { form, wrapper, unmount } = createFormContext();
