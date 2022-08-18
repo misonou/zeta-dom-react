@@ -3,6 +3,8 @@ export const FormContextProvider: React.Provider<FormContext>;
 export type ValidateResult = null | undefined | string | Stringifiable | ((props: any) => string);
 export type ValidateCallback<T = any> = (value: T, name: string, form: FormContext) => ValidateResult | Promise<ValidateResult>;
 
+type FieldValueType<T> = T extends FormFieldProps<any, infer V> ? V : any;
+
 export interface Stringifiable {
     toString(): string;
     [Symbol.toPrimitive](): string;
@@ -21,7 +23,15 @@ export interface FormFieldProps<T = any, V = T> {
     onChange?: (value: V) => void;
 }
 
-interface FormEventMap {
+export interface FormFieldState<T> {
+    readonly value: T;
+    readonly error: string;
+    setValue: React.Dispatch<React.SetStateAction<T>>;
+    setError: React.Dispatch<React.SetStateAction<string>>;
+    elementRef: React.RefCallback<HTMLElement>;
+}
+
+export interface FormEventMap {
     reset: Zeta.ZetaEventBase;
     dataChange: DataChangeEvent;
     validate: FormValidateEvent;
@@ -128,15 +138,7 @@ export function useFormContext<T extends object = Zeta.Dictionary<any>>(initialD
  */
 export function useFormContext<T extends object = Zeta.Dictionary<any>>(persistKey: string, initialData: Partial<T> = {}, validateOnChange: boolean = true): FormContext<T>;
 
-export interface FormFieldState<T> {
-    readonly value: T;
-    readonly error: string;
-    setValue: React.Dispatch<React.SetStateAction<T>>;
-    setError: React.Dispatch<React.SetStateAction<string>>;
-    elementRef: React.RefCallback<HTMLElement>;
-}
-
-export function useFormField<T extends FormFieldProps<any, V>, K extends keyof T, V>(props: T, defaultValue: V, prop: K = 'value'): FormFieldState<V>;
+export function useFormField<T extends FormFieldProps>(props: T, defaultValue: FieldValueType<T>, prop: keyof T = 'value'): FormFieldState<FieldValueType<T>>;
 
 /**
  * Combines one or more validator callbacks.
