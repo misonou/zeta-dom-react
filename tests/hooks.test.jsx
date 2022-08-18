@@ -159,7 +159,7 @@ describe('useAsync', () => {
         verifyCalls(cb, [[error]]);
     });
 
-    it('should not emit error event when promise is rejected', async () => {
+    it('should emit unhandled error event when promise is rejected', async () => {
         const cb = mockFn();
         const error = new Error();
         const promise = Promise.reject(error);
@@ -174,7 +174,7 @@ describe('useAsync', () => {
         render(<Component />);
 
         await reactAct(async () => void await catchAsync(promise));
-        expect(cb).not.toBeCalled();
+        expect(cb).toBeCalledTimes(1);
     });
 
     it('should not emit error event when error is handled by onError handler', async () => {
