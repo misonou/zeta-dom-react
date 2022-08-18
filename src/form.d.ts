@@ -1,4 +1,5 @@
 export const FormContextProvider: React.Provider<FormContext>;
+export const Form: <T>(props: FormProps<T>) => JSX.Element;
 
 export type ValidateResult = null | undefined | string | Stringifiable | ((props: any) => string);
 export type ValidateCallback<T = any> = (value: T, name: string, form: FormContext) => ValidateResult | Promise<ValidateResult>;
@@ -36,6 +37,10 @@ export interface FormFieldState<T> {
     setValue: React.Dispatch<React.SetStateAction<T>>;
     setError: React.Dispatch<React.SetStateAction<string>>;
     elementRef: React.RefCallback<HTMLElement>;
+}
+
+export interface FormProps<T = any> extends React.ComponentPropsWithRef<'form'>, Pick<FormContextOptions, 'enterKeyHint'> {
+    context: FormContext<T>;
 }
 
 export interface FormEventMap {

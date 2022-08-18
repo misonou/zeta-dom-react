@@ -1,5 +1,5 @@
-import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { always, any, combineFn, createPrivateStore, defineObservableProperty, definePrototype, extend, grep, inherit, isFunction, keys, makeArray, noop, pick, pipe, resolve, resolveAll, throwNotFunction } from "./include/zeta-dom/util.js";
+import { createContext, createElement, forwardRef, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { always, any, combineFn, createPrivateStore, defineObservableProperty, definePrototype, exclude, extend, grep, inherit, isFunction, keys, makeArray, noop, pick, pipe, resolve, resolveAll, throwNotFunction } from "./include/zeta-dom/util.js";
 import { ZetaEventContainer } from "./include/zeta-dom/events.js";
 import { focus } from "./include/zeta-dom/dom.js";
 import { useMemoizedFunction, useObservableProperty } from "./hooks.js";
@@ -347,6 +347,19 @@ export function registerFieldType(type, options) {
     }
     fieldTypes[type] = options;
 }
+
+export const Form = forwardRef(function (props, ref) {
+    const form = props.context;
+    const onSubmit = function (e) {
+        if (!props.action) {
+            e.preventDefault();
+        }
+        (props.onSubmit || noop).call(this, e);
+    };
+    extend(form, pick(props, ['enterKeyHint']));
+    return createElement(FormContextProvider, { value: form },
+        createElement('form', extend(exclude(props, ['context', 'enterKeyHint']), { ref, onSubmit })));
+});
 
 registerFieldType('text', function (state, props) {
     var form = state.form;
