@@ -1,10 +1,10 @@
 import React, { useEffect, useRef } from "react";
-import { act as reactAct, render } from "@testing-library/react";
+import { act as reactAct, render, screen } from "@testing-library/react";
 import { act, renderHook } from '@testing-library/react-hooks'
-import { catchAsync, watch } from "src/include/zeta-dom/util";
+import { catchAsync, errorWithCode, watch } from "src/include/zeta-dom/util";
 import dom from "src/include/zeta-dom/dom";
 import { combineRef } from "src/util";
-import { useAsync, useDispose, useMemoizedFunction, useObservableProperty, useRefInitCallback } from "src/hooks";
+import { useAsync, useDispose, useErrorHandler, useMemoizedFunction, useObservableProperty, useRefInitCallback } from "src/hooks";
 import { delay, mockFn, verifyCalls, _ } from "./testUtil";
 
 describe('useMemoizedFunction', () => {
@@ -262,5 +262,166 @@ describe('useDispose', () => {
         result.current();
         result.current();
         expect(cb).toBeCalledTimes(1);
+    });
+});
+
+describe('useErrorHandler', () => {
+    it('should catch error from child elements', async () => {
+        const cb = mockFn();
+        const Component = function () {
+            let errorHandler = useErrorHandler();
+            useEffect(() => {
+                errorHandler.catch(cb);
+            }, [errorHandler]);
+            return (
+                <div ref={errorHandler.ref}>
+                    <button>button</button>
+                </div>
+            );
+        };
+        const { unmount } = render(<Component />);
+        const error = new Error();
+        dom.emit('error', screen.getByRole('button'), { error }, true);
+        verifyCalls(cb, [
+            [expect.sameObject(error)]
+        ]);
+        unmount();
+    });
+
+    it('should handle error from child elements', async () => {
+        const cb = mockFn().mockReturnValue(true);
+        const Component = function () {
+            let errorHandler = useErrorHandler();
+            useEffect(() => {
+                errorHandler.catch(cb);
+            }, [errorHandler]);
+            return (
+                <div ref={errorHandler.ref}>
+                    <button>button</button>
+                </div>
+            );
+        };
+        const { unmount } = render(<Component />);
+        const error = new Error();
+        const result = dom.emit('error', screen.getByRole('button'), { error }, true);
+        await expect(result).resolves.toBe(true);
+        unmount();
+    });
+
+    it('should catch error with specific error code', () => {
+        const cb = mockFn();
+        const Component = function () {
+            let errorHandler = useErrorHandler();
+            useEffect(() => {
+                errorHandler.catch('test', cb);
+            }, [errorHandler]);
+            return (
+                <div ref={errorHandler.ref}>
+                    <button>button</button>
+                </div>
+            );
+        };
+        const { unmount } = render(<Component />);
+        const error = errorWithCode('test');
+        dom.emit('error', screen.getByRole('button'), { error }, true);
+        dom.emit('error', screen.getByRole('button'), { error: new Error() }, true);
+        expect(cb).toBeCalledTimes(1);
+        unmount();
+    });
+
+    it('should catch error with specific type', () => {
+        class CustomError extends Error { }
+        const cb = mockFn();
+        const Component = function () {
+            let errorHandler = useErrorHandler();
+            useEffect(() => {
+                errorHandler.catch(CustomError, cb);
+            }, [errorHandler]);
+            return (
+                <div ref={errorHandler.ref}>
+                    <button>button</button>
+                </div>
+            );
+        };
+        const { unmount } = render(<Component />);
+        const error = new CustomError();
+        dom.emit('error', screen.getByRole('button'), { error }, true);
+        dom.emit('error', screen.getByRole('button'), { error: new Error() }, true);
+        expect(cb).toBeCalledTimes(1);
+        unmount();
+    });
+
+    it('should catch error from error source', () => {
+        const source = {
+            callback: null,
+            onError(callback) {
+                this.callback = callback;
+                return () => { };
+            }
+        };
+        const cb = mockFn();
+        const Component = function () {
+            let errorHandler = useErrorHandler(source);
+            useEffect(() => {
+                errorHandler.catch(cb);
+            }, [errorHandler]);
+            return (
+                <div ref={errorHandler.ref} />
+            );
+        };
+        const { unmount } = render(<Component />);
+        const error = new Error();
+        expect(source.callback).toBeInstanceOf(Function);
+
+        source.callback(error);
+        verifyCalls(cb, [
+            [expect.sameObject(error)]
+        ]);
+        unmount();
+    });
+
+    it('should re-emit unhandled error from error source', () => {
+        const source = {
+            callback: null,
+            onError(callback) {
+                this.callback = callback;
+                return () => { };
+            }
+        };
+        const cb = mockFn();
+        const Component = function () {
+            let errorHandler = useErrorHandler(source);
+            return (
+                <div ref={errorHandler.ref} />
+            );
+        };
+        const { container, unmount } = render(<Component />);
+        const error = new Error();
+        const unbind = dom.on(container, 'error', cb);
+
+        source.callback(error);
+        verifyCalls(cb, [
+            [expect.objectContaining({ error }), container]
+        ]);
+        unmount();
+        unbind();
+    });
+
+    it('should re-emit unhandled error from error source to root element if ref is not assigned', () => {
+        const source = {
+            callback: null,
+            onError(callback) {
+                this.callback = callback;
+                return () => { };
+            }
+        };
+        const cb = mockFn();
+        const { unmount } = renderHook(() => useErrorHandler(source));
+        const unbind = dom.on('error', cb);
+
+        source.callback(new Error());
+        expect(cb).toBeCalledTimes(1);
+        unmount();
+        unbind();
     });
 });

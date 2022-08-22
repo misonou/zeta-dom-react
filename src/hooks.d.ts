@@ -12,6 +12,42 @@ export interface ErrorSource {
     onError(handler: (error: any) => any): Zeta.UnregisterCallback;
 }
 
+export interface ErrorHandler {
+    /**
+     * Catches errors from promises registered to descandant elements by {@link dom.lock}.
+     * Unfiltered handlers are called after filtered handlers, registered by other overloads, regardless of order.
+     *
+     * If handler returns a value other than `undefined`, including promises resolving to whatever values,
+     * the error is marked as handled and no further handlers are called nor will be propagated up the DOM tree.
+     * @param handler Callback to be invoked.
+     */
+    catch(handler: (e: any) => any): Zeta.UnregisterCallback;
+
+    /**
+     * Catches errors with property `code` matching the specified code, from promises registered to descandant elements by {@link dom.lock}.
+     *
+     * If handler returns a value other than `undefined`, including promises resolving to whatever values,
+     * the error is marked as handled and no further handlers are called nor will be propagated up the DOM tree.
+     * @param code Value to be matched against.
+     * @param handler Callback to be invoked when the criteria matches.
+     */
+    catch(code: string, handler: (e: Error) => any): Zeta.UnregisterCallback;
+
+    /**
+     * Catches errors that are instances of the specified error type, from promises registered to descandant elements by {@link dom.lock}.
+     *
+     * If handler returns a value other than `undefined`, including promises resolving to whatever values,
+     * the error is marked as handled and no further handlers are called nor will be propagated up the DOM tree.
+     * @param type Constructor of a specific error type.
+     * @param handler Callback to be invoked when the criteria matches.
+     */
+    catch<T extends Error>(type: typeof T, handler: (e: T) => any): Zeta.UnregisterCallback;
+}
+
+export interface ErrorHandlerWithRef<T = Element> extends ErrorHandler {
+    readonly ref: React.RefCallback<T>;
+}
+
 export interface AsyncContentEventMap<T> {
     load: AsyncContentLoadEvent<T>;
     error: Zeta.ZetaErrorEvent;
@@ -123,5 +159,18 @@ export function useDispose(): DisposeCallback;
 /**
  * Returns a ref callback which when given to a React element, error caught from specified sources will be emitted through `error` event and be bubbled up through DOM.
  * @param args A list of error sources. Error source must implement an `onError` method.
+ * @deprecated Use {@link useErrorHandler} for richer functionalities.
  */
 export function useErrorHandlerRef<T extends Element = HTMLElement>(...args: ErrorSource[]): React.RefCallback<T>;
+
+/**
+ * Returns an error handler which provides an event-based mechanism to handle errors from the given error sources,
+ * as well as errors from child elements, in contrast to error boundaries.
+ *
+ * When {@link ErrorHandlerWithRef.ref} is assigned to React element,
+ * errors from child elements can be handled by callbacks added to the ErrorHandler instance.
+ * On the other hand, unhandled errors raised by error sources will be re-emitted to parent elements.
+ *
+ * @param args A list of error sources. Error source must implement an `onError` method.
+ */
+export function useErrorHandler<T extends Element = HTMLElement>(...args: ErrorSource[]): ErrorHandlerWithRef<T>;

@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dom from "./include/zeta-dom/dom.js";
 import { notifyAsync } from "./include/zeta-dom/domLock.js";
 import { ZetaEventContainer } from "./include/zeta-dom/events.js";
-import { always, combineFn, extend, isArray, makeArray, makeAsync, map, setAdd, watch } from "./include/zeta-dom/util.js";
+import { always, combineFn, extend, is, isArray, isErrorWithCode, isFunction, makeArray, makeAsync, map, pipe, resolve, setAdd, watch } from "./include/zeta-dom/util.js";
 
 const fnWeakMap = new WeakMap();
 const container = new ZetaEventContainer();
@@ -124,16 +124,58 @@ export function useDispose() {
 }
 
 export function useErrorHandlerRef() {
+    return useErrorHandler.apply(this, arguments).ref;
+}
+
+export function useErrorHandler() {
+    const reemitting = useRef(false);
     const ref = useRef(null);
     const args = makeArray(arguments);
+    const handler = useState(function () {
+        return {
+            ref: function (element) {
+                ref.current = element;
+                init(element);
+            },
+            catch: function (filter, callback) {
+                var isErrorOf;
+                if (callback) {
+                    isErrorOf = isFunction(filter) ? is : isErrorWithCode;
+                } else {
+                    callback = filter;
+                }
+                return container.add(handler, isErrorOf ? 'error' : 'default', function (e) {
+                    if ((isErrorOf || pipe)(e.error, filter)) {
+                        return callback(e.error);
+                    }
+                });
+            }
+        };
+    })[0];
+    const reemitError = useCallback(function (error) {
+        try {
+            reemitting.current = true;
+            return dom.emit('error', ref.current || dom.root, { error }, true);
+        } finally {
+            reemitting.current = false;
+        }
+    }, []);
+    const catchError = useCallback(function (error) {
+        return container.emit('error', handler, { error }) || container.emit('default', handler, { error });
+    }, []);
+    const init = useRefInitCallback(function (element) {
+        dom.on(element, 'error', function (e) {
+            if (!reemitting.current) {
+                return catchError(e.error);
+            }
+        });
+    });
     useEffect(function () {
         return combineFn(map(args, function (v) {
             return v.onError(function (error) {
-                if (ref.current) {
-                    return dom.emit('error', ref.current, { error }, true);
-                }
+                return catchError(error) || reemitError(error) || resolve();
             });
         }));
     }, args);
-    return ref;
+    return handler;
 }
