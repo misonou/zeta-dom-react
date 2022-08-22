@@ -147,6 +147,31 @@ describe('useAsync', () => {
         expect(result.current[0]).toBe('bar');
     });
 
+    it('should emit load event when promise is resolved', async () => {
+        const cb = mockFn();
+        const promise = Promise.resolve(42);
+        const { result } = renderHook(() => useAsync(() => promise));
+        result.current[1].on('load', cb);
+
+        await act(async () => void await promise);
+        verifyCalls(cb, [
+            [expect.objectContaining({ data: 42 }), expect.sameObject(result.current[1])]
+        ]);
+    });
+
+    it('should emit error event when promise is rejected', async () => {
+        const cb = mockFn();
+        const error = new Error();
+        const promise = Promise.reject(error);
+        const { result } = renderHook(() => useAsync(() => promise));
+        result.current[1].on('error', cb);
+
+        await act(async () => void await catchAsync(promise));
+        verifyCalls(cb, [
+            [expect.objectContaining({ error }), expect.sameObject(result.current[1])]
+        ]);
+    });
+
     it('should invoke onError handler when promise is rejected', async () => {
         const cb = mockFn();
         const error = new Error();

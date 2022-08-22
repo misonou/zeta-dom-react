@@ -12,7 +12,16 @@ export interface ErrorSource {
     onError(handler: (error: any) => any): Zeta.UnregisterCallback;
 }
 
-export interface AsyncContentState<T = any> {
+export interface AsyncContentEventMap<T> {
+    load: AsyncContentLoadEvent<T>;
+    error: Zeta.ZetaErrorEvent;
+}
+
+export interface AsyncContentLoadEvent<T> extends Zeta.ZetaEventBase {
+    data: T;
+}
+
+export interface AsyncContentState<T = any> extends Zeta.ZetaEventDispatcher<AsyncContentEventMap<T>, AsyncContentState<T>> {
     /**
      * Gets the value returned by the init callback.
      * The value is identical to the first element of the returned array from {@link useAsync},

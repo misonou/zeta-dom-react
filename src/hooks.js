@@ -44,8 +44,11 @@ export function useAsync(init, deps) {
             elementRef: function (current) {
                 element = current;
             },
+            on: function (event, handler) {
+                return container.add(state, event, handler);
+            },
             onError: function (handler) {
-                return container.add(state, 'error', function (e) {
+                return state.on('error', function (e) {
                     return handler.call(state, e.error);
                 });
             },
@@ -56,6 +59,7 @@ export function useAsync(init, deps) {
                     if (!state.disposed && currentPromise === promise) {
                         if (resolved) {
                             extend(state, { loading: false, value: value });
+                            container.emit('load', state, { data: value });
                         } else {
                             extend(state, { loading: false, value: undefined, error: value });
                             if (!container.emit('error', state, { error: value })) {
