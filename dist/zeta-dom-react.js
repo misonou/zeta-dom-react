@@ -96,6 +96,7 @@ var src_namespaceObject = {};
 __webpack_require__.r(src_namespaceObject);
 __webpack_require__.d(src_namespaceObject, {
   "DataView": () => (DataView),
+  "Form": () => (Form),
   "FormContext": () => (FormContext),
   "FormContextProvider": () => (FormContextProvider),
   "ViewStateProvider": () => (ViewStateProvider),
@@ -105,10 +106,12 @@ __webpack_require__.d(src_namespaceObject, {
   "createBreakpointContext": () => (createBreakpointContext),
   "innerTextOrHTML": () => (innerTextOrHTML),
   "partial": () => (partial),
+  "registerFieldType": () => (registerFieldType),
   "toRefCallback": () => (toRefCallback),
   "useAsync": () => (useAsync),
   "useDataView": () => (useDataView),
   "useDispose": () => (useDispose),
+  "useErrorHandler": () => (useErrorHandler),
   "useErrorHandlerRef": () => (useErrorHandlerRef),
   "useFormContext": () => (useFormContext),
   "useFormField": () => (useFormField),
@@ -198,6 +201,8 @@ var _zeta$util = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root
     reject = _zeta$util.reject,
     always = _zeta$util.always,
     resolveAll = _zeta$util.resolveAll,
+    retryable = _zeta$util.retryable,
+    deferrable = _zeta$util.deferrable,
     catchAsync = _zeta$util.catchAsync,
     setPromiseTimeout = _zeta$util.setPromiseTimeout,
     delay = _zeta$util.delay,
@@ -327,37 +332,35 @@ function useObservableProperty(obj, key) {
 function useAsync(init, deps) {
   var state = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)(function () {
     var element;
-
-    var emitErrorEvent = function emitErrorEvent(error) {
-      return container.emit('error', state, {
-        error: error
-      }, true);
-    };
-
+    var currentPromise;
     return {
       loading: true,
       elementRef: function elementRef(current) {
         element = current;
       },
+      on: function on(event, handler) {
+        return container.add(state, event, handler);
+      },
       onError: function onError(handler) {
-        return container.add(state, 'error', function (e) {
+        return state.on('error', function (e) {
           return handler.call(state, e.error);
         });
       },
       refresh: function refresh() {
+        extend(state, {
+          loading: true,
+          error: undefined
+        });
         var result = makeAsync(init)();
-        var promise;
-
-        var shouldNotify = function shouldNotify() {
-          return !state.disposed && state.promise === promise;
-        };
-
-        promise = always(result, function (resolved, value) {
-          if (shouldNotify()) {
+        var promise = always(result, function (resolved, value) {
+          if (!state.disposed && currentPromise === promise) {
             if (resolved) {
               extend(state, {
                 loading: false,
                 value: value
+              });
+              container.emit('load', state, {
+                data: value
               });
             } else {
               extend(state, {
@@ -366,18 +369,16 @@ function useAsync(init, deps) {
                 error: value
               });
 
-              if (!emitErrorEvent(value)) {
+              if (!container.emit('error', state, {
+                error: value
+              })) {
                 throw value;
               }
             }
           }
         });
-        extend(state, {
-          promise: promise,
-          loading: true,
-          error: undefined
-        });
-        notifyAsync(element || zeta_dom_dom.root, catchAsync(promise));
+        currentPromise = promise;
+        notifyAsync(element || zeta_dom_dom.root, promise);
         return result;
       }
     };
@@ -429,20 +430,69 @@ function useDispose() {
   return dispose;
 }
 function useErrorHandlerRef() {
-  var ref = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useRef)(null);
+  return useErrorHandler.apply(this, arguments).ref;
+}
+function useErrorHandler() {
+  var reemitting = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useRef)(false);
+
+  var _ref = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useRef)(null);
+
   var args = makeArray(arguments);
+  var handler = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)(function () {
+    return {
+      ref: function ref(element) {
+        _ref.current = element;
+        init(element);
+      },
+      "catch": function _catch(filter, callback) {
+        var isErrorOf;
+
+        if (callback) {
+          isErrorOf = isFunction(filter) ? is : isErrorWithCode;
+        } else {
+          callback = filter;
+        }
+
+        return container.add(handler, isErrorOf ? 'error' : 'default', function (e) {
+          if ((isErrorOf || pipe)(e.error, filter)) {
+            return callback(e.error);
+          }
+        });
+      }
+    };
+  })[0];
+  var reemitError = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useCallback)(function (error) {
+    try {
+      reemitting.current = true;
+      return zeta_dom_dom.emit('error', _ref.current || zeta_dom_dom.root, {
+        error: error
+      }, true);
+    } finally {
+      reemitting.current = false;
+    }
+  }, []);
+  var catchError = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useCallback)(function (error) {
+    return container.emit('error', handler, {
+      error: error
+    }) || container.emit('default', handler, {
+      error: error
+    });
+  }, []);
+  var init = useRefInitCallback(function (element) {
+    zeta_dom_dom.on(element, 'error', function (e) {
+      if (!reemitting.current) {
+        return catchError(e.error);
+      }
+    });
+  });
   (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
     return combineFn(map(args, function (v) {
       return v.onError(function (error) {
-        if (ref.current) {
-          return zeta_dom_dom.emit('error', ref.current, {
-            error: error
-          }, true);
-        }
+        return catchError(error) || reemitError(error) || resolve();
       });
     }));
-  }, [ref].concat(args));
-  return ref;
+  }, args);
+  return handler;
 }
 ;// CONCATENATED MODULE: ./src/css.js
 
@@ -678,6 +728,8 @@ function useDataView(persistKey, filters, sortBy, sortOrder, pageSize) {
   return dataView;
 }
 ;// CONCATENATED MODULE: ./src/form.js
+function _typeof(obj) { "@babel/helpers - typeof"; return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (obj) { return typeof obj; } : function (obj) { return obj && "function" == typeof Symbol && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }, _typeof(obj); }
+
 
 
 
@@ -688,6 +740,7 @@ function useDataView(persistKey, filters, sortBy, sortOrder, pageSize) {
 var form_ = createPrivateStore();
 
 var form_emitter = new ZetaEventContainer();
+var fieldTypes = {};
 /** @type {React.Context<import ("./form").FormContext>} */
 // @ts-ignore: type inference issue
 
@@ -727,7 +780,20 @@ function wrapErrorResult(state, key, error) {
   };
 }
 
-function FormContext(initialData, validateOnChange, viewState) {
+function normalizeOptions(options) {
+  if (typeof options === 'boolean') {
+    options = {
+      validateOnChange: options
+    };
+  }
+
+  return extend({
+    autoPersist: true,
+    validateOnChange: true
+  }, options);
+}
+
+function FormContext(initialData, options, viewState) {
   var self = this;
   var fields = {};
   var errors = {};
@@ -749,9 +815,8 @@ function FormContext(initialData, validateOnChange, viewState) {
     })
   });
 
+  extend(self, normalizeOptions(options));
   self.isValid = true;
-  self.autoPersist = true;
-  self.validateOnChange = validateOnChange !== false;
   self.data = createDataObject(self, viewState.get() || state.initialData);
   self.on('dataChange', function (e) {
     state.pending = {};
@@ -893,14 +958,14 @@ definePrototype(FormContext, {
     });
   }
 });
-function useFormContext(persistKey, initialData, validateOnChange) {
+function useFormContext(persistKey, initialData, options) {
   if (typeof persistKey !== 'string') {
     return useFormContext('', persistKey, initialData);
   }
 
   var viewState = useViewState(persistKey);
   var form = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)(function () {
-    return new FormContext(initialData, validateOnChange, viewState);
+    return new FormContext(initialData, options, viewState);
   })[0];
   var forceUpdate = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)()[1];
   useObservableProperty(form, 'isValid');
@@ -915,8 +980,16 @@ function useFormContext(persistKey, initialData, validateOnChange) {
   }, [form]);
   return form;
 }
-function useFormField(props, defaultValue, prop) {
-  prop = prop || 'value';
+function useFormField(type, props, defaultValue, prop) {
+  if (typeof type !== 'string') {
+    prop = defaultValue;
+    defaultValue = props;
+    props = type;
+    type = '';
+  }
+
+  var preset = fieldTypes[type] || {};
+  prop = prop || preset.valueProperty || 'value';
   var form = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useContext)(_FormContext);
   var ref = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useRef)();
   var key = props.name || '';
@@ -999,7 +1072,8 @@ function useFormField(props, defaultValue, prop) {
       form_(form).setValid();
     }
   }, [form, key, props.validateOnChange, props.disabled, props.required]);
-  return {
+  return (preset.postHook || pipe)({
+    form: form,
     value: props[prop],
     error: String(props.error || error || ''),
     setValue: setValueCallback,
@@ -1007,7 +1081,7 @@ function useFormField(props, defaultValue, prop) {
     elementRef: function elementRef(v) {
       ref.current = v;
     }
-  };
+  }, props);
 }
 function combineValidators() {
   var validators = grep(makeArray(arguments), isFunction);
@@ -1019,6 +1093,78 @@ function combineValidators() {
     }, resolve());
   };
 }
+function registerFieldType(type, options) {
+  if (isFunction(options)) {
+    options = {
+      postHook: options
+    };
+  }
+
+  fieldTypes[type] = options;
+}
+var Form = /*#__PURE__*/(0,external_commonjs_react_commonjs2_react_amd_react_root_React_.forwardRef)(function (props, ref) {
+  var form = props.context;
+
+  var onSubmit = function onSubmit(e) {
+    if (!props.action) {
+      e.preventDefault();
+    }
+
+    (props.onSubmit || noop).call(this, e);
+  };
+
+  extend(form, pick(props, ['enterKeyHint']));
+  return /*#__PURE__*/(0,external_commonjs_react_commonjs2_react_amd_react_root_React_.createElement)(FormContextProvider, {
+    value: form
+  }, /*#__PURE__*/(0,external_commonjs_react_commonjs2_react_amd_react_root_React_.createElement)('form', extend(exclude(props, ['context', 'enterKeyHint']), {
+    ref: ref,
+    onSubmit: onSubmit
+  })));
+});
+registerFieldType('text', function (state, props) {
+  var form = state.form;
+  var inputProps = pick(props, ['type', 'autoComplete', 'maxLength', 'inputMode', 'placeholder', 'enterKeyHint']);
+
+  if (props.type === 'password' && !inputProps.autoComplete) {
+    inputProps.autoComplete = 'current-password';
+  }
+
+  inputProps.type = inputProps.type || 'text';
+  inputProps.enterKeyHint = inputProps.enterKeyHint || form && form.enterKeyHint;
+  return extend(state, {
+    inputProps: inputProps
+  });
+});
+registerFieldType('choice', function (state, props) {
+  var items = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useMemo)(function () {
+    return props.items.map(function (v) {
+      return _typeof(v) === 'object' ? v : {
+        label: String(v),
+        value: v
+      };
+    });
+  }, [props.items]);
+  var selectedIndex = items.findIndex(function (v) {
+    return v.value === state.value;
+  });
+  (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
+    if (selectedIndex < 0) {
+      var newValue = props.allowUnselect || !items[0] ? '' : items[0].value;
+
+      if (newValue !== state.value) {
+        state.setValue(newValue);
+      }
+    }
+  });
+  return extend(state, {
+    items: items,
+    selectedIndex: selectedIndex,
+    selectedItem: items[selectedIndex]
+  });
+});
+registerFieldType('toggle', {
+  valueProperty: 'checked'
+});
 ;// CONCATENATED MODULE: ./src/util.js
 
 
