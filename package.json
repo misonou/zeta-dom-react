@@ -5,6 +5,7 @@
   "type": "module",
   "main": "src/index.js",
   "types": "src/index.d.ts",
+  "unpkg": "dist/zeta-dom-react.min.js",
   "scripts": {
     "build": "webpack",
     "test": "cross-env NODE_OPTIONS=--experimental-vm-modules npx jest",
