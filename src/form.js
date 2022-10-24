@@ -1,7 +1,8 @@
 import { createContext, createElement, forwardRef, useContext, useEffect, useMemo, useState } from "react";
 import { always, any, combineFn, createPrivateStore, defineObservableProperty, definePrototype, each, exclude, extend, grep, inherit, isArray, isFunction, isUndefinedOrNull, keys, makeArray, noop, pick, pipe, resolve, resolveAll } from "./include/zeta-dom/util.js";
 import { ZetaEventContainer } from "./include/zeta-dom/events.js";
-import { focus } from "./include/zeta-dom/dom.js";
+import dom, { focus } from "./include/zeta-dom/dom.js";
+import { preventLeave } from "./include/zeta-dom/domLock.js";
 import { useMemoizedFunction, useObservableProperty, useUpdateTrigger } from "./hooks.js";
 import { combineRef } from "./util.js";
 import { useViewState } from "./viewState.js";
@@ -59,6 +60,7 @@ function normalizeOptions(options) {
     }
     return extend({
         autoPersist: true,
+        preventLeave: false,
         validateOnChange: true
     }, options);
 }
@@ -92,6 +94,17 @@ export function FormContext(initialData, options, viewState) {
             if (fieldsToValidate[0]) {
                 self.validate.apply(self, fieldsToValidate);
             }
+        }
+        if (self.preventLeave && !state.unlock) {
+            var promise = new Promise(function (resolve) {
+                state.unlock = function () {
+                    state.unlock = null;
+                    resolve();
+                };
+            });
+            preventLeave(state.ref || dom.root, promise, function () {
+                return emitter.emit('beforeLeave', self);
+            });
         }
     });
 }
@@ -134,6 +147,7 @@ definePrototype(FormContext, {
         });
         extend(self.data, data || state.initialData);
         state.setValid();
+        (state.unlock || noop)();
         emitter.emit('reset', self);
     },
     setError: function (key, error) {
@@ -225,6 +239,7 @@ export function useFormContext(persistKey, initialData, options) {
             form.on('dataChange', forceUpdate),
             form.on('reset', forceUpdate),
             function () {
+                (_(form).unlock || noop)();
                 if (form.autoPersist) {
                     form.persist();
                 }
@@ -361,9 +376,9 @@ export const Form = forwardRef(function (props, ref) {
         form.reset();
         (props.onReset || noop).call(this, e);
     };
-    extend(form, pick(props, ['enterKeyHint']));
+    extend(form, pick(props, ['enterKeyHint', 'preventLeave']));
     return createElement(FormContextProvider, { value: form },
-        createElement('form', extend(exclude(props, ['context', 'enterKeyHint']), { ref: combineRef(ref, form.ref), onSubmit, onReset })));
+        createElement('form', extend(exclude(props, ['context', 'enterKeyHint', 'preventLeave']), { ref: combineRef(ref, form.ref), onSubmit, onReset })));
 });
 
 registerFieldType('text', function (state, props) {

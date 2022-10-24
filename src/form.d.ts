@@ -41,7 +41,7 @@ export interface FormFieldState<T> {
     elementRef: React.RefCallback<HTMLElement>;
 }
 
-export interface FormProps<T = any> extends React.ComponentPropsWithRef<'form'>, Pick<FormContextOptions, 'enterKeyHint'> {
+export interface FormProps<T = any> extends React.ComponentPropsWithRef<'form'>, Pick<FormContextOptions, 'enterKeyHint' | 'preventLeave'> {
     context: FormContext<T>;
 }
 
@@ -50,6 +50,7 @@ export interface FormEventMap {
     dataChange: DataChangeEvent;
     validate: FormValidateEvent;
     validationChange: FormValidationChangeEvent;
+    beforeLeave: Zeta.ZetaAsyncHandleableEvent;
 }
 
 export interface DataChangeEvent extends Zeta.ZetaEventBase {
@@ -74,6 +75,10 @@ export interface FormContextOptions {
      */
     autoPersist?: boolean;
     /**
+     * Whether it should prompt user before leaving the page when form data has been entered.
+     */
+    preventLeave?: boolean;
+    /**
      * Whether validation will be triggered upon changes to form data.
      * Default is `true`.
      */
@@ -94,6 +99,10 @@ export class FormContext<T extends object = Zeta.Dictionary<any>> {
      * Default is `true`.
      */
     autoPersist: boolean;
+    /**
+     * Whether it should prompt user before leaving the page when form data has been entered.
+     */
+    preventLeave: boolean;
     /**
      * Whether validation will be triggered upon changes to form data.
      * Default is `true`.
