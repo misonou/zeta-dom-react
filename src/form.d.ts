@@ -86,6 +86,7 @@ export interface FormContextOptions {
 export class FormContext<T extends object = Zeta.Dictionary<any>> {
     readonly isValid: boolean;
     readonly data: Partial<T>;
+    readonly ref: React.RefCallback<HTMLFormElement>;
 
     /**
      * Whether form data will be persisted in view state when component is unmounted.

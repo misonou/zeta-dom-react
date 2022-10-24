@@ -3,6 +3,7 @@ import { always, any, combineFn, createPrivateStore, defineObservableProperty, d
 import { ZetaEventContainer } from "./include/zeta-dom/events.js";
 import { focus } from "./include/zeta-dom/dom.js";
 import { useMemoizedFunction, useObservableProperty } from "./hooks.js";
+import { combineRef } from "./util.js";
 import { useViewState } from "./viewState.js";
 
 const _ = createPrivateStore();
@@ -83,6 +84,9 @@ export function FormContext(initialData, options, viewState) {
         })
     });
     extend(self, normalizeOptions(options));
+    self.ref = function (element) {
+        state.ref = element;
+    };
     self.isValid = true;
     self.data = createDataObject(self, viewState.get() || state.initialData);
     self.on('dataChange', function (e) {
@@ -359,7 +363,7 @@ export const Form = forwardRef(function (props, ref) {
     };
     extend(form, pick(props, ['enterKeyHint']));
     return createElement(FormContextProvider, { value: form },
-        createElement('form', extend(exclude(props, ['context', 'enterKeyHint']), { ref, onSubmit })));
+        createElement('form', extend(exclude(props, ['context', 'enterKeyHint']), { ref: combineRef(ref, form.ref), onSubmit })));
 });
 
 registerFieldType('text', function (state, props) {
