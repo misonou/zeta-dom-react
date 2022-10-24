@@ -264,6 +264,23 @@ describe('useFormField', () => {
         expect(form.isValid).toBe(true);
         unmount();
     });
+
+    it('should invoke isEmpty callback with current value', async () => {
+        const isEmpty = mockFn().mockReturnValueOnce(false);
+        const { form, wrapper, unmount } = createFormContext();
+        const { result, waitForValueToChange } = renderHook(() => useFormField({ name: 'foo', required: true, isEmpty }, 0), { wrapper });
+        expect(form.isValid).toBe(true);
+        expect(isEmpty).toBeCalledWith(0);
+
+        act(() => {
+            isEmpty.mockReturnValueOnce(true);
+            form.data.foo = 'bar'
+        });
+        await waitForValueToChange(() => result.current);
+        expect(form.isValid).toBe(false);
+        expect(isEmpty).toBeCalledWith('bar');
+        unmount();
+    });
 });
 
 describe('useFormField - text', () => {
@@ -337,6 +354,13 @@ describe('useFormField - toggle', () => {
     it('should take value from checked prop', () => {
         const { result } = renderHook(() => useFormField('toggle', { checked: true }, false));
         expect(result.current.value).toBe(true);
+    });
+
+    it('should consider empty when value is false', () => {
+        const { form, wrapper, unmount } = createFormContext();
+        renderHook(() => useFormField('toggle', { name: 'foo', required: true }, false), { wrapper });
+        expect(form.isValid).toBe(false);
+        unmount();
     });
 });
 

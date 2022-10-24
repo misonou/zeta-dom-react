@@ -14,6 +14,7 @@ export interface Stringifiable {
 
 export interface FieldTypeOptions {
     valueProperty?: string;
+    isEmpty?: (value: any) => boolean;
     postHook?: FieldPostHookCallback;
 }
 

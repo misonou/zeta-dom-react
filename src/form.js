@@ -78,7 +78,7 @@ export function FormContext(initialData, options, viewState) {
         setValid: defineObservableProperty(this, 'isValid', true, function () {
             return !any(fields, function (v, i) {
                 var props = v.props;
-                return !props.disabled && (errors[i] || (props.required && (props.isEmpty || isEmpty)(self.data[i])));
+                return !props.disabled && (errors[i] || (props.required && (props.isEmpty || v.preset.isEmpty || isEmpty)(self.data[i])));
             });
         })
     });
@@ -400,5 +400,8 @@ registerFieldType('choice', function (state, props) {
 });
 
 registerFieldType('toggle', {
-    valueProperty: 'checked'
+    valueProperty: 'checked',
+    isEmpty: function (value) {
+        return !value;
+    }
 });
