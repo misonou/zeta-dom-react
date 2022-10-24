@@ -44,7 +44,7 @@ function createDataObject(context, initialData) {
 function wrapErrorResult(state, key, error) {
     return {
         toString: function () {
-            return error(extend({}, state.fields[key]));
+            return error((state.fields[key] || '').props || {});
         }
     };
 }
@@ -77,7 +77,8 @@ export function FormContext(initialData, options, viewState) {
         initialData: inherit(defaults, initialData),
         setValid: defineObservableProperty(this, 'isValid', true, function () {
             return !any(fields, function (v, i) {
-                return !v.disabled && (errors[i] || (v.required && (v.isEmpty || isEmpty)(self.data[i])));
+                var props = v.props;
+                return !props.disabled && (errors[i] || (props.required && (props.isEmpty || isEmpty)(self.data[i])));
             });
         })
     });
@@ -88,7 +89,7 @@ export function FormContext(initialData, options, viewState) {
         state.pending = {};
         if (self.validateOnChange) {
             var fieldsToValidate = grep(e.data, function (v) {
-                return fields[v] && fields[v].validateOnChange !== false;
+                return fields[v] && fields[v].props.validateOnChange !== false;
             });
             if (fieldsToValidate[0]) {
                 self.validate.apply(self, fieldsToValidate);
@@ -246,26 +247,22 @@ export function useFormField(type, props, defaultValue, prop) {
     const sError = useState('');
     const onValidate = useMemoizedFunction(props.onValidate);
     const controlled = prop in props;
-    const value = sValue[0], setValue = sValue[1];
+    const value = controlled ? props[prop] : sValue[0];
+    const setValue = controlled ? noop : sValue[1];
     const error = sError[0], setError = sError[1];
 
     var setValueCallback = useMemoizedFunction(function (v) {
-        var value = typeof v === 'function' ? v(props[prop]) : v;
+        v = typeof v === 'function' ? v(value) : v;
         if (!controlled) {
-            setValue(value);
+            setValue(v);
         } else if (!props.onChange) {
             console.warn('onChange not supplied');
         }
-        (props.onChange || noop)(value);
+        (props.onChange || noop)(v);
     });
 
-    // put internal states on props for un-controlled mode
-    if (!controlled) {
-        props = extend({}, props);
-        props[prop] = value;
-    }
     if (form && key) {
-        _(form).fields[key] = props;
+        _(form).fields[key] = { preset, props };
     }
 
     useEffect(function () {
@@ -322,7 +319,7 @@ export function useFormField(type, props, defaultValue, prop) {
 
     return (preset.postHook || pipe)({
         form: form,
-        value: props[prop],
+        value: value,
         error: String(props.error || error || ''),
         setValue: setValueCallback,
         setError: setError,
