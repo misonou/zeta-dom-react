@@ -1,5 +1,5 @@
 import { createContext, createElement, forwardRef, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { always, any, combineFn, createPrivateStore, defineObservableProperty, definePrototype, exclude, extend, grep, inherit, isFunction, keys, makeArray, noop, pick, pipe, resolve, resolveAll, throwNotFunction } from "./include/zeta-dom/util.js";
+import { always, any, combineFn, createPrivateStore, defineObservableProperty, definePrototype, exclude, extend, grep, inherit, isArray, isFunction, isUndefinedOrNull, keys, makeArray, noop, pick, pipe, resolve, resolveAll, throwNotFunction } from "./include/zeta-dom/util.js";
 import { ZetaEventContainer } from "./include/zeta-dom/events.js";
 import { focus } from "./include/zeta-dom/dom.js";
 import { useMemoizedFunction, useObservableProperty } from "./hooks.js";
@@ -14,6 +14,10 @@ const fieldTypes = {};
 const _FormContext = createContext(null);
 
 export const FormContextProvider = _FormContext.Provider;
+
+function isEmpty(value) {
+    return isUndefinedOrNull(value) || value === '' || (isArray(value) && !value.length);
+}
 
 function createDataObject(context, initialData) {
     return new Proxy(extend({}, initialData), {
@@ -73,7 +77,7 @@ export function FormContext(initialData, options, viewState) {
         initialData: inherit(defaults, initialData),
         setValid: defineObservableProperty(this, 'isValid', true, function () {
             return !any(fields, function (v, i) {
-                return !v.disabled && (errors[i] || (v.required && (v.isEmpty ? v.isEmpty(self.data[i]) : !self.data[i])));
+                return !v.disabled && (errors[i] || (v.required && (v.isEmpty || isEmpty)(self.data[i])));
             });
         })
     });

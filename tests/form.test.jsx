@@ -222,6 +222,48 @@ describe('useFormField', () => {
         await waitForValueToChange(() => result.current);
         unmount();
     });
+
+    it('should consider empty when value is undefined', async () => {
+        const { form, wrapper, unmount } = createFormContext();
+        renderHook(() => useFormField({ name: 'foo', required: true }, undefined), { wrapper });
+        expect(form.isValid).toBe(false);
+        unmount();
+    });
+
+    it('should consider empty when value is null', async () => {
+        const { form, wrapper, unmount } = createFormContext();
+        renderHook(() => useFormField({ name: 'foo', required: true }, null), { wrapper });
+        expect(form.isValid).toBe(false);
+        unmount();
+    });
+
+    it('should consider empty when value is an empty string', async () => {
+        const { form, wrapper, unmount } = createFormContext();
+        renderHook(() => useFormField({ name: 'foo', required: true }, ''), { wrapper });
+        expect(form.isValid).toBe(false);
+        unmount();
+    });
+
+    it('should consider empty when value is an empty array', async () => {
+        const { form, wrapper, unmount } = createFormContext();
+        renderHook(() => useFormField({ name: 'foo', required: true }, []), { wrapper });
+        expect(form.isValid).toBe(false);
+        unmount();
+    });
+
+    it('should not consider empty when value is false', async () => {
+        const { form, wrapper, unmount } = createFormContext();
+        renderHook(() => useFormField({ name: 'foo', required: true }, false), { wrapper });
+        expect(form.isValid).toBe(true);
+        unmount();
+    });
+
+    it('should not consider empty when value is 0', async () => {
+        const { form, wrapper, unmount } = createFormContext();
+        renderHook(() => useFormField({ name: 'foo', required: true }, 0), { wrapper });
+        expect(form.isValid).toBe(true);
+        unmount();
+    });
 });
 
 describe('useFormField - text', () => {
