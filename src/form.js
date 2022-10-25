@@ -391,6 +391,14 @@ export const Form = forwardRef(function (props, ref) {
         createElement('form', extend(exclude(props, ['context', 'enterKeyHint', 'preventLeave']), { ref: combineRef(ref, form.ref), onSubmit, onReset })));
 });
 
+function normalizeChoiceItems(items) {
+    return useMemo(function () {
+        return (items || []).map(function (v) {
+            return typeof v === 'object' ? v : { label: String(v), value: v };
+        });
+    }, [items]);
+}
+
 export function TextField() {
     this.postHook = function (state, props) {
         var form = state.form;
@@ -408,11 +416,7 @@ export function TextField() {
 
 export function ChoiceField() {
     this.postHook = function (state, props) {
-        var items = useMemo(function () {
-            return props.items.map(function (v) {
-                return typeof v === 'object' ? v : { label: String(v), value: v };
-            });
-        }, [props.items]);
+        var items = normalizeChoiceItems(props.items);
         var selectedIndex = items.findIndex(function (v) {
             return v.value === state.value;
         });
@@ -428,6 +432,45 @@ export function ChoiceField() {
             items: items,
             selectedIndex: selectedIndex,
             selectedItem: items[selectedIndex]
+        });
+    };
+}
+
+export function MultiChoiceField() {
+    this.postHook = function (state, props) {
+        var allowCustomValues = props.allowCustomValues || !props.items;
+        var items = normalizeChoiceItems(props.items);
+        var isUnknown = function (value) {
+            return !items.some(function (v) {
+                return v.value === value;
+            });
+        };
+        var toggleValue = useMemoizedFunction(function (value, selected) {
+            if (allowCustomValues || !isUnknown(value)) {
+                state.setValue(function (arr) {
+                    var index = arr.indexOf(value);
+                    if (isUndefinedOrNull(selected) || either(index < 0, selected)) {
+                        arr = makeArray(arr);
+                        if (index < 0) {
+                            arr.push(value);
+                        } else {
+                            arr.splice(index, 1);
+                        }
+                    }
+                    return arr;
+                });
+            }
+        });
+        if (!allowCustomValues) {
+            var cur = makeArray(state.value);
+            var arr = splice(cur, isUnknown);
+            if (arr.length) {
+                state.setValue(cur);
+            }
+        }
+        return extend(state, {
+            items: items,
+            toggleValue: toggleValue
         });
     };
 }

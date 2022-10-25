@@ -284,6 +284,7 @@ declare global {
             θ1: ReactFieldType<typeof TextField, TextFieldState<FieldValueType<Props>>>;
             θ2: ReactFieldType<typeof ToggleField, ToggleFieldState>;
             θ3: ReactFieldType<typeof ChoiceField, ChoiceFieldState<Props extends ChoiceFieldProps<infer V> ? V : ChoiceItem>>;
+            θ4: ReactFieldType<typeof MultiChoiceField, MultiChoiceFieldState<Props extends MultiChoiceFieldProps<infer V> ? V : ChoiceItem>>;
         }
     }
 }
@@ -291,6 +292,7 @@ declare global {
 export const TextField: FieldTypeConstructor<TextFieldProps, TextFieldState<string>>
 export const ToggleField: FieldTypeConstructor<ToggleFieldProps, ToggleFieldState>;
 export const ChoiceField: FieldTypeConstructor<ChoiceFieldProps, ChoiceFieldState>;
+export const MultiChoiceField: FieldTypeConstructor<MultiChoiceFieldProps, MultiChoiceFieldState>;
 
 export type TextInputAttributes = Pick<React.InputHTMLAttributes<HTMLInputElement>, 'autoComplete' | 'enterKeyHint' | 'inputMode' | 'maxLength' | 'placeholder' | 'type'>;
 
@@ -349,4 +351,36 @@ export interface ChoiceFieldState<T extends ChoiceItem = ChoiceItem> extends For
      * Returns the selected item.
      */
     readonly selectedItem: T | undefined;
+}
+
+export interface MultiChoiceFieldProps<T extends ChoiceItem = ChoiceItem> extends FormFieldProps<ChoiceItemValueType<T>[]> {
+    /**
+     * A list of items as choices.
+     * Primitive values in the list will be normalized as {@link ChoiceItem}.
+     * If not specified, `allowCustomValues` will be set to `true`.
+     */
+    items?: readonly (T | Extract<T['value'], number | string | boolean>)[];
+    /**
+     * Whether values not in the list of items are allowed.
+     */
+    allowCustomValues?: boolean;
+}
+
+export interface MultiChoiceFieldState<T extends ChoiceItem = ChoiceItem> extends FormFieldState<readonly ChoiceItemValueType<T>[]> {
+    /**
+     * Returns a list of choices as normalized items.
+     */
+    readonly items: T[];
+    /**
+     * Toggles the presence of the specified item in the value array associated with the field.
+     * If the item is already present, the item will be removed; otherwise the item will be added.
+     * @param value Item value.
+     */
+    toggleValue(value: ChoiceItemValueType<T>);
+    /**
+     * Adds or removes the specified item to/from the value array associated with the field.
+     * @param value Item value.
+     * @param selected If true, the item is added to the array if it is not present; otherwise the item is removed from the array if it is present.
+     */
+    toggleValue(value: ChoiceItemValueType<T>, selected: boolean);
 }

@@ -1,7 +1,7 @@
 import React, { createRef } from "react";
 import { act as renderAct, render } from "@testing-library/react";
 import { act, renderHook } from '@testing-library/react-hooks'
-import { Form, FormContextProvider, useFormContext, useFormField } from "src/form";
+import { Form, FormContextProvider, MultiChoiceField, useFormContext, useFormField } from "src/form";
 import { delay, mockFn, verifyCalls } from "./testUtil";
 import { locked } from "zeta-dom/domLock";
 
@@ -403,6 +403,73 @@ describe('useFormField - toggle', () => {
         const { form, wrapper, unmount } = createFormContext();
         renderHook(() => useFormField('toggle', { name: 'foo', required: true }, false), { wrapper });
         expect(form.isValid).toBe(false);
+        unmount();
+    });
+});
+
+describe('useFormField - multiChoice', () => {
+    it('should toggle existence of value in array', () => {
+        const { result } = renderHook(() => useFormField(MultiChoiceField, { items: ['foo', 'bar'] }, []));
+        expect(result.current.value).toEqual([]);
+
+        act(() => result.current.toggleValue('foo'));
+        expect(result.current.value).toEqual(['foo']);
+
+        act(() => result.current.toggleValue('bar'));
+        expect(result.current.value).toEqual(['foo', 'bar']);
+
+        act(() => result.current.toggleValue('foo'));
+        expect(result.current.value).toEqual(['bar']);
+
+        act(() => result.current.toggleValue('bar'));
+        expect(result.current.value).toEqual([]);
+    });
+
+    it('should not touch the previous array', () => {
+        const { result } = renderHook(() => useFormField(MultiChoiceField, { items: ['foo', 'bar'] }, []));
+        const prevValue = result.current.value;
+        expect(result.current.value).toEqual([]);
+
+        act(() => result.current.toggleValue('foo'));
+        expect(result.current.value).not.toBe(prevValue);
+        expect(prevValue).toEqual([]);
+    });
+
+    it('should filter unknown items if allowCustomValues is falsy', () => {
+        const { result, rerender } = renderHook((props) => useFormField(MultiChoiceField, { items: props?.items || ['foo', 'bar'] }, []));
+        act(() => result.current.toggleValue('baz'));
+        expect(result.current.value).toEqual([]);
+
+        act(() => result.current.setValue(['foo', 'baz']));
+        expect(result.current.value).toEqual(['foo']);
+
+        rerender({ items: ['bar'] });
+        expect(result.current.value).toEqual([]);
+    });
+
+    it('should not filter unknown items if allowCustomValues is truthy', () => {
+        const { result } = renderHook(() => useFormField(MultiChoiceField, { items: ['foo', 'bar'], allowCustomValues: true }, []));
+        act(() => result.current.toggleValue('baz'));
+        expect(result.current.value).toEqual(['baz']);
+
+        act(() => result.current.setValue(['foo', 'baz']));
+        expect(result.current.value).toEqual(['foo', 'baz']);
+    });
+
+    it('should set allowCustomValues to true if items is not specified', () => {
+        const { result } = renderHook(() => useFormField(MultiChoiceField, {}, []));
+        act(() => result.current.toggleValue('baz'));
+        expect(result.current.value).toEqual(['baz']);
+    });
+
+    it('should not trigger dataChange when toggling unknown value', async () => {
+        const { form, wrapper, unmount } = createFormContext();
+        const { result } = renderHook(() => useFormField(MultiChoiceField, { name: 'foo', items: ['foo', 'bar'] }, []), { wrapper });
+        const cb = mockFn();
+        form.on('dataChange', cb);
+
+        await act(async () => result.current.toggleValue('baz'));
+        expect(cb).not.toBeCalled();
         unmount();
     });
 });
