@@ -20,6 +20,7 @@ export interface FieldTypeOptions {
 
 export interface FormFieldProps<T = any, V = T> {
     name?: string;
+    label?: string;
     value?: T;
     required?: boolean;
     disabled?: boolean;
