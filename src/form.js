@@ -21,6 +21,7 @@ function isEmpty(value) {
 }
 
 function createDataObject(context, initialData) {
+    var state = _(context);
     return new Proxy(extend({}, initialData), {
         get: function (t, p) {
             if (typeof p === 'string') {
@@ -30,7 +31,7 @@ function createDataObject(context, initialData) {
         set: function (t, p, v) {
             if (typeof p === 'string' && t[p] !== v) {
                 if (p in t) {
-                    _(context).pending[p] = true;
+                    (state.fields[p] || {}).dirty = true;
                     emitter.emitAsync('dataChange', context, [p], {}, function (v, a) {
                         return v.concat(a);
                     });
@@ -65,21 +66,15 @@ function normalizeOptions(options) {
 export function FormContext(initialData, options, viewState) {
     var self = this;
     var fields = {};
-    var errors = {};
-    var defaults = {};
     var state = _(self, {
         fields: fields,
-        errors: errors,
         viewState: viewState,
         vlocks: {},
-        refs: {},
-        pending: {},
-        defaults: defaults,
-        initialData: inherit(defaults, initialData),
+        initialData: initialData,
         setValid: defineObservableProperty(this, 'isValid', true, function () {
             return !any(fields, function (v, i) {
                 var props = v.props;
-                return !props.disabled && (errors[i] || (props.required && (props.isEmpty || v.preset.isEmpty || isEmpty)(self.data[i])));
+                return !props.disabled && (v.error || (props.required && (props.isEmpty || v.preset.isEmpty || isEmpty)(self.data[i])));
             });
         })
     });
@@ -90,7 +85,6 @@ export function FormContext(initialData, options, viewState) {
     self.isValid = true;
     self.data = createDataObject(self, viewState.get() || state.initialData);
     self.on('dataChange', function (e) {
-        state.pending = {};
         if (self.validateOnChange) {
             var fieldsToValidate = grep(e.data, function (v) {
                 return fields[v] && fields[v].props.validateOnChange !== false;
@@ -104,8 +98,8 @@ export function FormContext(initialData, options, viewState) {
 
 definePrototype(FormContext, {
     element: function (key) {
-        var ref = _(this).refs[key];
-        return ref && ref.current;
+        var field = _(this).fields[key];
+        return field && field.element;
     },
     focus: function (key) {
         var element = this.element(key);
@@ -142,12 +136,12 @@ definePrototype(FormContext, {
     setError: function (key, error) {
         var self = this;
         var state = _(self);
-        var errors = state.errors;
-        var prev = errors[key] || '';
+        var field = state.fields[key] || {};
+        var prev = field.error || '';
         if (isFunction(error)) {
             error = wrapErrorResult(state, key, error);
         }
-        errors[key] = error;
+        field.error = error;
         if ((error || '') !== prev) {
             emitter.emit('validationChange', self, {
                 name: key,
@@ -165,11 +159,14 @@ definePrototype(FormContext, {
         if (!props.length) {
             props = keys(state.fields);
         }
-        var validate = function (v) {
-            return emitter.emit('validate', self, {
-                name: v,
-                value: self.data[v]
-            });
+        var validate = function (name) {
+            var field = state.fields[name];
+            var value = self.data[name];
+            var result = emitter.emit('validate', self, { name, value });
+            if (!result && field) {
+                result = (field.props.onValidate || noop)(value, name, self);
+            }
+            return result;
         };
         var promises = props.map(function (v) {
             var arr = vlocks[v] = (vlocks[v] || []);
@@ -242,15 +239,18 @@ export function useFormField(type, props, defaultValue, prop) {
     }
     const preset = fieldTypes[type] || {};
     prop = prop || preset.valueProperty || 'value';
+
+    const field = extend(useState({})[0], { preset, props });
     const form = useContext(_FormContext);
-    const ref = useRef();
+    const dict = form && form.data;
+    const state = form && _(form);
     const key = props.name || '';
+
     const initialValue = useState(function () {
-        return (form && form.data[key]) || defaultValue;
+        return form && key in dict ? dict[key] : defaultValue;
     })[0];
     const sValue = useState(initialValue);
     const sError = useState('');
-    const onValidate = useMemoizedFunction(props.onValidate);
     const controlled = prop in props;
     const value = controlled ? props[prop] : sValue[0];
     const setValue = controlled ? noop : sValue[1];
@@ -258,69 +258,58 @@ export function useFormField(type, props, defaultValue, prop) {
 
     var setValueCallback = useMemoizedFunction(function (v) {
         v = typeof v === 'function' ? v(value) : v;
-        if (!controlled) {
-            setValue(v);
-        } else if (!props.onChange) {
+        setValue(v);
+        if (form && !field.dirty) {
+            dict[key] = v;
+            field.dirty = false;
+        }
+        if (controlled && !props.onChange) {
             console.warn('onChange not supplied');
         }
         (props.onChange || noop)(v);
     });
 
     if (form && key) {
-        _(form).fields[key] = { preset, props };
+        state.fields[key] = field;
+        if (controlled || !(key in dict)) {
+            dict[key] = value;
+        }
     }
 
     useEffect(function () {
         if (form && key) {
-            var state = _(form);
-            state.refs[key] = ref;
-            state.defaults[key] = defaultValue;
-            if (key in form.data) {
-                setValue(form.data[key]);
-            }
             return combineFn(
                 function () {
-                    delete state.defaults[key];
-                    delete state.fields[key];
-                    delete state.refs[key];
-                    state.setValid();
+                    if (state.fields[key] === field) {
+                        delete state.fields[key];
+                        state.setValid();
+                    }
                 },
                 form.on('dataChange', function (e) {
                     if (e.data.includes(key)) {
-                        setValue(form.data[key]);
+                        field.dirty = false;
+                        setValue(dict[key]);
                     }
                 }),
                 form.on('validationChange', function (e) {
                     if (e.name === key) {
-                        setError(state.errors[key]);
-                    }
-                }),
-                form.on('validate', function (e) {
-                    if (e.name === key) {
-                        return onValidate(e.value, e.name, form);
+                        setError(field.error);
                     }
                 }),
                 form.on('reset', function () {
+                    dict[key] = initialValue;
                     setValue(initialValue);
                     setError('');
                 })
             );
         }
-    }, [form, key, initialValue, onValidate]);
+    }, [form, key, dict, initialValue]);
 
     useEffect(function () {
-        var pending = form && key && _(form).pending;
-        if (pending && !pending[key]) {
-            form.data[key] = value;
-            pending[key] = false;
+        if (state) {
+            state.setValid();
         }
-    }, [form, key, value]);
-
-    useEffect(function () {
-        if (form && key) {
-            _(form).setValid();
-        }
-    }, [form, key, props.validateOnChange, props.disabled, props.required]);
+    }, [state, props.disabled, props.required]);
 
     return (preset.postHook || pipe)({
         form: form,
@@ -329,7 +318,7 @@ export function useFormField(type, props, defaultValue, prop) {
         setValue: setValueCallback,
         setError: setError,
         elementRef: function (v) {
-            ref.current = v;
+            field.element = v;
         }
     }, props);
 }
