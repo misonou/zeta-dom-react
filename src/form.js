@@ -204,6 +204,9 @@ definePrototype(FormContext, {
                 return v;
             });
         });
+    },
+    toJSON: function () {
+        return extend(true, {}, this.data);
     }
 });
 

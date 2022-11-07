@@ -162,6 +162,11 @@ export class FormContext<T extends object = Zeta.Dictionary<any>> {
      * @param props Fields to be validated.
      */
     async validate(...props: string[]): Promise<boolean>;
+
+    /**
+     * Returns a raw value object.
+     */
+    toJSON(): T;
 }
 
 /**
