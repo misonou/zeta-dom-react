@@ -1,7 +1,7 @@
-import React from "react";
+import React, { createRef } from "react";
 import { render } from "@testing-library/react";
 import { act, renderHook } from '@testing-library/react-hooks'
-import { FormContextProvider, useFormContext, useFormField } from "src/form";
+import { Form, FormContextProvider, useFormContext, useFormField } from "src/form";
 import { delay, mockFn, verifyCalls } from "./testUtil";
 
 function createFormContext(initialData, validateOnChange) {
@@ -690,6 +690,22 @@ describe('FormContext#reset', () => {
 
         act(() => form.reset());
         expect(result.current.value).toBe('baz');
+        unmount();
+    });
+});
+
+describe('Form component', () => {
+    it('should handle native reset event', async () => {
+        const cb1 = mockFn();
+        const cb2 = mockFn();
+        const ref = createRef();
+        const { form, unmount } = createFormContext();
+        form.on('reset', cb1)
+
+        render(<Form ref={ref} context={form} onReset={cb2} />);
+        act(() => ref.current.reset());
+        expect(cb1).toBeCalledTimes(1);
+        expect(cb2).toBeCalledTimes(1);
         unmount();
     });
 });

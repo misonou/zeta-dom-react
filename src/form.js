@@ -364,9 +364,14 @@ export const Form = forwardRef(function (props, ref) {
         }
         (props.onSubmit || noop).call(this, e);
     };
+    const onReset = function (e) {
+        e.preventDefault();
+        form.reset();
+        (props.onReset || noop).call(this, e);
+    };
     extend(form, pick(props, ['enterKeyHint']));
     return createElement(FormContextProvider, { value: form },
-        createElement('form', extend(exclude(props, ['context', 'enterKeyHint']), { ref: combineRef(ref, form.ref), onSubmit })));
+        createElement('form', extend(exclude(props, ['context', 'enterKeyHint']), { ref: combineRef(ref, form.ref), onSubmit, onReset })));
 });
 
 registerFieldType('text', function (state, props) {
