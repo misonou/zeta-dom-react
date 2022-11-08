@@ -1,8 +1,8 @@
-import { createContext, createElement, forwardRef, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { always, any, combineFn, createPrivateStore, defineObservableProperty, definePrototype, exclude, extend, grep, inherit, isArray, isFunction, isUndefinedOrNull, keys, makeArray, noop, pick, pipe, resolve, resolveAll, throwNotFunction } from "./include/zeta-dom/util.js";
+import { createContext, createElement, forwardRef, useContext, useEffect, useMemo, useState } from "react";
+import { always, any, combineFn, createPrivateStore, defineObservableProperty, definePrototype, exclude, extend, grep, inherit, isArray, isFunction, isUndefinedOrNull, keys, makeArray, noop, pick, pipe, resolve, resolveAll } from "./include/zeta-dom/util.js";
 import { ZetaEventContainer } from "./include/zeta-dom/events.js";
 import { focus } from "./include/zeta-dom/dom.js";
-import { useMemoizedFunction, useObservableProperty } from "./hooks.js";
+import { useMemoizedFunction, useObservableProperty, useUpdateTrigger } from "./hooks.js";
 import { combineRef } from "./util.js";
 import { useViewState } from "./viewState.js";
 
@@ -218,13 +218,11 @@ export function useFormContext(persistKey, initialData, options) {
     const form = useState(function () {
         return new FormContext(initialData, options, viewState);
     })[0];
-    const forceUpdate = useState()[1];
+    const forceUpdate = useUpdateTrigger();
     useObservableProperty(form, 'isValid');
     useEffect(function () {
         return combineFn(
-            form.on('dataChange', function () {
-                forceUpdate({});
-            }),
+            form.on('dataChange', forceUpdate),
             function () {
                 if (form.autoPersist) {
                     form.persist();

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ZetaEventContainer } from "./include/zeta-dom/events.js";
 import { combineFn, createPrivateStore, define, defineObservableProperty, definePrototype, each, extend, isArray, isFunction, isUndefinedOrNull, keys, makeArray, noop, pick, pipe, single, watch } from "./include/zeta-dom/util.js";
+import { useUpdateTrigger } from "./hooks.js";
 import { useViewState } from "./viewState.js";
 
 const _ = createPrivateStore();
@@ -128,16 +129,14 @@ export function useDataView(persistKey, filters, sortBy, sortOrder, pageSize) {
         return useDataView('__dataView', persistKey, filters, sortBy, sortOrder);
     }
     var viewState = useViewState(persistKey);
-    var forceUpdate = useState()[1];
+    var forceUpdate = useUpdateTrigger();
     var dataView = useState(function () {
         return extend(new DataView(filters, sortBy, sortOrder, pageSize), viewState.get());
     })[0];
     useEffect(function () {
         var state = _(dataView);
         return combineFn(
-            dataView.on('viewChange', function () {
-                forceUpdate({});
-            }),
+            dataView.on('viewChange', forceUpdate),
             viewState.onPopState ? viewState.onPopState(function (newValue) {
                 viewState.set(dataView.toJSON());
                 extend(dataView, newValue || state.defaults);

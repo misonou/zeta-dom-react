@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { defineObservableProperty, each, watch } from "./include/zeta-dom/util.js";
 import { bind } from "./include/zeta-dom/domUtil.js";
-import { useDispose } from "./hooks.js";
+import { useDispose, useUpdateTrigger } from "./hooks.js";
 
 export function useMediaQuery(query) {
     var onDispose = useDispose();
@@ -31,11 +31,9 @@ export function createBreakpointContext(breakpoints) {
     return {
         breakpoints: Object.freeze(values),
         useBreakpoint: function () {
-            var forceUpdate = useState()[1];
+            var forceUpdate = useUpdateTrigger();
             useEffect(function () {
-                return watch(values, function () {
-                    forceUpdate({});
-                });
+                return watch(values, forceUpdate);
             });
             return values;
         }

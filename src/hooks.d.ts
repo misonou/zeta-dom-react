@@ -88,6 +88,11 @@ export interface AsyncContentState<T = any> extends Zeta.ZetaEventDispatcher<Asy
 }
 
 /**
+ * Creates a callback that forcibly triggers re-render of a component.
+ */
+export function useUpdateTrigger(): () => void;
+
+/**
  * Creates a memoized callback that invokes the supplied callback when called.
  * This reduces unnecessary useEffect cycles but at the same time
  * the correct callback supplied in the last component cycle,

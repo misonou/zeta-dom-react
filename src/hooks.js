@@ -7,6 +7,13 @@ import { always, combineFn, extend, is, isArray, isErrorWithCode, isFunction, ma
 const fnWeakMap = new WeakMap();
 const container = new ZetaEventContainer();
 
+export function useUpdateTrigger() {
+    const setState = useState()[1];
+    return useCallback(function () {
+        setState({});
+    }, []);
+}
+
 export function useMemoizedFunction(callback) {
     const fn = useState(function () {
         return function fn() {
@@ -19,14 +26,14 @@ export function useMemoizedFunction(callback) {
 }
 
 export function useObservableProperty(obj, key) {
-    const forceUpdate = useState()[1];
+    const forceUpdate = useUpdateTrigger();
     const value = obj[key];
     const ref = useRef();
     ref.current = value;
     useEffect(function () {
         var cb = function (v) {
             if (v !== ref.current) {
-                forceUpdate({});
+                forceUpdate();
             }
         };
         cb(obj[key]);
