@@ -15,12 +15,10 @@ export function useUpdateTrigger() {
 }
 
 export function useMemoizedFunction(callback) {
-    const fn = useState(function () {
-        return function fn() {
-            const cb = fnWeakMap.get(fn);
-            return cb && cb.apply(this, arguments);
-        };
-    })[0];
+    const fn = useCallback(function fn() {
+        const cb = fnWeakMap.get(fn);
+        return cb && cb.apply(this, arguments);
+    }, []);
     fnWeakMap.set(fn, callback);
     return fn;
 }
