@@ -488,6 +488,19 @@ describe('FormContext#isValid', () => {
         expect(form.isValid).toBe(true);
         unmount();
     });
+
+    it('should return initial status after reset', async () => {
+        const { form, wrapper, unmount } = createFormContext();
+        renderHook(() => useFormField({ name: 'foo' }, ''), { wrapper });
+        expect(form.isValid).toBe(true);
+
+        act(() => form.setError('foo', 'Error'));
+        expect(form.isValid).toBe(false);
+
+        act(() => form.reset());
+        expect(form.isValid).toBe(true);
+        unmount();
+    });
 });
 
 describe('FormContext#setError', () => {
