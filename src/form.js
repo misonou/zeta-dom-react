@@ -220,6 +220,7 @@ export function useFormContext(persistKey, initialData, options) {
     useEffect(function () {
         return combineFn(
             form.on('dataChange', forceUpdate),
+            form.on('reset', forceUpdate),
             function () {
                 if (form.autoPersist) {
                     form.persist();

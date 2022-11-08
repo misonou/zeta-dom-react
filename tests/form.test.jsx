@@ -1,5 +1,5 @@
 import React, { createRef } from "react";
-import { render } from "@testing-library/react";
+import { act as renderAct, render } from "@testing-library/react";
 import { act, renderHook } from '@testing-library/react-hooks'
 import { Form, FormContextProvider, useFormContext, useFormField } from "src/form";
 import { delay, mockFn, verifyCalls } from "./testUtil";
@@ -58,6 +58,29 @@ describe('useFormContext', () => {
 
         form.data.foo = 'bar';
         await findByText('invalid');
+    });
+
+    it('should cause re-render when reset', async () => {
+        let form;
+        const Field = function () {
+            useFormField({ name: 'foo' }, '');
+            return <></>;
+        };
+        const Component = function () {
+            form = useFormContext({ foo: 'bar' });
+            return (
+                <FormContextProvider value={form}>
+                    <Field />
+                    <div>{form.data.foo}</div>
+                </FormContextProvider>
+            );
+        };
+        const { findByText } = render(<Component />);
+        form.data.foo = 'baz';
+        await findByText('baz');
+
+        renderAct(() => form.reset());
+        await findByText('bar');
     });
 
     it('should trigger validation for updated fields if validateOnChange is set to true', async () => {
@@ -370,9 +393,10 @@ describe('FormContext', () => {
         const { result, waitForValueToChange } = renderHook(() => useFormField({ name: 'foo' }, 'foo'), { wrapper });
         const cb = mockFn();
         form.on('dataChange', cb);
-        form.reset();
-        form.data.foo = 'bar';
-
+        act(() => {
+            form.reset();
+            form.data.foo = 'bar';
+        });
         await waitForValueToChange(() => result.current);
         expect(cb).toBeCalledTimes(1);
         unmount();
