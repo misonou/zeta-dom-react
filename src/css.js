@@ -34,7 +34,7 @@ export function createBreakpointContext(breakpoints) {
             var forceUpdate = useUpdateTrigger();
             useEffect(function () {
                 return watch(values, forceUpdate);
-            });
+            }, []);
             return values;
         }
     };
