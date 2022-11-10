@@ -304,6 +304,32 @@ describe('useFormField', () => {
         expect(isEmpty).toBeCalledWith('bar');
         unmount();
     });
+
+    it('should mark form as invalid when error is specified in props', async () => {
+        const { form, wrapper, unmount } = createFormContext();
+        const { rerender } = renderHook(({ error }) => useFormField({ name: 'foo', error }, 0), { wrapper });
+        expect(form.isValid).toBe(true);
+
+        rerender({ error: 'Error' });
+        expect(form.isValid).toBe(false);
+
+        rerender({ error: '' });
+        expect(form.isValid).toBe(true);
+        unmount();
+    });
+
+    it('should mark form as invalid when error is set by setError callback', async () => {
+        const { form, wrapper, unmount } = createFormContext();
+        const { result, waitForNextUpdate } = renderHook(() => useFormField({ name: 'foo' }, 0), { wrapper });
+        expect(form.isValid).toBe(true);
+
+        act(() => result.current.setError('Error'));
+        expect(form.isValid).toBe(false);
+
+        act(() => result.current.setError(''));
+        expect(form.isValid).toBe(true);
+        unmount();
+    });
 });
 
 describe('useFormField - text', () => {

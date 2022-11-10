@@ -308,9 +308,10 @@ export function useFormField(type, props, defaultValue, prop) {
 
     useEffect(function () {
         if (state) {
+            field.error = props.error || error;
             state.setValid();
         }
-    }, [state, props.disabled, props.required]);
+    }, [state, error, props.error, props.disabled, props.required]);
 
     return (preset.postHook || pipe)({
         form: form,
