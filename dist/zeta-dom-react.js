@@ -119,6 +119,7 @@ __webpack_require__.d(src_namespaceObject, {
   "useMemoizedFunction": () => (useMemoizedFunction),
   "useObservableProperty": () => (useObservableProperty),
   "useRefInitCallback": () => (useRefInitCallback),
+  "useUpdateTrigger": () => (useUpdateTrigger),
   "useViewState": () => (useViewState),
   "withSuspense": () => (withSuspense)
 });
@@ -303,25 +304,29 @@ var ZetaEventContainer = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_
 
 var fnWeakMap = new WeakMap();
 var container = new ZetaEventContainer();
+function useUpdateTrigger() {
+  var setState = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)()[1];
+  return (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useCallback)(function () {
+    setState({});
+  }, []);
+}
 function useMemoizedFunction(callback) {
-  var fn = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)(function () {
-    return function fn() {
-      var cb = fnWeakMap.get(fn);
-      return cb && cb.apply(this, arguments);
-    };
-  })[0];
+  var fn = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useCallback)(function fn() {
+    var cb = fnWeakMap.get(fn);
+    return cb && cb.apply(this, arguments);
+  }, []);
   fnWeakMap.set(fn, callback);
   return fn;
 }
 function useObservableProperty(obj, key) {
-  var forceUpdate = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)()[1];
+  var forceUpdate = useUpdateTrigger();
   var value = obj[key];
   var ref = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useRef)();
   ref.current = value;
   (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
     var cb = function cb(v) {
       if (v !== ref.current) {
-        forceUpdate({});
+        forceUpdate();
       }
     };
 
@@ -528,12 +533,10 @@ function createBreakpointContext(breakpoints) {
   return {
     breakpoints: Object.freeze(values),
     useBreakpoint: function useBreakpoint() {
-      var forceUpdate = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)()[1];
+      var forceUpdate = useUpdateTrigger();
       (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
-        return watch(values, function () {
-          forceUpdate({});
-        });
-      });
+        return watch(values, forceUpdate);
+      }, []);
       return values;
     }
   };
@@ -560,6 +563,7 @@ function useViewState(key) {
   return state;
 }
 ;// CONCATENATED MODULE: ./src/dataView.js
+
 
 
 
@@ -710,16 +714,14 @@ function useDataView(persistKey, filters, sortBy, sortOrder, pageSize) {
   }
 
   var viewState = useViewState(persistKey);
-  var forceUpdate = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)()[1];
+  var forceUpdate = useUpdateTrigger();
   var dataView = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)(function () {
     return extend(new DataView(filters, sortBy, sortOrder, pageSize), viewState.get());
   })[0];
   (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
     var state = _(dataView);
 
-    return combineFn(dataView.on('viewChange', function () {
-      forceUpdate({});
-    }), viewState.onPopState ? viewState.onPopState(function (newValue) {
+    return combineFn(dataView.on('viewChange', forceUpdate), viewState.onPopState ? viewState.onPopState(function (newValue) {
       viewState.set(dataView.toJSON());
       extend(dataView, newValue || state.defaults);
     }) : noop, function () {
@@ -829,6 +831,8 @@ function isEmpty(value) {
 }
 
 function createDataObject(context, initialData) {
+  var state = form_(context);
+
   return new Proxy(extend({}, initialData), {
     get: function get(t, p) {
       if (typeof p === 'string') {
@@ -838,7 +842,7 @@ function createDataObject(context, initialData) {
     set: function set(t, p, v) {
       if (typeof p === 'string' && t[p] !== v) {
         if (p in t) {
-          form_(context).pending[p] = true;
+          (state.fields[p] || {}).dirty = true;
           form_emitter.emitAsync('dataChange', context, [p], {}, function (v, a) {
             return v.concat(a);
           });
@@ -876,22 +880,16 @@ function normalizeOptions(options) {
 function FormContext(initialData, options, viewState) {
   var self = this;
   var fields = {};
-  var errors = {};
-  var defaults = {};
 
   var state = form_(self, {
     fields: fields,
-    errors: errors,
     viewState: viewState,
     vlocks: {},
-    refs: {},
-    pending: {},
-    defaults: defaults,
-    initialData: inherit(defaults, initialData),
+    initialData: initialData,
     setValid: defineObservableProperty(this, 'isValid', true, function () {
       return !any(fields, function (v, i) {
         var props = v.props;
-        return !props.disabled && (errors[i] || props.required && (props.isEmpty || v.preset.isEmpty || isEmpty)(self.data[i]));
+        return !props.disabled && (v.error || props.required && (props.isEmpty || v.preset.isEmpty || isEmpty)(self.data[i]));
       });
     })
   });
@@ -905,8 +903,6 @@ function FormContext(initialData, options, viewState) {
   self.isValid = true;
   self.data = createDataObject(self, viewState.get() || state.initialData);
   self.on('dataChange', function (e) {
-    state.pending = {};
-
     if (self.validateOnChange) {
       var fieldsToValidate = grep(e.data, function (v) {
         return fields[v] && fields[v].props.validateOnChange !== false;
@@ -920,9 +916,9 @@ function FormContext(initialData, options, viewState) {
 }
 definePrototype(FormContext, {
   element: function element(key) {
-    var ref = form_(this).refs[key];
+    var field = form_(this).fields[key];
 
-    return ref && ref.current;
+    return field && field.element;
   },
   focus: function focus(key) {
     var element = this.element(key);
@@ -961,8 +957,11 @@ definePrototype(FormContext, {
       delete self.data[i];
     }
 
+    each(state.fields, function (i, v) {
+      v.error = null;
+    });
     extend(self.data, data || state.initialData);
-    self.isValid = true;
+    state.setValid();
     form_emitter.emit('reset', self);
   },
   setError: function setError(key, error) {
@@ -970,14 +969,14 @@ definePrototype(FormContext, {
 
     var state = form_(self);
 
-    var errors = state.errors;
-    var prev = errors[key] || '';
+    var field = state.fields[key] || {};
+    var prev = field.error || '';
 
     if (isFunction(error)) {
       error = wrapErrorResult(state, key, error);
     }
 
-    errors[key] = error;
+    field.error = error;
 
     if ((error || '') !== prev) {
       form_emitter.emit('validationChange', self, {
@@ -1000,11 +999,19 @@ definePrototype(FormContext, {
       props = keys(state.fields);
     }
 
-    var validate = function validate(v) {
-      return form_emitter.emit('validate', self, {
-        name: v,
-        value: self.data[v]
+    var validate = function validate(name) {
+      var field = state.fields[name];
+      var value = self.data[name];
+      var result = form_emitter.emit('validate', self, {
+        name: name,
+        value: value
       });
+
+      if (!result && field) {
+        result = (field.props.onValidate || noop)(value, name, self);
+      }
+
+      return result;
     };
 
     var promises = props.map(function (v) {
@@ -1042,6 +1049,9 @@ definePrototype(FormContext, {
         return v;
       });
     });
+  },
+  toJSON: function toJSON() {
+    return extend(true, {}, this.data);
   }
 });
 function useFormContext(persistKey, initialData, options) {
@@ -1053,12 +1063,10 @@ function useFormContext(persistKey, initialData, options) {
   var form = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)(function () {
     return new FormContext(initialData, options, viewState);
   })[0];
-  var forceUpdate = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)()[1];
+  var forceUpdate = useUpdateTrigger();
   useObservableProperty(form, 'isValid');
   (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
-    return combineFn(form.on('dataChange', function () {
-      forceUpdate({});
-    }), function () {
+    return combineFn(form.on('dataChange', forceUpdate), form.on('reset', forceUpdate), function () {
       if (form.autoPersist) {
         form.persist();
       }
@@ -1076,15 +1084,21 @@ function useFormField(type, props, defaultValue, prop) {
 
   var preset = fieldTypes[type] || {};
   prop = prop || preset.valueProperty || 'value';
+  var field = extend((0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)({})[0], {
+    preset: preset,
+    props: props
+  });
   var form = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useContext)(_FormContext);
-  var ref = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useRef)();
+  var dict = form && form.data;
+
+  var state = form && form_(form);
+
   var key = props.name || '';
   var initialValue = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)(function () {
-    return form && form.data[key] || defaultValue;
+    return form && key in dict ? dict[key] : defaultValue;
   })[0];
   var sValue = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)(initialValue);
   var sError = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)('');
-  var onValidate = useMemoizedFunction(props.onValidate);
   var controlled = (prop in props);
   var value = controlled ? props[prop] : sValue[0];
   var setValue = controlled ? noop : sValue[1];
@@ -1092,10 +1106,14 @@ function useFormField(type, props, defaultValue, prop) {
       setError = sError[1];
   var setValueCallback = useMemoizedFunction(function (v) {
     v = typeof v === 'function' ? v(value) : v;
+    setValue(v);
 
-    if (!controlled) {
-      setValue(v);
-    } else if (!props.onChange) {
+    if (form && !field.dirty) {
+      dict[key] = v;
+      field.dirty = false;
+    }
+
+    if (controlled && !props.onChange) {
       console.warn('onChange not supplied');
     }
 
@@ -1103,59 +1121,42 @@ function useFormField(type, props, defaultValue, prop) {
   });
 
   if (form && key) {
-    form_(form).fields[key] = {
-      preset: preset,
-      props: props
-    };
+    state.fields[key] = field;
+
+    if (controlled || !(key in dict)) {
+      dict[key] = value;
+    }
   }
 
   (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
     if (form && key) {
-      var state = form_(form);
-
-      state.refs[key] = ref;
-      state.defaults[key] = defaultValue;
-
-      if (key in form.data) {
-        setValue(form.data[key]);
-      }
-
       return combineFn(function () {
-        delete state.defaults[key];
-        delete state.fields[key];
-        delete state.refs[key];
-        state.setValid();
+        if (state.fields[key] === field) {
+          delete state.fields[key];
+          state.setValid();
+        }
       }, form.on('dataChange', function (e) {
         if (e.data.includes(key)) {
-          setValue(form.data[key]);
+          field.dirty = false;
+          setValue(dict[key]);
         }
       }), form.on('validationChange', function (e) {
         if (e.name === key) {
-          setError(state.errors[key]);
-        }
-      }), form.on('validate', function (e) {
-        if (e.name === key) {
-          return onValidate(e.value, e.name, form);
+          setError(field.error);
         }
       }), form.on('reset', function () {
+        dict[key] = initialValue;
         setValue(initialValue);
         setError('');
       }));
     }
-  }, [form, key, initialValue, onValidate]);
+  }, [form, key, dict, initialValue]);
   (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
-    var pending = form && key && form_(form).pending;
-
-    if (pending && !pending[key]) {
-      form.data[key] = value;
-      pending[key] = false;
+    if (state) {
+      field.error = props.error || error;
+      state.setValid();
     }
-  }, [form, key, value]);
-  (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
-    if (form && key) {
-      form_(form).setValid();
-    }
-  }, [form, key, props.validateOnChange, props.disabled, props.required]);
+  }, [state, error, props.error, props.disabled, props.required]);
   return (preset.postHook || pipe)({
     form: form,
     value: value,
@@ -1163,7 +1164,7 @@ function useFormField(type, props, defaultValue, prop) {
     setValue: setValueCallback,
     setError: setError,
     elementRef: function elementRef(v) {
-      ref.current = v;
+      field.element = v;
     }
   }, props);
 }
@@ -1197,12 +1198,19 @@ var Form = /*#__PURE__*/(0,external_commonjs_react_commonjs2_react_amd_react_roo
     (props.onSubmit || noop).call(this, e);
   };
 
+  var onReset = function onReset(e) {
+    e.preventDefault();
+    form.reset();
+    (props.onReset || noop).call(this, e);
+  };
+
   extend(form, pick(props, ['enterKeyHint']));
   return /*#__PURE__*/(0,external_commonjs_react_commonjs2_react_amd_react_root_React_.createElement)(FormContextProvider, {
     value: form
   }, /*#__PURE__*/(0,external_commonjs_react_commonjs2_react_amd_react_root_React_.createElement)('form', extend(exclude(props, ['context', 'enterKeyHint']), {
     ref: combineRef(ref, form.ref),
-    onSubmit: onSubmit
+    onSubmit: onSubmit,
+    onReset: onReset
   })));
 });
 registerFieldType('text', function (state, props) {
