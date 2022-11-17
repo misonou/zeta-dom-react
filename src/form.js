@@ -33,7 +33,7 @@ function createDataObject(context, initialData) {
                 if (p in t) {
                     (state.fields[p] || {}).dirty = true;
                     emitter.emitAsync('dataChange', context, [p], {}, function (v, a) {
-                        return v.concat(a);
+                        return v.indexOf(a[0]) < 0 ? v.concat(a) : v;
                     });
                 }
                 t[p] = v;

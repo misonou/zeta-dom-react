@@ -414,6 +414,20 @@ describe('useFormField - toggle', () => {
 });
 
 describe('FormContext', () => {
+    it('should fire dataChange event with unique field keys', async () => {
+        const { form, wrapper, unmount } = createFormContext();
+        const { result } = renderHook(() => useFormField({ name: 'foo' }, 'foo'), { wrapper });
+        const cb = mockFn();
+        form.on('dataChange', cb);
+        await act(async () => {
+            form.data.foo = 'bar';
+            form.data.foo = 'baz';
+        });
+        expect(cb).toBeCalledTimes(1);
+        expect(cb.mock.calls[0][0].data).toEqual(['foo']);
+        unmount();
+    });
+
     it('should fire dataChange event after reset for field not declared in initial data', async () => {
         const { form, wrapper, unmount } = createFormContext();
         const { result, waitForValueToChange } = renderHook(() => useFormField({ name: 'foo' }, 'foo'), { wrapper });
