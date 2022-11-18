@@ -36,7 +36,9 @@ describe('useFormContext', () => {
         const { getByText, findByText } = render(<Component />);
         getByText('bar');
 
-        form.data.foo = 'baz';
+        await renderAct(async () => {
+            form.data.foo = 'baz';
+        });
         await findByText('baz');
     });
 
@@ -54,7 +56,9 @@ describe('useFormContext', () => {
         const { getByText, findByText } = render(<Component />);
         getByText('valid');
 
-        form.data.foo = 'bar';
+        await renderAct(async () => {
+            form.data.foo = 'bar';
+        });
         await findByText('invalid');
     });
 
@@ -70,7 +74,9 @@ describe('useFormContext', () => {
             );
         };
         const { findByText } = render(<Component />);
-        form.data.foo = 'baz';
+        await renderAct(async () => {
+            form.data.foo = 'baz';
+        });
         await findByText('baz');
 
         renderAct(() => form.reset());
@@ -187,7 +193,7 @@ describe('useFormField', () => {
         const { form, wrapper } = createFormContext();
         const { result } = renderHook(() => useFormField({ name: 'foo' }, ''), { wrapper });
 
-        await act(() => {
+        await act(async () => {
             const promise = new Promise(resolve => {
                 form.on('dataChange', resolve);
             });
@@ -205,15 +211,17 @@ describe('useFormField', () => {
     });
 
     it('should call onChange callback for controlled field', () => {
-        const cb = mockFn();
-        const { result } = renderHook(() => useFormField({ value: '', onChange: cb }, ''));
+        let value = '';
+        const cb = mockFn(v => (value = v));
+        const { result } = renderHook(() => useFormField({ value, onChange: cb }, ''));
         act(() => result.current.setValue('foo'));
         verifyCalls(cb, [['foo']]);
     });
 
     it('should call onChange callback with value returned from setValue callback for controlled field', () => {
-        const cb = mockFn();
-        const { result } = renderHook(() => useFormField({ value: 'foo', onChange: cb }, ''));
+        let value = 'foo';
+        const cb = mockFn(v => (value = v));
+        const { result } = renderHook(() => useFormField({ value, onChange: cb }, ''));
         act(() => result.current.setValue(() => 'bar'));
         verifyCalls(cb, [['bar']]);
     });
@@ -221,22 +229,20 @@ describe('useFormField', () => {
     it('should call onChange callback for uncontrolled field', async () => {
         const cb = mockFn();
         const { wrapper, unmount } = createFormContext();
-        const { result, waitForValueToChange } = renderHook(() => useFormField({ name: 'foo', onChange: cb }, ''), { wrapper });
-        act(() => result.current.setValue('foo'));
+        const { result } = renderHook(() => useFormField({ name: 'foo', onChange: cb }, ''), { wrapper });
+        await act(async () => result.current.setValue('foo'));
         verifyCalls(cb, [['foo']]);
-        await waitForValueToChange(() => result.current);
         unmount();
     });
 
     it('should not overwrite changes through data object', async () => {
         const { form, wrapper, unmount } = createFormContext();
-        const { result, waitForValueToChange } = renderHook(() => useFormField({ name: 'foo' }, ''), { wrapper });
-        act(() => {
+        const { result } = renderHook(() => useFormField({ name: 'foo' }, ''), { wrapper });
+        await act(async () => {
             result.current.setValue('bar')
             form.data.foo = 'baz';
         });
         expect(form.data.foo).toBe('baz');
-        await waitForValueToChange(() => result.current);
         unmount();
     });
 
@@ -285,15 +291,14 @@ describe('useFormField', () => {
     it('should invoke isEmpty callback with current value', async () => {
         const isEmpty = mockFn().mockReturnValueOnce(false);
         const { form, wrapper, unmount } = createFormContext();
-        const { result, waitForValueToChange } = renderHook(() => useFormField({ name: 'foo', required: true, isEmpty }, 0), { wrapper });
+        const { result } = renderHook(() => useFormField({ name: 'foo', required: true, isEmpty }, 0), { wrapper });
         expect(form.isValid).toBe(true);
         expect(isEmpty).toBeCalledWith(0);
 
-        act(() => {
-            isEmpty.mockReturnValueOnce(true);
+        await act(async () => {
+            isEmpty.mockReturnValue(true);
             form.data.foo = 'bar'
         });
-        await waitForValueToChange(() => result.current);
         expect(form.isValid).toBe(false);
         expect(isEmpty).toBeCalledWith('bar');
         unmount();
@@ -314,7 +319,7 @@ describe('useFormField', () => {
 
     it('should mark form as invalid when error is set by setError callback', async () => {
         const { form, wrapper, unmount } = createFormContext();
-        const { result, waitForNextUpdate } = renderHook(() => useFormField({ name: 'foo' }, 0), { wrapper });
+        const { result } = renderHook(() => useFormField({ name: 'foo' }, 0), { wrapper });
         expect(form.isValid).toBe(true);
 
         act(() => result.current.setError('Error'));
@@ -491,25 +496,24 @@ describe('FormContext', () => {
 
     it('should fire dataChange event after reset for field not declared in initial data', async () => {
         const { form, wrapper, unmount } = createFormContext();
-        const { result, waitForValueToChange } = renderHook(() => useFormField({ name: 'foo' }, 'foo'), { wrapper });
+        const { result } = renderHook(() => useFormField({ name: 'foo' }, 'foo'), { wrapper });
         const cb = mockFn();
         form.on('dataChange', cb);
-        act(() => {
+        await act(async () => {
             form.reset();
             form.data.foo = 'bar';
         });
-        await waitForValueToChange(() => result.current);
         expect(cb).toBeCalledTimes(1);
         unmount();
     });
 
     it('should not throw error when updating field with no rendered component', async () => {
         const { form, wrapper, unmount } = createFormContext({ foo: 'foo1', bar: 'bar1' });
-        const { result, waitForValueToChange } = renderHook(() => useFormField({ name: 'foo' }, ''), { wrapper });
-        form.data.foo = 'foo2';
-        form.data.bar = 'bar2';
-
-        await waitForValueToChange(() => result.current);
+        const { result } = renderHook(() => useFormField({ name: 'foo' }, ''), { wrapper });
+        await act(async () => {
+            form.data.foo = 'foo2';
+            form.data.bar = 'bar2';
+        });
         unmount();
     });
 });
@@ -524,15 +528,13 @@ describe('FormContext#isValid', () => {
 
     it('should be updated when required field has been filled or cleared', async () => {
         const { form, wrapper, unmount } = createFormContext();
-        const { result, waitForNextUpdate } = renderHook(() => useFormField({ name: 'foo', required: true }, ''), { wrapper });
+        const { result } = renderHook(() => useFormField({ name: 'foo', required: true }, ''), { wrapper });
         expect(form.isValid).toBe(false);
 
-        act(() => result.current.setValue('foo'));
-        await waitForNextUpdate();
+        await act(async () => result.current.setValue('foo'));
         expect(form.isValid).toBe(true);
 
-        act(() => result.current.setValue(''));
-        await waitForNextUpdate();
+        await act(async () => result.current.setValue(''));
         expect(form.isValid).toBe(false);
         unmount();
     });
@@ -782,10 +784,13 @@ describe('FormContext#validate', () => {
         const cb = mockFn();
         form.on('validationChange', cb);
 
-        form.data.bar = '1';
-        const p1 = form.validate();
-        form.data.bar = '2';
-        const p2 = form.validate();
+        let p1, p2;
+        await act(async () => {
+            form.data.bar = '1';
+            p1 = form.validate();
+            form.data.bar = '2';
+            p2 = form.validate();
+        });
 
         await act(async () => void await p2);
         verifyCalls(cb, [
@@ -807,10 +812,11 @@ describe('FormContext#validate', () => {
 describe('FormContext#reset', () => {
     it('should reset named field to default value', async () => {
         const { form, wrapper, unmount } = createFormContext();
-        const { result, waitForValueToChange } = renderHook(() => useFormField({ name: 'foo' }, 'foo'), { wrapper });
+        const { result } = renderHook(() => useFormField({ name: 'foo' }, 'foo'), { wrapper });
 
-        form.data.foo = 'bar';
-        await waitForValueToChange(() => result.current);
+        await act(async () => {
+            form.data.foo = 'bar';
+        });
         expect(result.current.value).toBe('bar');
 
         act(() => form.reset());
@@ -820,10 +826,11 @@ describe('FormContext#reset', () => {
 
     it('should reset named field to initial value', async () => {
         const { form, wrapper, unmount } = createFormContext({ foo: 'baz' });
-        const { result, waitForValueToChange } = renderHook(() => useFormField({ name: 'foo' }, 'foo'), { wrapper });
+        const { result } = renderHook(() => useFormField({ name: 'foo' }, 'foo'), { wrapper });
 
-        form.data.foo = 'bar';
-        await waitForValueToChange(() => result.current);
+        await act(async () => {
+            form.data.foo = 'bar';
+        });
         expect(result.current.value).toBe('bar');
 
         act(() => form.reset());

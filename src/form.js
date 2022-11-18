@@ -1,5 +1,5 @@
 import { createContext, createElement, forwardRef, useContext, useEffect, useMemo, useState } from "react";
-import { always, any, combineFn, createPrivateStore, defineObservableProperty, definePrototype, each, either, exclude, extend, grep, isArray, isFunction, isUndefinedOrNull, keys, makeArray, mapGet, noop, pick, pipe, resolve, resolveAll, splice } from "./include/zeta-dom/util.js";
+import { always, any, combineFn, createPrivateStore, defineObservableProperty, definePrototype, each, either, exclude, extend, grep, isArray, isFunction, isUndefinedOrNull, keys, makeArray, mapGet, noop, pick, pipe, resolve, resolveAll, splice, watch } from "./include/zeta-dom/util.js";
 import { ZetaEventContainer } from "./include/zeta-dom/events.js";
 import dom, { focus } from "./include/zeta-dom/dom.js";
 import { preventLeave } from "./include/zeta-dom/domLock.js";
@@ -37,12 +37,12 @@ function createDataObject(context, initialData) {
         set: function (t, p, v) {
             if (typeof p === 'string' && t[p] !== v) {
                 if (p in t) {
-                    (state.fields[p] || {}).dirty = true;
                     emitter.emitAsync('dataChange', context, [p], {}, function (v, a) {
                         return v.indexOf(a[0]) < 0 ? v.concat(a) : v;
                     });
                 }
                 t[p] = v;
+                (state.fields[p] || {}).value = v;
             }
             return true;
         }
@@ -81,7 +81,7 @@ export function FormContext(initialData, options, viewState) {
         setValid: defineObservableProperty(this, 'isValid', true, function () {
             return !any(fields, function (v, i) {
                 var props = v.props;
-                return !props.disabled && (v.error || (props.required && (props.isEmpty || v.preset.isEmpty || isEmpty)(self.data[i])));
+                return !props.disabled && (v.error || (props.required && (props.isEmpty || v.preset.isEmpty || isEmpty)(v.value)));
             });
         })
     });
@@ -148,6 +148,7 @@ definePrototype(FormContext, {
             delete self.data[i];
         }
         each(state.fields, function (i, v) {
+            self.data[i] = v.initialValue;
             v.error = null;
         });
         extend(self.data, data || state.initialData);
@@ -267,88 +268,75 @@ export function useFormField(type, props, defaultValue, prop) {
     const preset = type ? mapGet(presets, type, type) : {};
     prop = prop || preset.valueProperty || 'value';
 
-    const field = extend(useState({})[0], { preset, props });
     const form = useContext(_FormContext);
     const dict = form && form.data;
     const state = form && _(form);
     const key = props.name || '';
-
-    const initialValue = useState(function () {
-        return form && key in dict ? dict[key] : defaultValue;
-    })[0];
-    const sValue = useState(initialValue);
-    const sError = useState('');
     const controlled = prop in props;
-    const value = controlled ? props[prop] : sValue[0];
-    const setValue = controlled ? noop : sValue[1];
-    const error = sError[0], setError = sError[1];
 
-    var setValueCallback = useMemoizedFunction(function (v) {
-        v = typeof v === 'function' ? v(value) : v;
-        setValue(v);
-        if (form && !field.dirty) {
-            dict[key] = v;
-            field.dirty = false;
-        }
-        if (controlled && !props.onChange) {
-            console.warn('onChange not supplied');
-        }
-        (props.onChange || noop)(v);
-    });
-
+    const field = useState(function () {
+        var initialValue = controlled ? props[prop] : form && key in dict ? dict[key] : defaultValue;
+        var field = {
+            initialValue: initialValue,
+            value: initialValue,
+            error: '',
+            setValue: function (v) {
+                field.value = isFunction(v) ? v(field.value) : v;
+            },
+            setError: function (v) {
+                field.error = isFunction(v) ? v(field.error) : v;
+            },
+            elementRef: function (v) {
+                field.element = v;
+            }
+        };
+        watch(field, true);
+        watch(field, 'value', function (v) {
+            (field.dict || {})[field.name] = v;
+            (field.props.onChange || noop)(v);
+        });
+        return field;
+    })[0];
+    extend(field, { preset, props, dict, name: key });
+    if (controlled) {
+        field.value = props[prop];
+    }
+    if ('error' in props) {
+        field.error = props.error;
+    }
     if (form && key) {
         state.fields[key] = field;
         if (controlled || !(key in dict)) {
-            dict[key] = value;
+            dict[key] = field.value;
         }
     }
+    const state1 = (preset.postHook || pipe)({
+        form: form,
+        value: field.value,
+        error: String(field.error || ''),
+        setValue: field.setValue,
+        setError: field.setError,
+        elementRef: field.elementRef
+    }, props);
 
     useEffect(function () {
-        if (form && key) {
-            return combineFn(
-                function () {
-                    if (state.fields[key] === field) {
-                        delete state.fields[key];
-                        state.setValid();
-                    }
-                },
-                form.on('dataChange', function (e) {
-                    if (e.data.includes(key)) {
-                        field.dirty = false;
-                        setValue(dict[key]);
-                    }
-                }),
-                form.on('validationChange', function (e) {
-                    if (e.name === key) {
-                        setError(field.error);
-                    }
-                }),
-                form.on('reset', function () {
-                    dict[key] = initialValue;
-                    setValue(initialValue);
-                    setError('');
-                })
-            );
-        }
-    }, [form, key, dict, initialValue]);
+        return function () {
+            if (state && state.fields[key] === field) {
+                delete state.fields[key];
+                state.setValid();
+            }
+        };
+    }, [state, key]);
 
     useEffect(function () {
         if (state) {
-            field.error = props.error || error;
             state.setValid();
         }
-    }, [state, error, props.error, props.disabled, props.required]);
+    }, [state, field.error, props.disabled, props.required]);
 
-    return (preset.postHook || pipe)({
-        form: form,
-        value: value,
-        error: String(props.error || error || ''),
-        setValue: setValueCallback,
-        setError: setError,
-        elementRef: function (v) {
-            field.element = v;
-        }
-    }, props);
+    state1.value = useObservableProperty(field, 'value');
+    state1.error = String(useObservableProperty(field, 'error') || '');
+    return state1;
 }
 
 export function combineValidators() {
@@ -420,14 +408,10 @@ export function ChoiceField() {
         var selectedIndex = items.findIndex(function (v) {
             return v.value === state.value;
         });
-        useEffect(function () {
-            if (selectedIndex < 0) {
-                var newValue = props.allowUnselect || !items[0] ? '' : items[0].value;
-                if (newValue !== state.value) {
-                    state.setValue(newValue);
-                }
-            }
-        });
+        if (selectedIndex < 0) {
+            selectedIndex = props.allowUnselect || !items[0] ? -1 : 0;
+            state.setValue(selectedIndex < 0 ? '' : items[0].value);
+        }
         return extend(state, {
             items: items,
             selectedIndex: selectedIndex,
