@@ -1,5 +1,5 @@
 import { createContext, createElement, forwardRef, useContext, useEffect, useMemo, useState } from "react";
-import { always, any, combineFn, createPrivateStore, defineObservableProperty, definePrototype, each, exclude, extend, grep, inherit, isArray, isFunction, isUndefinedOrNull, keys, makeArray, noop, pick, pipe, resolve, resolveAll } from "./include/zeta-dom/util.js";
+import { always, any, combineFn, createPrivateStore, defineObservableProperty, definePrototype, each, either, exclude, extend, grep, isArray, isFunction, isUndefinedOrNull, keys, makeArray, mapGet, noop, pick, pipe, resolve, resolveAll, splice } from "./include/zeta-dom/util.js";
 import { ZetaEventContainer } from "./include/zeta-dom/events.js";
 import dom, { focus } from "./include/zeta-dom/dom.js";
 import { preventLeave } from "./include/zeta-dom/domLock.js";
@@ -9,7 +9,12 @@ import { useViewState } from "./viewState.js";
 
 const _ = createPrivateStore();
 const emitter = new ZetaEventContainer();
-const fieldTypes = {};
+const presets = new WeakMap();
+const fieldTypes = {
+    text: TextField,
+    toggle: ToggleField,
+    choice: ChoiceField
+};
 
 /** @type {React.Context<import ("./form").FormContext>} */
 // @ts-ignore: type inference issue
@@ -250,13 +255,16 @@ export function useFormContext(persistKey, initialData, options) {
 }
 
 export function useFormField(type, props, defaultValue, prop) {
-    if (typeof type !== 'string') {
+    if (typeof type === 'string') {
+        type = fieldTypes[type];
+    }
+    if (!isFunction(type)) {
         prop = defaultValue;
         defaultValue = props;
         props = type;
         type = '';
     }
-    const preset = fieldTypes[type] || {};
+    const preset = type ? mapGet(presets, type, type) : {};
     prop = prop || preset.valueProperty || 'value';
 
     const field = extend(useState({})[0], { preset, props });
@@ -360,7 +368,9 @@ export function registerFieldType(type, options) {
             postHook: options
         };
     }
-    fieldTypes[type] = options;
+    fieldTypes[type] = function () {
+        return options;
+    };
 }
 
 export const Form = forwardRef(function (props, ref) {
@@ -381,46 +391,50 @@ export const Form = forwardRef(function (props, ref) {
         createElement('form', extend(exclude(props, ['context', 'enterKeyHint', 'preventLeave']), { ref: combineRef(ref, form.ref), onSubmit, onReset })));
 });
 
-registerFieldType('text', function (state, props) {
-    var form = state.form;
-    var inputProps = pick(props, ['type', 'autoComplete', 'maxLength', 'inputMode', 'placeholder', 'enterKeyHint']);
-    if (props.type === 'password' && !inputProps.autoComplete) {
-        inputProps.autoComplete = 'current-password';
-    }
-    inputProps.type = inputProps.type || 'text';
-    inputProps.enterKeyHint = inputProps.enterKeyHint || (form && form.enterKeyHint);
-    return extend(state, {
-        inputProps: inputProps
-    });
-});
-
-registerFieldType('choice', function (state, props) {
-    var items = useMemo(function () {
-        return props.items.map(function (v) {
-            return typeof v === 'object' ? v : { label: String(v), value: v };
-        });
-    }, [props.items]);
-    var selectedIndex = items.findIndex(function (v) {
-        return v.value === state.value;
-    });
-    useEffect(function () {
-        if (selectedIndex < 0) {
-            var newValue = props.allowUnselect || !items[0] ? '' : items[0].value;
-            if (newValue !== state.value) {
-                state.setValue(newValue);
-            }
+export function TextField() {
+    this.postHook = function (state, props) {
+        var form = state.form;
+        var inputProps = pick(props, ['type', 'autoComplete', 'maxLength', 'inputMode', 'placeholder', 'enterKeyHint']);
+        if (props.type === 'password' && !inputProps.autoComplete) {
+            inputProps.autoComplete = 'current-password';
         }
-    });
-    return extend(state, {
-        items: items,
-        selectedIndex: selectedIndex,
-        selectedItem: items[selectedIndex]
-    });
-});
+        inputProps.type = inputProps.type || 'text';
+        inputProps.enterKeyHint = inputProps.enterKeyHint || (form && form.enterKeyHint);
+        return extend(state, {
+            inputProps: inputProps
+        });
+    };
+}
 
-registerFieldType('toggle', {
-    valueProperty: 'checked',
-    isEmpty: function (value) {
+export function ChoiceField() {
+    this.postHook = function (state, props) {
+        var items = useMemo(function () {
+            return props.items.map(function (v) {
+                return typeof v === 'object' ? v : { label: String(v), value: v };
+            });
+        }, [props.items]);
+        var selectedIndex = items.findIndex(function (v) {
+            return v.value === state.value;
+        });
+        useEffect(function () {
+            if (selectedIndex < 0) {
+                var newValue = props.allowUnselect || !items[0] ? '' : items[0].value;
+                if (newValue !== state.value) {
+                    state.setValue(newValue);
+                }
+            }
+        });
+        return extend(state, {
+            items: items,
+            selectedIndex: selectedIndex,
+            selectedItem: items[selectedIndex]
+        });
+    };
+}
+
+export function ToggleField() {
+    this.valueProperty = 'checked';
+    this.isEmpty = function (value) {
         return !value;
-    }
-});
+    };
+}

@@ -4,7 +4,13 @@ export const Form: <T>(props: FormProps<T>) => JSX.Element;
 export type ValidateResult = null | undefined | string | Stringifiable | ((props: any) => string);
 export type ValidateCallback<T = any> = (value: T, name: string, form: FormContext) => ValidateResult | Promise<ValidateResult>;
 
+type WithFallback<T, U> = [T] extends [never] ? U : T;
 type FieldValueType<T> = T extends FormFieldProps<any, infer V> ? V : any;
+type FieldStateType<K, T> = WithFallback<{
+    [P in keyof Zeta.ReactFieldTypeMap]: Zeta.ReactFieldTypeMap[P] extends Zeta.ReactFieldType<K, any> ? ReturnType<Zeta.ReactFieldTypeMap<T>[P]> : never;
+}[keyof Zeta.ReactFieldTypeMap],
+    ReturnType<InstanceType<K>['postHook']>>;
+/** @deprecated */
 type FieldPostHookCallback = <S extends FormFieldState, P extends FormFieldProps>(state: S, props: P) => S;
 
 export interface Stringifiable {
@@ -12,10 +18,38 @@ export interface Stringifiable {
     [Symbol.toPrimitive](): string;
 }
 
+/**
+ * Represent internal working of a custom field type.
+ * @deprecated Custom field type is now implemented by writing a class implementing the {@link FieldType} inferface and pass it as the first argument to {@link useFormField} instead.
+ */
 export interface FieldTypeOptions {
     valueProperty?: string;
     isEmpty?: (value: any) => boolean;
     postHook?: FieldPostHookCallback;
+}
+
+export interface FieldTypeConstructor<P extends FormFieldProps, S extends FormFieldState> {
+    new(): FieldType<P, S>;
+}
+
+export interface FieldType<P extends FormFieldProps, S extends FormFieldState> {
+    /**
+     * Specifies the name of prop that will control {@link FormFieldState.value} when specified.
+     * Default is `value`.
+     */
+    valueProperty?: string;
+    /**
+     * Overrides default behavior of empty field checking.
+     * The field is invalid when it is required and the `isEmpty` callback return `true`.
+     * @param value Current field value.
+     */
+    isEmpty?(value: FieldValueType<P>): boolean;
+    /**
+     * Applies additional logic and modification to field state.
+     * @param state Untouched field state returned from hook.
+     * @param props Props passed to {@link useFormField}.
+     */
+    postHook(state: FormFieldState<FieldValueType<P>>, props: P): S;
 }
 
 export interface FormFieldProps<T = any, V = T> {
@@ -32,7 +66,7 @@ export interface FormFieldProps<T = any, V = T> {
     onChange?: (value: V) => void;
 }
 
-export interface FormFieldState<T> {
+export interface FormFieldState<T = any> {
     readonly form: FormContext | undefined;
     readonly value: T;
     readonly error: string;
@@ -193,9 +227,14 @@ export function useFormContext<T extends object = Zeta.Dictionary<any>>(initialD
  */
 export function useFormContext<T extends object = Zeta.Dictionary<any>>(persistKey: string, initialData: Partial<T> = {}, options: boolean | FormContextOptions = true): FormContext<T>;
 
-export function useFormField<T extends FormFieldProps>(props: T, defaultValue: FieldValueType<T>, prop: keyof T = 'value'): FormFieldState<FieldValueType<T>>;
-
+/**
+ * @deprecated Use overload where first argument is the field type constructor instead.
+ */
 export function useFormField<K extends keyof Zeta.ReactFieldTypes, T extends Parameters<Zeta.ReactFieldTypes[K]>[0]>(type: K, props: T, defaultValue: FieldValueType<T>, prop?: keyof T): ReturnType<Zeta.ReactFieldTypes<T>[K]>;
+
+export function useFormField<K extends FieldTypeConstructor, T extends (K extends FieldTypeConstructor<infer T> ? T : any)>(type: K, props: T, defaultValue: FieldValueType<T>): FieldStateType<K, T>;
+
+export function useFormField<T extends FormFieldProps>(props: T, defaultValue: FieldValueType<T>, prop: keyof T = 'value'): FormFieldState<FieldValueType<T>>;
 
 /**
  * Combines one or more validator callbacks.
@@ -205,8 +244,20 @@ export function useFormField<K extends keyof Zeta.ReactFieldTypes, T extends Par
  */
 export function combineValidators<T>(...validators: (ValidateCallback<T> | false | '' | 0 | undefined | null)[]): ValidateCallback<T>;
 
+/**
+ * Register a custom field type.
+ * @param type A unique name that the field type can be referred to when calling {@link useFormField}.
+ * @param postHook A callback that returns customized field state.
+ * @deprecated Custom field type is now implemented by writing a class implementing the {@link FieldType} inferface and pass it as the first argument to {@link useFormField} instead.
+ */
 export function registerFieldType(type: string, postHook: FieldPostHookCallback): void;
 
+/**
+ * Register a custom field type.
+ * @param type A unique name that the field type can be referred to when calling {@link useFormField}.
+ * @param options An object specifiying customizations. See {@link FieldTypeOptions}.
+ * @deprecated Custom field type is now implemented by writing a class implementing the {@link FieldType} inferface and pass it as the first argument to {@link useFormField} instead.
+ */
 export function registerFieldType(type: string, options: FieldTypeOptions): void;
 
 /*
@@ -217,13 +268,29 @@ declare global {
         type ReactFieldType<P, S> = (props: P) => S;
         type ReactFieldValueType<T> = FieldValueType<T>;
 
+        /**
+         * @deprecated Use {@link ReactFieldTypeMap} instead.
+         */
         interface ReactFieldTypes<T = any> {
             text: ReactFieldType<TextFieldProps, TextFieldState<FieldValueType<T>>>;
             toggle: ReactFieldType<ToggleFieldProps, ToggleFieldState>;
             choice: ReactFieldType<ChoiceFieldProps, ChoiceFieldState<T extends ChoiceFieldProps<infer V> ? V : ChoiceItem>>;
         }
+
+        /**
+         * Provides type hint to {@link useFormField} when the return type cannot be correctly inferred from the {@link FieldType.postHook} method.
+         */
+        interface ReactFieldTypeMap<Props = any> {
+            θ1: ReactFieldType<typeof TextField, TextFieldState<FieldValueType<Props>>>;
+            θ2: ReactFieldType<typeof ToggleField, ToggleFieldState>;
+            θ3: ReactFieldType<typeof ChoiceField, ChoiceFieldState<Props extends ChoiceFieldProps<infer V> ? V : ChoiceItem>>;
+        }
     }
 }
+
+export const TextField: FieldTypeConstructor<TextFieldProps, TextFieldState<string>>
+export const ToggleField: FieldTypeConstructor<ToggleFieldProps, ToggleFieldState>;
+export const ChoiceField: FieldTypeConstructor<ChoiceFieldProps, ChoiceFieldState>;
 
 export type TextInputAttributes = Pick<React.InputHTMLAttributes<HTMLInputElement>, 'autoComplete' | 'enterKeyHint' | 'inputMode' | 'maxLength' | 'placeholder' | 'type'>;
 
