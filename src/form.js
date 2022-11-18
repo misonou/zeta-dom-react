@@ -49,10 +49,10 @@ function createDataObject(context, initialData) {
     });
 }
 
-function wrapErrorResult(state, key, error) {
+function wrapErrorResult(field, error) {
     return {
         toString: function () {
-            return error((state.fields[key] || '').props || {});
+            return error(field.props || {});
         }
     };
 }
@@ -130,7 +130,7 @@ definePrototype(FormContext, {
     },
     persist: function () {
         var self = this;
-        _(self).viewState.set(extend({}, self.data));
+        _(self).viewState.set(self.toJSON());
         self.autoPersist = false;
     },
     restore: function () {
@@ -161,7 +161,7 @@ definePrototype(FormContext, {
         var field = state.fields[key] || {};
         var prev = field.error || '';
         if (isFunction(error)) {
-            error = wrapErrorResult(state, key, error);
+            error = wrapErrorResult(field, error);
         }
         field.error = error;
         if ((error || '') !== prev) {
