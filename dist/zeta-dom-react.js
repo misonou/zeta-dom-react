@@ -95,10 +95,14 @@ __webpack_require__.d(__webpack_exports__, {
 var src_namespaceObject = {};
 __webpack_require__.r(src_namespaceObject);
 __webpack_require__.d(src_namespaceObject, {
+  "ChoiceField": () => (ChoiceField),
   "DataView": () => (DataView),
   "Form": () => (Form),
   "FormContext": () => (FormContext),
   "FormContextProvider": () => (FormContextProvider),
+  "MultiChoiceField": () => (MultiChoiceField),
+  "TextField": () => (TextField),
+  "ToggleField": () => (ToggleField),
   "ViewStateProvider": () => (ViewStateProvider),
   "classNames": () => (classNames),
   "combineRef": () => (combineRef),
@@ -815,10 +819,16 @@ function _typeof(obj) { "@babel/helpers - typeof"; return _typeof = "function" =
 
 
 
+
 var form_ = createPrivateStore();
 
 var form_emitter = new ZetaEventContainer();
-var fieldTypes = {};
+var presets = new WeakMap();
+var fieldTypes = {
+  text: TextField,
+  toggle: ToggleField,
+  choice: ChoiceField
+};
 /** @type {React.Context<import ("./form").FormContext>} */
 // @ts-ignore: type inference issue
 
@@ -844,7 +854,7 @@ function createDataObject(context, initialData) {
         if (p in t) {
           (state.fields[p] || {}).dirty = true;
           form_emitter.emitAsync('dataChange', context, [p], {}, function (v, a) {
-            return v.concat(a);
+            return v.indexOf(a[0]) < 0 ? v.concat(a) : v;
           });
         }
 
@@ -856,10 +866,10 @@ function createDataObject(context, initialData) {
   });
 }
 
-function wrapErrorResult(state, key, error) {
+function wrapErrorResult(field, error) {
   return {
     toString: function toString() {
-      return error((state.fields[key] || '').props || {});
+      return error(field.props || {});
     }
   };
 }
@@ -873,6 +883,7 @@ function normalizeOptions(options) {
 
   return extend({
     autoPersist: true,
+    preventLeave: false,
     validateOnChange: true
   }, options);
 }
@@ -912,6 +923,18 @@ function FormContext(initialData, options, viewState) {
         self.validate.apply(self, fieldsToValidate);
       }
     }
+
+    if (self.preventLeave && !state.unlock) {
+      var promise = new Promise(function (resolve) {
+        state.unlock = function () {
+          state.unlock = null;
+          resolve();
+        };
+      });
+      preventLeave(state.ref || zeta_dom_dom.root, promise, function () {
+        return form_emitter.emit('beforeLeave', self);
+      });
+    }
   });
 }
 definePrototype(FormContext, {
@@ -933,7 +956,7 @@ definePrototype(FormContext, {
   persist: function persist() {
     var self = this;
 
-    form_(self).viewState.set(extend({}, self.data));
+    form_(self).viewState.set(self.toJSON());
 
     self.autoPersist = false;
   },
@@ -962,6 +985,7 @@ definePrototype(FormContext, {
     });
     extend(self.data, data || state.initialData);
     state.setValid();
+    (state.unlock || noop)();
     form_emitter.emit('reset', self);
   },
   setError: function setError(key, error) {
@@ -973,7 +997,7 @@ definePrototype(FormContext, {
     var prev = field.error || '';
 
     if (isFunction(error)) {
-      error = wrapErrorResult(state, key, error);
+      error = wrapErrorResult(field, error);
     }
 
     field.error = error;
@@ -1067,6 +1091,8 @@ function useFormContext(persistKey, initialData, options) {
   useObservableProperty(form, 'isValid');
   (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
     return combineFn(form.on('dataChange', forceUpdate), form.on('reset', forceUpdate), function () {
+      (form_(form).unlock || noop)();
+
       if (form.autoPersist) {
         form.persist();
       }
@@ -1075,14 +1101,18 @@ function useFormContext(persistKey, initialData, options) {
   return form;
 }
 function useFormField(type, props, defaultValue, prop) {
-  if (typeof type !== 'string') {
+  if (typeof type === 'string') {
+    type = fieldTypes[type];
+  }
+
+  if (!isFunction(type)) {
     prop = defaultValue;
     defaultValue = props;
     props = type;
     type = '';
   }
 
-  var preset = fieldTypes[type] || {};
+  var preset = type ? mapGet(presets, type, type) : {};
   prop = prop || preset.valueProperty || 'value';
   var field = extend((0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)({})[0], {
     preset: preset,
@@ -1185,7 +1215,9 @@ function registerFieldType(type, options) {
     };
   }
 
-  fieldTypes[type] = options;
+  fieldTypes[type] = function () {
+    return options;
+  };
 }
 var Form = /*#__PURE__*/(0,external_commonjs_react_commonjs2_react_amd_react_root_React_.forwardRef)(function (props, ref) {
   var form = props.context;
@@ -1204,62 +1236,118 @@ var Form = /*#__PURE__*/(0,external_commonjs_react_commonjs2_react_amd_react_roo
     (props.onReset || noop).call(this, e);
   };
 
-  extend(form, pick(props, ['enterKeyHint']));
+  extend(form, pick(props, ['enterKeyHint', 'preventLeave']));
   return /*#__PURE__*/(0,external_commonjs_react_commonjs2_react_amd_react_root_React_.createElement)(FormContextProvider, {
     value: form
-  }, /*#__PURE__*/(0,external_commonjs_react_commonjs2_react_amd_react_root_React_.createElement)('form', extend(exclude(props, ['context', 'enterKeyHint']), {
+  }, /*#__PURE__*/(0,external_commonjs_react_commonjs2_react_amd_react_root_React_.createElement)('form', extend(exclude(props, ['context', 'enterKeyHint', 'preventLeave']), {
     ref: combineRef(ref, form.ref),
     onSubmit: onSubmit,
     onReset: onReset
   })));
 });
-registerFieldType('text', function (state, props) {
-  var form = state.form;
-  var inputProps = pick(props, ['type', 'autoComplete', 'maxLength', 'inputMode', 'placeholder', 'enterKeyHint']);
 
-  if (props.type === 'password' && !inputProps.autoComplete) {
-    inputProps.autoComplete = 'current-password';
-  }
-
-  inputProps.type = inputProps.type || 'text';
-  inputProps.enterKeyHint = inputProps.enterKeyHint || form && form.enterKeyHint;
-  return extend(state, {
-    inputProps: inputProps
-  });
-});
-registerFieldType('choice', function (state, props) {
-  var items = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useMemo)(function () {
-    return props.items.map(function (v) {
+function normalizeChoiceItems(items) {
+  return (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useMemo)(function () {
+    return (items || []).map(function (v) {
       return _typeof(v) === 'object' ? v : {
         label: String(v),
         value: v
       };
     });
-  }, [props.items]);
-  var selectedIndex = items.findIndex(function (v) {
-    return v.value === state.value;
-  });
-  (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
-    if (selectedIndex < 0) {
-      var newValue = props.allowUnselect || !items[0] ? '' : items[0].value;
+  }, [items]);
+}
 
-      if (newValue !== state.value) {
-        state.setValue(newValue);
+function TextField() {
+  this.postHook = function (state, props) {
+    var form = state.form;
+    var inputProps = pick(props, ['type', 'autoComplete', 'maxLength', 'inputMode', 'placeholder', 'enterKeyHint']);
+
+    if (props.type === 'password' && !inputProps.autoComplete) {
+      inputProps.autoComplete = 'current-password';
+    }
+
+    inputProps.type = inputProps.type || 'text';
+    inputProps.enterKeyHint = inputProps.enterKeyHint || form && form.enterKeyHint;
+    return extend(state, {
+      inputProps: inputProps
+    });
+  };
+}
+function ChoiceField() {
+  this.postHook = function (state, props) {
+    var items = normalizeChoiceItems(props.items);
+    var selectedIndex = items.findIndex(function (v) {
+      return v.value === state.value;
+    });
+    (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
+      if (selectedIndex < 0) {
+        var newValue = props.allowUnselect || !items[0] ? '' : items[0].value;
+
+        if (newValue !== state.value) {
+          state.setValue(newValue);
+        }
+      }
+    });
+    return extend(state, {
+      items: items,
+      selectedIndex: selectedIndex,
+      selectedItem: items[selectedIndex]
+    });
+  };
+}
+function MultiChoiceField() {
+  this.postHook = function (state, props) {
+    var allowCustomValues = props.allowCustomValues || !props.items;
+    var items = normalizeChoiceItems(props.items);
+
+    var isUnknown = function isUnknown(value) {
+      return !items.some(function (v) {
+        return v.value === value;
+      });
+    };
+
+    var toggleValue = useMemoizedFunction(function (value, selected) {
+      if (allowCustomValues || !isUnknown(value)) {
+        state.setValue(function (arr) {
+          var index = arr.indexOf(value);
+
+          if (isUndefinedOrNull(selected) || either(index < 0, selected)) {
+            arr = makeArray(arr);
+
+            if (index < 0) {
+              arr.push(value);
+            } else {
+              arr.splice(index, 1);
+            }
+          }
+
+          return arr;
+        });
+      }
+    });
+
+    if (!allowCustomValues) {
+      var cur = makeArray(state.value);
+      var arr = splice(cur, isUnknown);
+
+      if (arr.length) {
+        state.setValue(cur);
       }
     }
-  });
-  return extend(state, {
-    items: items,
-    selectedIndex: selectedIndex,
-    selectedItem: items[selectedIndex]
-  });
-});
-registerFieldType('toggle', {
-  valueProperty: 'checked',
-  isEmpty: function isEmpty(value) {
+
+    return extend(state, {
+      items: items,
+      toggleValue: toggleValue
+    });
+  };
+}
+function ToggleField() {
+  this.valueProperty = 'checked';
+
+  this.isEmpty = function (value) {
     return !value;
-  }
-});
+  };
+}
 ;// CONCATENATED MODULE: ./src/index.js
 
 
