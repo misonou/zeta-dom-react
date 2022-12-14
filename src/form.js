@@ -318,6 +318,9 @@ export function useFormField(type, props, defaultValue, prop) {
         return function () {
             if (state && state.fields[key] === field) {
                 delete state.fields[key];
+                if (field.props.clearWhenUnmount) {
+                    delete field.dict[key];
+                }
                 state.setValid();
             }
         };

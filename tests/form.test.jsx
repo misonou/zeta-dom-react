@@ -329,6 +329,26 @@ describe('useFormField', () => {
         expect(form.isValid).toBe(true);
         unmount();
     });
+
+    it('should update form validity when unmounted', async () => {
+        const { form, wrapper, unmount } = createFormContext();
+        const { unmount: unmountField } = renderHook(() => useFormField({ name: 'foo', required: true }, ''), { wrapper });
+        expect(form.isValid).toBe(false);
+
+        unmountField();
+        expect(form.isValid).toBe(true);
+        unmount();
+    });
+
+    it('should delete form data when unmounted if clearWhenUnmount is true', async () => {
+        const { form, wrapper, unmount } = createFormContext();
+        const { unmount: unmountField } = renderHook(() => useFormField({ name: 'foo', clearWhenUnmount: true }, 'bar'), { wrapper });
+        expect(form.data).toEqual({ foo: 'bar' });
+
+        unmountField();
+        expect(form.data).toEqual({});
+        unmount();
+    });
 });
 
 describe('useFormField - text', () => {

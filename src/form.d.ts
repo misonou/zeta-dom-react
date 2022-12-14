@@ -103,6 +103,11 @@ export interface FormFieldProps<T = any, V = T> {
      */
     validateOnChange?: boolean;
     /**
+     * Specifies whether the associated value on form data object will be deleted
+     * when the field component is unmounted.
+     */
+    clearWhenUnmount?: boolean;
+    /**
      * Specifies a custom handler to determine if the field is empty.
      * @param value Current value of the field.
      */
