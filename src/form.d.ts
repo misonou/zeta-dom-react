@@ -53,26 +53,100 @@ export interface FieldType<P extends FormFieldProps, S extends FormFieldState> {
 }
 
 export interface FormFieldProps<T = any, V = T> {
+    /**
+     * Specifies field name.
+     * When specified, and if there exists a form context, the field value
+     * will be reflected on {@link FormContext.data}.
+     */
     name?: string;
+    /**
+     * Specifies field label.
+     */
     label?: string;
+    /**
+     * Specifies field value explicitly.
+     * The supplied value will be reflected on {@link FormContext.data} if there is a parent form context
+     * and field name is specified.
+     */
     value?: T;
+    /**
+     * Specifies whether the field is required.
+     * A required field will be invalid if the field is empty.
+     *
+     * By default, the field is considered empty when the field value is `null`, `undefined`,
+     * an empty string, or an empty array (for multi-valued field). The default behavior can be either
+     * overriden by specifying callback through the {@link FormFieldProps.isEmpty} option;
+     * or the field type being passed to {@link useFormField} has a custom {@link FieldType.isEmpty} callback.
+     */
     required?: boolean;
+    /**
+     * Specifies whether the field is disabled.
+     * A disabled field will not be validated against and is always valid.
+     *
+     * Component using the {@link useFormField} hook should handle the
+     * visual clues and responsiveness to users on whether the field is disabled.
+     */
     disabled?: boolean;
-    error?: string;
+    /**
+     * Specifies validation error explicitly.
+     * Falsy values like `null`, `undefined` or empty string indicates the field is valid.
+     */
+    error?: null | undefined | string | Stringifiable;
+    /**
+     * Specifies whether the error message should be shown if the field is in invalid state.
+     *
+     * Component using the {@link useFormField} hook should handle this flag.
+     */
     showErrorMessage?: boolean;
+    /**
+     * Specifies whether the value should be validated upon value changes.
+     */
     validateOnChange?: boolean;
+    /**
+     * Specifies a custom handler to determine if the field is empty.
+     * @param value Current value of the field.
+     */
     isEmpty?: (value: V) => boolean;
+    /**
+     * Specifies validation handler.
+     */
     onValidate?: ValidateCallback<V>;
+    /**
+     * Specifies a callback to be invoked with the current value upon changes.
+     * @param value Current value of the field.
+     */
     onChange?: (value: V) => void;
 }
 
 export interface FormFieldState<T = any> {
+    /**
+     * Gets the parent form context if exists.
+     */
     readonly form: FormContext | undefined;
+    /**
+     * Gets current field value.
+     */
     readonly value: T;
+    /**
+     * Gets current validation error.
+     * An empty string indicates the field is valid.
+     * If an object was set, it is always coerced to the stringified result.
+     */
     readonly error: string;
-    setValue: React.Dispatch<React.SetStateAction<T>>;
-    setError: React.Dispatch<React.SetStateAction<string>>;
-    elementRef: React.RefCallback<HTMLElement>;
+    /**
+     * Sets field value.
+     */
+    readonly setValue: React.Dispatch<React.SetStateAction<T>>;
+    /**
+     * Sets validation error.
+     * Falsy values like `null`, `undefined` or empty string indicates the field is valid.
+     */
+    readonly setError: React.Dispatch<React.SetStateAction<null | undefined | string | Stringifiable>>;
+    /**
+     * A callback to be passed to `ref` attribute to capture the rendered DOM element.
+     * The element can be retrieved by {@link FormContext.element}.
+     */
+    readonly elementRef: React.RefCallback<HTMLElement>;
 }
 
 export interface FormProps<T = any> extends React.ComponentPropsWithRef<'form'>, Pick<FormContextOptions, 'enterKeyHint' | 'preventLeave'> {
@@ -311,6 +385,9 @@ export interface TextFieldState<T> extends FormFieldState<T> {
 }
 
 export interface ToggleFieldProps<T = string> extends FormFieldProps<T, boolean> {
+    /**
+     * Whether the field is checked.
+     */
     checked?: boolean;
 }
 
