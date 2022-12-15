@@ -29,11 +29,6 @@ function isEmpty(value) {
 function createDataObject(context, initialData) {
     var state = _(context);
     return new Proxy(extend({}, initialData), {
-        get: function (t, p) {
-            if (typeof p === 'string') {
-                return t[p];
-            }
-        },
         set: function (t, p, v) {
             if (typeof p === 'string' && t[p] !== v) {
                 if (p in t) {
