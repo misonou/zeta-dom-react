@@ -777,6 +777,34 @@ describe('FormContext#validate', () => {
         unmount();
     });
 
+    it('should fire validationChange event if error state of a named field changed through error property', async () => {
+        const { form, wrapper, unmount } = createFormContext();
+        const { result, rerender } = renderHook(({ error }) => useFormField({ name: 'foo', error }, ''), { wrapper });
+        const cb = mockFn();
+        form.on('validationChange', cb);
+
+        rerender({ error: 'error' });
+        verifyCalls(cb, [
+            [expect.objectContaining({ type: 'validationChange', name: 'foo', isValid: false, message: 'error' }), form]
+        ]);
+        expect(result.current.error).toBe('error');
+        unmount();
+    });
+
+    it('should fire validationChange event if error state of a named field changed through setError callback', async () => {
+        const { form, wrapper, unmount } = createFormContext();
+        const { result } = renderHook(() => useFormField({ name: 'foo' }, ''), { wrapper });
+        const cb = mockFn();
+        form.on('validationChange', cb);
+
+        act(() => result.current.setError('error'));
+        verifyCalls(cb, [
+            [expect.objectContaining({ type: 'validationChange', name: 'foo', isValid: false, message: 'error' }), form]
+        ])
+        expect(result.current.error).toBe('error');
+        unmount();
+    });
+
     it('should debounce validation of the same field', async () => {
         const cb = mockFn().mockImplementation(() => delay(200));
         const { form, wrapper, unmount } = createFormContext();

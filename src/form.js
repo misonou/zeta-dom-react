@@ -152,22 +152,7 @@ definePrototype(FormContext, {
         emitter.emit('reset', self);
     },
     setError: function (key, error) {
-        var self = this;
-        var state = _(self);
-        var field = state.fields[key] || {};
-        var prev = field.error || '';
-        if (isFunction(error)) {
-            error = wrapErrorResult(field, error);
-        }
-        field.error = error;
-        if ((error || '') !== prev) {
-            emitter.emit('validationChange', self, {
-                name: key,
-                isValid: !error,
-                message: String(error || '')
-            });
-            state.setValid();
-        }
+        (_(this).fields[key] || {}).error = error;
     },
     validate: function () {
         var self = this;
@@ -286,13 +271,25 @@ export function useFormField(type, props, defaultValue, prop) {
             }
         };
         watch(field, true);
+        defineObservableProperty(field, 'error', '', function (v) {
+            return isFunction(v) ? wrapErrorResult(field, v) : v || '';
+        });
         watch(field, 'value', function (v) {
             (field.dict || {})[field.name] = v;
             (field.props.onChange || noop)(v);
         });
+        watch(field, 'error', function (v) {
+            if (field.dict && field.name) {
+                emitter.emit('validationChange', field.form, {
+                    name: field.name,
+                    isValid: !v,
+                    message: String(v)
+                });
+            }
+        });
         return field;
     })[0];
-    extend(field, { preset, props, dict, name: key });
+    extend(field, { form, preset, props, dict, name: key });
     if (controlled) {
         field.value = props[prop];
     }
@@ -308,7 +305,7 @@ export function useFormField(type, props, defaultValue, prop) {
     const state1 = (preset.postHook || pipe)({
         form: form,
         value: field.value,
-        error: String(field.error || ''),
+        error: String(field.error),
         setValue: field.setValue,
         setError: field.setError,
         elementRef: field.elementRef
@@ -333,7 +330,7 @@ export function useFormField(type, props, defaultValue, prop) {
     }, [state, field.error, props.disabled, props.required]);
 
     state1.value = useObservableProperty(field, 'value');
-    state1.error = String(useObservableProperty(field, 'error') || '');
+    state1.error = String(useObservableProperty(field, 'error'));
     return state1;
 }
 
