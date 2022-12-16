@@ -195,13 +195,21 @@ describe('useFormField', () => {
         const { result } = renderHook(() => useFormField({ name: 'foo' }, ''), { wrapper });
 
         await act(async () => {
-            const promise = new Promise(resolve => {
-                form.on('dataChange', resolve);
-            });
             form.data.foo = 'bar';
-            return promise;
         });
         expect(result.current.value).toBe('bar');
+    });
+
+    it('should reset to initial value when value in form.data is deleted for named field', async () => {
+        const { form, wrapper } = createFormContext();
+        const { result } = renderHook(() => useFormField({ name: 'foo' }, ''), { wrapper });
+
+        await act(async () => {
+            form.data.foo = 'bar';
+            delete form.data.foo;
+        });
+        expect(result.current.value).toBe('');
+        expect(form.data.foo).toBe('');
     });
 
     it('should call setValue callback with current value for controlled field', () => {
@@ -501,6 +509,54 @@ describe('useFormField - multiChoice', () => {
 });
 
 describe('FormContext', () => {
+    it('should fire dataChange event when property is added manually', async () => {
+        const { form, wrapper, unmount } = createFormContext({});
+        const { result } = renderHook(() => useFormField({ name: 'foo' }, 'foo'), { wrapper });
+        const cb = mockFn();
+        form.on('dataChange', cb);
+        await act(async () => {
+            form.data.bar = 'bar';
+        });
+        expect(cb).toBeCalledTimes(1);
+        expect(cb.mock.calls[0][0].data).toEqual(['bar']);
+        unmount();
+    });
+
+    it('should fire dataChange event when property is updated manually', async () => {
+        const { form, wrapper, unmount } = createFormContext({ bar: '' });
+        const { result } = renderHook(() => useFormField({ name: 'foo' }, 'foo'), { wrapper });
+        const cb = mockFn();
+        form.on('dataChange', cb);
+        await act(async () => {
+            form.data.foo = 'bar';
+            form.data.bar = 'bar';
+        });
+        expect(cb).toBeCalledTimes(1);
+        expect(cb.mock.calls[0][0].data).toEqual(['foo', 'bar']);
+        unmount();
+    });
+
+    it('should fire dataChange event when property is deleted manually', async () => {
+        const { form, wrapper, unmount } = createFormContext();
+        const { result } = renderHook(() => useFormField({ name: 'foo' }, 'foo'), { wrapper });
+        const cb = mockFn();
+        form.on('dataChange', cb);
+        await act(async () => {
+            form.data.foo = 'bar';
+            form.data.bar = 'bar';
+        });
+        cb.mockClear();
+
+        await act(async () => {
+            delete form.data.foo;
+            delete form.data.bar;
+            delete form.data.baz;
+        });
+        expect(cb).toBeCalledTimes(1);
+        expect(cb.mock.calls[0][0].data).toEqual(['foo', 'bar']);
+        unmount();
+    });
+
     it('should fire dataChange event with unique field keys', async () => {
         const { form, wrapper, unmount } = createFormContext();
         const { result } = renderHook(() => useFormField({ name: 'foo' }, 'foo'), { wrapper });

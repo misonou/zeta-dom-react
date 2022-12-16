@@ -35,19 +35,33 @@ function emitDataChangeEvent() {
 
 function createDataObject(context, initialData) {
     var state = _(context);
-    return new Proxy(extend({}, initialData), {
+    var target = extend({}, initialData);
+    var onChange = function (p) {
+        mapGet(changedProps, context, Object)[p] = true;
+        setImmediateOnce(emitDataChangeEvent);
+    };
+    var proxy = new Proxy(target, {
         set: function (t, p, v) {
             if (typeof p === 'string' && t[p] !== v) {
-                if (p in t) {
-                    mapGet(changedProps, context, Object)[p] = true;
-                    setImmediateOnce(emitDataChangeEvent);
-                }
+                onChange(p);
                 t[p] = v;
                 (state.fields[p] || {}).value = v;
             }
             return true;
+        },
+        deleteProperty: function (t, p) {
+            var field = state.fields[p];
+            if (field) {
+                proxy[p] = field.initialValue;
+            } else if (p in t) {
+                onChange(p);
+                delete t[p];
+            }
+            return true;
         }
     });
+    _(proxy, target);
+    return proxy;
 }
 
 function wrapErrorResult(field, error) {
@@ -145,14 +159,16 @@ definePrototype(FormContext, {
     reset: function (data) {
         var self = this;
         var state = _(self);
-        for (var i in self.data) {
-            delete self.data[i];
+        var dict = _(self.data);
+        for (var i in dict) {
+            delete dict[i];
         }
         each(state.fields, function (i, v) {
-            self.data[i] = v.initialValue;
+            dict[i] = v.initialValue;
+            v.value = v.initialValue;
             v.error = null;
         });
-        extend(self.data, data || state.initialData);
+        extend(dict, data || state.initialData);
         state.setValid();
         (state.unlock || noop)();
         emitter.emit('reset', self);
@@ -304,8 +320,8 @@ export function useFormField(type, props, defaultValue, prop) {
     }
     if (form && key) {
         state.fields[key] = field;
-        if (controlled || !(key in dict)) {
-            dict[key] = field.value;
+        if (!(key in dict)) {
+            _(dict)[key] = field.value;
         }
     }
     const state1 = (preset.postHook || pipe)({
@@ -322,7 +338,7 @@ export function useFormField(type, props, defaultValue, prop) {
             if (state && state.fields[key] === field) {
                 delete state.fields[key];
                 if (field.props.clearWhenUnmount) {
-                    delete field.dict[key];
+                    delete _(field.dict)[key];
                 }
                 state.setValid();
             }
