@@ -1,10 +1,9 @@
-import React, { createRef } from "react";
+import React, { createRef, useEffect } from "react";
 import { act as renderAct, render } from "@testing-library/react";
 import { act, renderHook } from '@testing-library/react-hooks'
 import { Form, FormContextProvider, MultiChoiceField, useFormContext, useFormField } from "src/form";
 import { delay, mockFn, verifyCalls } from "./testUtil";
 import { locked } from "zeta-dom/domLock";
-import { useEffect } from "react";
 
 function createFormContext(initialData, validateOnChange) {
     const { result: { current: form }, unmount } = renderHook(() => useFormContext(initialData, validateOnChange));
@@ -356,6 +355,17 @@ describe('useFormField', () => {
 
         unmountField();
         expect(form.data).toEqual({});
+        unmount();
+    });
+
+    it('should handle name change correctly', async () => {
+        const { form, wrapper, unmount } = createFormContext({ foo: 'foo', bar: 'bar' });
+        const { result, rerender } = renderHook(({ name }) => useFormField({ name }, 0), { wrapper, initialProps: { name: 'foo' } });
+        expect(result.current.value).toBe('foo');
+
+        rerender({ name: 'bar' });
+        expect(result.current.value).toBe('bar');
+        expect(form.data).toEqual({ foo: 'foo', bar: 'bar' });
         unmount();
     });
 });

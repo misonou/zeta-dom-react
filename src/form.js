@@ -311,17 +311,24 @@ export function useFormField(type, props, defaultValue, prop) {
         });
         return field;
     })[0];
+    const hasErrorProp = 'error' in props;
+    const prevKey = field.name || key;
     extend(field, { form, preset, props, dict, name: key });
     if (controlled) {
         field.value = props[prop];
     }
-    if ('error' in props) {
+    if (hasErrorProp) {
         field.error = props.error;
     }
     if (form && key) {
         state.fields[key] = field;
         if (!(key in dict)) {
             _(dict)[key] = field.value;
+        } else if (!controlled && key !== prevKey) {
+            field.value = dict[key];
+            if (!hasErrorProp) {
+                field.error = '';
+            }
         }
     }
     const state1 = (preset.postHook || pipe)({
