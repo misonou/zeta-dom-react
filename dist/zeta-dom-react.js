@@ -824,6 +824,7 @@ var form_ = createPrivateStore();
 
 var form_emitter = new ZetaEventContainer();
 var presets = new WeakMap();
+var changedProps = new Map();
 var fieldTypes = {
   text: TextField,
   toggle: ToggleField,
@@ -840,30 +841,49 @@ function isEmpty(value) {
   return isUndefinedOrNull(value) || value === '' || isArray(value) && !value.length;
 }
 
+function emitDataChangeEvent() {
+  each(changedProps, function (i) {
+    form_emitter.emit('dataChange', i, Object.keys(mapRemove(changedProps, i)));
+  });
+}
+
 function createDataObject(context, initialData) {
   var state = form_(context);
 
-  return new Proxy(extend({}, initialData), {
-    get: function get(t, p) {
-      if (typeof p === 'string') {
-        return t[p];
-      }
-    },
+  var target = extend({}, initialData);
+
+  var onChange = function onChange(p) {
+    mapGet(changedProps, context, Object)[p] = true;
+    setImmediateOnce(emitDataChangeEvent);
+  };
+
+  var proxy = new Proxy(target, {
     set: function set(t, p, v) {
       if (typeof p === 'string' && t[p] !== v) {
-        if (p in t) {
-          (state.fields[p] || {}).dirty = true;
-          form_emitter.emitAsync('dataChange', context, [p], {}, function (v, a) {
-            return v.indexOf(a[0]) < 0 ? v.concat(a) : v;
-          });
-        }
-
+        onChange(p);
         t[p] = v;
+        (state.fields[p] || {}).value = v;
+      }
+
+      return true;
+    },
+    deleteProperty: function deleteProperty(t, p) {
+      var field = state.fields[p];
+
+      if (field) {
+        proxy[p] = field.initialValue;
+      } else if (p in t) {
+        onChange(p);
+        delete t[p];
       }
 
       return true;
     }
   });
+
+  form_(proxy, target);
+
+  return proxy;
 }
 
 function wrapErrorResult(field, error) {
@@ -900,7 +920,7 @@ function FormContext(initialData, options, viewState) {
     setValid: defineObservableProperty(this, 'isValid', true, function () {
       return !any(fields, function (v, i) {
         var props = v.props;
-        return !props.disabled && (v.error || props.required && (props.isEmpty || v.preset.isEmpty || isEmpty)(self.data[i]));
+        return !props.disabled && (v.error || props.required && (props.isEmpty || v.preset.isEmpty || isEmpty)(v.value));
       });
     })
   });
@@ -976,40 +996,24 @@ definePrototype(FormContext, {
 
     var state = form_(self);
 
-    for (var i in self.data) {
-      delete self.data[i];
+    var dict = form_(self.data);
+
+    for (var i in dict) {
+      delete dict[i];
     }
 
     each(state.fields, function (i, v) {
+      dict[i] = v.initialValue;
+      v.value = v.initialValue;
       v.error = null;
     });
-    extend(self.data, data || state.initialData);
+    extend(dict, data || state.initialData);
     state.setValid();
     (state.unlock || noop)();
     form_emitter.emit('reset', self);
   },
   setError: function setError(key, error) {
-    var self = this;
-
-    var state = form_(self);
-
-    var field = state.fields[key] || {};
-    var prev = field.error || '';
-
-    if (isFunction(error)) {
-      error = wrapErrorResult(field, error);
-    }
-
-    field.error = error;
-
-    if ((error || '') !== prev) {
-      form_emitter.emit('validationChange', self, {
-        name: key,
-        isValid: !error,
-        message: String(error || '')
-      });
-      state.setValid();
-    }
+    (form_(this).fields[key] || {}).error = error;
   },
   validate: function validate() {
     var self = this;
@@ -1114,89 +1118,101 @@ function useFormField(type, props, defaultValue, prop) {
 
   var preset = type ? mapGet(presets, type, type) : {};
   prop = prop || preset.valueProperty || 'value';
-  var field = extend((0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)({})[0], {
-    preset: preset,
-    props: props
-  });
   var form = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useContext)(_FormContext);
   var dict = form && form.data;
 
   var state = form && form_(form);
 
   var key = props.name || '';
-  var initialValue = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)(function () {
-    return form && key in dict ? dict[key] : defaultValue;
-  })[0];
-  var sValue = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)(initialValue);
-  var sError = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)('');
   var controlled = (prop in props);
-  var value = controlled ? props[prop] : sValue[0];
-  var setValue = controlled ? noop : sValue[1];
-  var error = sError[0],
-      setError = sError[1];
-  var setValueCallback = useMemoizedFunction(function (v) {
-    v = typeof v === 'function' ? v(value) : v;
-    setValue(v);
-
-    if (form && !field.dirty) {
-      dict[key] = v;
-      field.dirty = false;
-    }
-
-    if (controlled && !props.onChange) {
-      console.warn('onChange not supplied');
-    }
-
-    (props.onChange || noop)(v);
+  var field = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)(function () {
+    var initialValue = controlled ? props[prop] : form && key in dict ? dict[key] : defaultValue;
+    var field = {
+      initialValue: initialValue,
+      value: initialValue,
+      error: '',
+      setValue: function setValue(v) {
+        field.value = isFunction(v) ? v(field.value) : v;
+      },
+      setError: function setError(v) {
+        field.error = isFunction(v) ? v(field.error) : v;
+      },
+      elementRef: function elementRef(v) {
+        field.element = v;
+      }
+    };
+    watch(field, true);
+    defineObservableProperty(field, 'error', '', function (v) {
+      return isFunction(v) ? wrapErrorResult(field, v) : v || '';
+    });
+    watch(field, 'value', function (v) {
+      (field.dict || {})[field.name] = v;
+      (field.props.onChange || noop)(v);
+    });
+    watch(field, 'error', function (v) {
+      if (field.dict && field.name) {
+        form_emitter.emit('validationChange', field.form, {
+          name: field.name,
+          isValid: !v,
+          message: String(v)
+        });
+      }
+    });
+    return field;
+  })[0];
+  extend(field, {
+    form: form,
+    preset: preset,
+    props: props,
+    dict: dict,
+    name: key
   });
+
+  if (controlled) {
+    field.value = props[prop];
+  }
+
+  if ('error' in props) {
+    field.error = props.error;
+  }
 
   if (form && key) {
     state.fields[key] = field;
 
-    if (controlled || !(key in dict)) {
-      dict[key] = value;
+    if (!(key in dict)) {
+      form_(dict)[key] = field.value;
     }
   }
 
+  var state1 = (preset.postHook || pipe)({
+    form: form,
+    value: field.value,
+    error: String(field.error),
+    setValue: field.setValue,
+    setError: field.setError,
+    elementRef: field.elementRef
+  }, props);
   (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
-    if (form && key) {
-      return combineFn(function () {
-        if (state.fields[key] === field) {
-          delete state.fields[key];
-          state.setValid();
+    return function () {
+      if (state && state.fields[key] === field) {
+        delete state.fields[key];
+
+        if (field.props.clearWhenUnmount) {
+          delete form_(field.dict)[key];
         }
-      }, form.on('dataChange', function (e) {
-        if (e.data.includes(key)) {
-          field.dirty = false;
-          setValue(dict[key]);
-        }
-      }), form.on('validationChange', function (e) {
-        if (e.name === key) {
-          setError(field.error);
-        }
-      }), form.on('reset', function () {
-        dict[key] = initialValue;
-        setValue(initialValue);
-        setError('');
-      }));
-    }
-  }, [form, key, dict, initialValue]);
+
+        state.setValid();
+      }
+    };
+  }, [state, key]);
   (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
     if (state) {
-      field.error = props.error || error;
       state.setValid();
     }
-  }, [state, error, props.error, props.disabled, props.required]);
-  return (preset.postHook || pipe)({
-    form: form,
-    value: value,
-    error: String(props.error || error || ''),
-    setValue: setValueCallback,
-    setError: setError,
-    elementRef: function elementRef(v) {
-      field.element = v;
-    }
-  }, props);
+  }, [state, field.error, props.disabled, props.required]);
+  state1.value = useObservableProperty(field, 'value');
+  state1.error = String(useObservableProperty(field, 'error'));
+  return state1;
 }
 function combineValidators() {
   var validators = grep(makeArray(arguments), isFunction);
@@ -1279,15 +1295,12 @@ function ChoiceField() {
     var selectedIndex = items.findIndex(function (v) {
       return v.value === state.value;
     });
-    (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
-      if (selectedIndex < 0) {
-        var newValue = props.allowUnselect || !items[0] ? '' : items[0].value;
 
-        if (newValue !== state.value) {
-          state.setValue(newValue);
-        }
-      }
-    });
+    if (selectedIndex < 0) {
+      selectedIndex = props.allowUnselect || !items[0] ? -1 : 0;
+      state.setValue(selectedIndex < 0 ? '' : items[0].value);
+    }
+
     return extend(state, {
       items: items,
       selectedIndex: selectedIndex,
