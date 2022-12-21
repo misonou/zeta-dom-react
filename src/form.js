@@ -1,5 +1,5 @@
 import { createContext, createElement, forwardRef, useContext, useEffect, useMemo, useState } from "react";
-import { always, any, combineFn, createPrivateStore, defineObservableProperty, definePrototype, each, either, exclude, extend, grep, isArray, isFunction, isUndefinedOrNull, keys, makeArray, mapGet, noop, pick, pipe, resolve, resolveAll, splice, watch } from "./include/zeta-dom/util.js";
+import { always, any, combineFn, createPrivateStore, defineObservableProperty, definePrototype, each, either, exclude, extend, grep, isArray, isFunction, isUndefinedOrNull, keys, makeArray, mapGet, mapRemove, noop, pick, pipe, resolve, resolveAll, setImmediateOnce, splice, watch } from "./include/zeta-dom/util.js";
 import { ZetaEventContainer } from "./include/zeta-dom/events.js";
 import dom, { focus } from "./include/zeta-dom/dom.js";
 import { preventLeave } from "./include/zeta-dom/domLock.js";
@@ -10,6 +10,7 @@ import { useViewState } from "./viewState.js";
 const _ = createPrivateStore();
 const emitter = new ZetaEventContainer();
 const presets = new WeakMap();
+const changedProps = new Map();
 const fieldTypes = {
     text: TextField,
     toggle: ToggleField,
@@ -26,15 +27,20 @@ function isEmpty(value) {
     return isUndefinedOrNull(value) || value === '' || (isArray(value) && !value.length);
 }
 
+function emitDataChangeEvent() {
+    each(changedProps, function (i) {
+        emitter.emit('dataChange', i, Object.keys(mapRemove(changedProps, i)));
+    });
+}
+
 function createDataObject(context, initialData) {
     var state = _(context);
     return new Proxy(extend({}, initialData), {
         set: function (t, p, v) {
             if (typeof p === 'string' && t[p] !== v) {
                 if (p in t) {
-                    emitter.emitAsync('dataChange', context, [p], {}, function (v, a) {
-                        return v.indexOf(a[0]) < 0 ? v.concat(a) : v;
-                    });
+                    mapGet(changedProps, context, Object)[p] = true;
+                    setImmediateOnce(emitDataChangeEvent);
                 }
                 t[p] = v;
                 (state.fields[p] || {}).value = v;

@@ -4,6 +4,7 @@ import { act, renderHook } from '@testing-library/react-hooks'
 import { Form, FormContextProvider, MultiChoiceField, useFormContext, useFormField } from "src/form";
 import { delay, mockFn, verifyCalls } from "./testUtil";
 import { locked } from "zeta-dom/domLock";
+import { useEffect } from "react";
 
 function createFormContext(initialData, validateOnChange) {
     const { result: { current: form }, unmount } = renderHook(() => useFormContext(initialData, validateOnChange));
@@ -535,6 +536,33 @@ describe('FormContext', () => {
             form.data.bar = 'bar2';
         });
         unmount();
+    });
+
+    it('should not cause rerender after unmount', async () => {
+        let form;
+        const cb = mockFn();
+        const Component = function () {
+            form = useFormContext({ foo: 'bar' });
+            useEffect(() => {
+                return form.on('dataChange', cb);
+            }, []);
+            return (
+                <FormContextProvider value={form}>
+                    <Field name="foo" />
+                    <div>{form.data.foo}</div>
+                </FormContextProvider>
+            );
+        };
+        const { unmount } = render(<Component />);
+        expect(cb).not.toBeCalled();
+        cb.mockClear();
+
+        renderAct(() => {
+            form.data.foo = 'baz';
+        });
+        unmount();
+        await delay();
+        expect(cb).not.toBeCalled();
     });
 });
 
