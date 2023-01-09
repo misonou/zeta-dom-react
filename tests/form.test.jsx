@@ -1,9 +1,10 @@
 import React, { createRef, useEffect } from "react";
 import { act as renderAct, render } from "@testing-library/react";
 import { act, renderHook } from '@testing-library/react-hooks'
-import { Form, FormContextProvider, MultiChoiceField, useFormContext, useFormField } from "src/form";
+import { Form, FormContext, FormContextProvider, MultiChoiceField, useFormContext, useFormField } from "src/form";
 import { delay, mockFn, verifyCalls } from "./testUtil";
 import { locked } from "zeta-dom/domLock";
+import { combineFn } from "zeta-dom/util";
 
 function createFormContext(initialData, validateOnChange) {
     const { result: { current: form }, unmount } = renderHook(() => useFormContext(initialData, validateOnChange));
@@ -16,6 +17,32 @@ function createFormContext(initialData, validateOnChange) {
     };
 }
 
+function createFormComponent(children) {
+    /** @type FormContext */
+    let form;
+    let dataChange = mockFn();
+    let beforeLeave = mockFn();
+    let Component = React.forwardRef(function ({ initialData, options }, ref) {
+        form = useFormContext(initialData, options);
+        useEffect(() => {
+            return combineFn(
+                form.on('dataChange', dataChange),
+                form.on('beforeLeave', beforeLeave),
+            );
+        }, []);
+        return (
+            <Form ref={ref} context={form} {...options.__formAttributes}>
+                {children && children(form)}
+            </Form>
+        );
+    });
+    return function (initialData, options) {
+        const ref = React.createRef();
+        const result = render(<Component ref={ref} initialData={initialData} options={options || {}} />);
+        return { ...result, form, dataChange, beforeLeave, formElement: ref.current };
+    };
+}
+
 function Field(props) {
     useFormField(props, '');
     return <></>;
@@ -23,17 +50,10 @@ function Field(props) {
 
 describe('useFormContext', () => {
     it('should cause re-render when data has changed', async () => {
-        let form;
-        const Component = function () {
-            form = useFormContext({ foo: 'bar' });
-            return (
-                <FormContextProvider value={form}>
-                    <Field name="foo" />
-                    <div>{form.data.foo}</div>
-                </FormContextProvider>
-            );
-        };
-        const { getByText, findByText } = render(<Component />);
+        const renderForm = createFormComponent((form) => (
+            <div>{form.data.foo}</div>
+        ));
+        const { form, getByText, findByText } = renderForm({ foo: 'bar' });
         getByText('bar');
 
         await renderAct(async () => {
@@ -43,17 +63,13 @@ describe('useFormContext', () => {
     });
 
     it('should cause re-render when isValid state has changed', async () => {
-        let form;
-        const Component = function () {
-            form = useFormContext();
-            return (
-                <FormContextProvider value={form}>
-                    <Field name="foo" onValidate={() => 'error'} />
-                    <div>{form.isValid ? 'valid' : 'invalid'}</div>
-                </FormContextProvider>
-            );
-        };
-        const { getByText, findByText } = render(<Component />);
+        const renderForm = createFormComponent((form) => (
+            <div>
+                <Field name="foo" onValidate={() => 'error'} />
+                <div>{form.isValid ? 'valid' : 'invalid'}</div>
+            </div>
+        ));
+        const { form, getByText, findByText } = renderForm();
         getByText('valid');
 
         await renderAct(async () => {
@@ -63,17 +79,13 @@ describe('useFormContext', () => {
     });
 
     it('should cause re-render when reset', async () => {
-        let form;
-        const Component = function () {
-            form = useFormContext({ foo: 'bar' });
-            return (
-                <FormContextProvider value={form}>
-                    <Field name="foo" />
-                    <div>{form.data.foo}</div>
-                </FormContextProvider>
-            );
-        };
-        const { findByText } = render(<Component />);
+        const renderForm = createFormComponent((form) => (
+            <div>
+                <Field name="foo" />
+                <div>{form.data.foo}</div>
+            </div>
+        ));
+        const { form, findByText } = renderForm({ foo: 'bar' });
         await renderAct(async () => {
             form.data.foo = 'baz';
         });
@@ -605,30 +617,22 @@ describe('FormContext', () => {
     });
 
     it('should not cause rerender after unmount', async () => {
-        let form;
-        const cb = mockFn();
-        const Component = function () {
-            form = useFormContext({ foo: 'bar' });
-            useEffect(() => {
-                return form.on('dataChange', cb);
-            }, []);
-            return (
-                <FormContextProvider value={form}>
-                    <Field name="foo" />
-                    <div>{form.data.foo}</div>
-                </FormContextProvider>
-            );
-        };
-        const { unmount } = render(<Component />);
-        expect(cb).not.toBeCalled();
-        cb.mockClear();
+        const renderForm = createFormComponent((form) => (
+            <div>
+                <Field name="foo" />
+                <div>{form.data.foo}</div>
+            </div>
+        ));
+        const { unmount, form, dataChange } = renderForm({ foo: 'bar' });
+        expect(dataChange).not.toBeCalled();
+        dataChange.mockClear();
 
         renderAct(() => {
             form.data.foo = 'baz';
         });
         unmount();
         await delay();
-        expect(cb).not.toBeCalled();
+        expect(dataChange).not.toBeCalled();
     });
 });
 
@@ -997,73 +1001,52 @@ describe('Form component', () => {
     });
 
     it('should lock form element after data change when preventLeave is true', async () => {
-        let form;
-        const ref = createRef();
-        const Component = function () {
-            form = useFormContext();
-            return (
-                <Form ref={ref} context={form} preventLeave>
-                    <Field name="foo" />
-                </Form>
-            );
-        };
-        const { unmount } = render(<Component />);
-        expect(locked(ref.current)).toBe(false);
+        const renderForm = createFormComponent(() => (
+            <Field name="foo" />
+        ));
+        const { unmount, form, formElement } = renderForm({}, { __formAttributes: { preventLeave: true } });
+        expect(locked(formElement)).toBe(false);
 
         await renderAct(async () => {
             form.data.foo = 'bar';
         });
-        expect(locked(ref.current)).toBe(true);
+        expect(locked(formElement)).toBe(true);
 
         await renderAct(async () => {
             form.reset()
         });
-        expect(locked(ref.current)).toBe(false);
+        expect(locked(formElement)).toBe(false);
         unmount();
     });
 
     it('should unlock form element after unmount', async () => {
-        let form;
-        const ref = createRef();
-        const Component = function () {
-            form = useFormContext();
-            return (
-                <Form ref={ref} context={form} preventLeave>
-                    <Field name="foo" />
-                </Form>
-            );
-        };
-        const { unmount } = render(<Component />);
-        expect(locked(ref.current)).toBe(false);
+        const renderForm = createFormComponent(() => (
+            <Field name="foo" />
+        ));
+        const { unmount, form, formElement } = renderForm({}, { __formAttributes: { preventLeave: true } });
+        expect(locked(formElement)).toBe(false);
 
         await renderAct(async () => {
             form.data.foo = 'bar';
         });
-        expect(locked(ref.current)).toBe(true);
+        expect(locked(formElement)).toBe(true);
 
         unmount();
         await delay();
-        expect(locked(ref.current)).toBe(false);
+        expect(locked(formElement)).toBe(false);
     });
 
     it('should not lock form element when preventLeave is false', async () => {
-        let form;
-        const ref = createRef();
-        const Component = function () {
-            form = useFormContext();
-            return (
-                <Form ref={ref} context={form}>
-                    <Field name="foo" />
-                </Form>
-            );
-        };
-        const { unmount } = render(<Component />);
-        expect(locked(ref.current)).toBe(false);
+        const renderForm = createFormComponent(() => (
+            <Field name="foo" />
+        ));
+        const { unmount, form, formElement } = renderForm();
+        expect(locked(formElement)).toBe(false);
 
         await renderAct(async () => {
             form.data.foo = 'bar';
         });
-        expect(locked(ref.current)).toBe(false);
+        expect(locked(formElement)).toBe(false);
         unmount();
     });
 });
