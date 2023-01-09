@@ -223,6 +223,17 @@ describe('useFormField', () => {
         expect(form.data.foo).toBe('');
     });
 
+    it('should reset error state when it associates to another data path', async () => {
+        const { wrapper, unmount } = createFormContext({});
+        const { result, rerender } = renderHook(({ name }) => useFormField({ name }, ''), { wrapper, initialProps: { name: 'foo' } });
+        act(() => result.current.setError('error'));
+        expect(result.current.error).toBe('error');
+
+        rerender({ name: 'bar' });
+        expect(result.current.error).toBe('');
+        unmount();
+    });
+
     it('should call setValue callback with current value for controlled field', () => {
         const cb = mockFn();
         const { result } = renderHook(() => useFormField({ value: 'foo', onChange: () => { } }, ''));
@@ -951,6 +962,19 @@ describe('FormContext#validate', () => {
             ['1', 'bar', form],
             ['2', 'bar', form],
         ]);
+        unmount();
+    });
+
+    it('should not update error state of a named field after it associates with another data path', async () => {
+        const cb = mockFn().mockReturnValue('error');
+        const { form, wrapper, unmount } = createFormContext();
+        const { result, rerender } = renderHook(({ name }) => useFormField({ name, onValidate: cb }, ''), { wrapper, initialProps: { name: 'foo' } });
+
+        const promise = form.validate('foo');
+        rerender({ name: 'bar' });
+
+        await expect(promise).resolves.toBe(false);
+        expect(result.current.error).toBe('');
         unmount();
     });
 });
