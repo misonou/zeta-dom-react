@@ -3,8 +3,8 @@ import { act as renderAct, render } from "@testing-library/react";
 import { act, renderHook } from '@testing-library/react-hooks'
 import { Form, FormContext, FormContextProvider, MultiChoiceField, useFormContext, useFormField } from "src/form";
 import { delay, mockFn, verifyCalls } from "./testUtil";
-import { locked } from "zeta-dom/domLock";
-import { combineFn } from "zeta-dom/util";
+import { cancelLock, locked } from "zeta-dom/domLock";
+import { catchAsync, combineFn } from "zeta-dom/util";
 
 function createFormContext(initialData, validateOnChange) {
     const { result: { current: form }, unmount } = renderHook(() => useFormContext(initialData, validateOnChange));
@@ -644,6 +644,69 @@ describe('FormContext', () => {
         unmount();
         await delay();
         expect(dataChange).not.toBeCalled();
+    });
+
+    it('should fire beforeLeave event when unlocking form element', async () => {
+        const renderForm = createFormComponent();
+        const { unmount, form, formElement, beforeLeave } = renderForm({}, { preventLeave: true });
+
+        await renderAct(async () => {
+            form.data.foo = 1;
+        });
+        expect(locked(formElement)).toBe(true);
+
+        await renderAct(async () => {
+            catchAsync(cancelLock());
+        });
+        expect(beforeLeave).toBeCalledTimes(1);
+        unmount();
+    });
+
+    it('should unlock form element if promise returned beforeLeave is fulfilled', async () => {
+        const renderForm = createFormComponent();
+        const { unmount, form, formElement, beforeLeave } = renderForm({}, { preventLeave: true });
+        beforeLeave.mockResolvedValue('');
+
+        await renderAct(async () => {
+            form.data.foo = 1;
+        });
+        expect(locked(formElement)).toBe(true);
+
+        await expect(cancelLock()).resolves.toBeUndefined();
+        expect(beforeLeave).toBeCalledTimes(1);
+        expect(locked(formElement)).toBe(false);
+        unmount();
+    });
+
+    it('should not unlock form element if promise returned beforeLeave is rejected', async () => {
+        const renderForm = createFormComponent();
+        const { unmount, form, formElement, beforeLeave } = renderForm({}, { preventLeave: true });
+        beforeLeave.mockRejectedValue('');
+
+        await renderAct(async () => {
+            form.data.foo = 1;
+        });
+        expect(locked(formElement)).toBe(true);
+
+        await expect(cancelLock()).rejects.toBeErrorWithCode('zeta/cancellation-rejected');
+        expect(beforeLeave).toBeCalledTimes(1);
+        expect(locked(formElement)).toBe(true);
+        unmount();
+    });
+
+    it('should not unlock form element if beforeLeave event is not handled', async () => {
+        const renderForm = createFormComponent();
+        const { unmount, form, formElement, beforeLeave } = renderForm({}, { preventLeave: true });
+
+        await renderAct(async () => {
+            form.data.foo = 1;
+        });
+        expect(locked(formElement)).toBe(true);
+
+        await expect(cancelLock()).rejects.toBeErrorWithCode('zeta/cancellation-rejected');
+        expect(beforeLeave).toBeCalledTimes(1);
+        expect(locked(formElement)).toBe(true);
+        unmount();
     });
 });
 

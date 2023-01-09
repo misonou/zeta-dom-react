@@ -1,5 +1,5 @@
 import { createContext, createElement, forwardRef, useContext, useEffect, useMemo, useState } from "react";
-import { always, any, combineFn, createPrivateStore, defineObservableProperty, definePrototype, each, either, exclude, extend, grep, isArray, isFunction, isUndefinedOrNull, keys, makeArray, mapGet, mapRemove, noop, pick, pipe, resolve, resolveAll, setImmediateOnce, splice, watch } from "./include/zeta-dom/util.js";
+import { always, any, combineFn, createPrivateStore, defineObservableProperty, definePrototype, each, either, exclude, extend, grep, isArray, isFunction, isUndefinedOrNull, keys, makeArray, mapGet, mapRemove, noop, pick, pipe, reject, resolve, resolveAll, setImmediateOnce, splice, watch } from "./include/zeta-dom/util.js";
 import { ZetaEventContainer } from "./include/zeta-dom/events.js";
 import dom, { focus } from "./include/zeta-dom/dom.js";
 import { preventLeave } from "./include/zeta-dom/domLock.js";
@@ -123,7 +123,7 @@ export function FormContext(initialData, options, viewState) {
                 };
             });
             preventLeave(state.ref || dom.root, promise, function () {
-                return emitter.emit('beforeLeave', self);
+                return emitter.emit('beforeLeave', self) || reject();
             });
         }
     });
