@@ -172,6 +172,7 @@ var _zeta$util = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root
     setIntervalSafe = _zeta$util.setIntervalSafe,
     setImmediate = _zeta$util.setImmediate,
     setImmediateOnce = _zeta$util.setImmediateOnce,
+    _throws = _zeta$util["throws"],
     throwNotFunction = _zeta$util.throwNotFunction,
     errorWithCode = _zeta$util.errorWithCode,
     isErrorWithCode = _zeta$util.isErrorWithCode,
@@ -952,7 +953,7 @@ function FormContext(initialData, options, viewState) {
         };
       });
       preventLeave(state.ref || zeta_dom_dom.root, promise, function () {
-        return form_emitter.emit('beforeLeave', self);
+        return form_emitter.emit('beforeLeave', self) || reject();
       });
     }
   });
@@ -1160,6 +1161,8 @@ function useFormField(type, props, defaultValue, prop) {
     });
     return field;
   })[0];
+  var hasErrorProp = ('error' in props);
+  var prevKey = field.name || key;
   extend(field, {
     form: form,
     preset: preset,
@@ -1172,15 +1175,21 @@ function useFormField(type, props, defaultValue, prop) {
     field.value = props[prop];
   }
 
-  if ('error' in props) {
+  if (hasErrorProp) {
     field.error = props.error;
   }
 
   if (form && key) {
     state.fields[key] = field;
 
+    if (!hasErrorProp && key !== prevKey) {
+      field.error = '';
+    }
+
     if (!(key in dict)) {
       form_(dict)[key] = field.value;
+    } else if (!controlled && key !== prevKey) {
+      field.value = dict[key];
     }
   }
 
