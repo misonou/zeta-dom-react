@@ -627,6 +627,22 @@ describe('FormContext', () => {
         unmount();
     });
 
+    it('should not create property if field is not rendered after being deleted', async () => {
+        let renderField = true;
+        const renderForm = createFormComponent(() => (
+            renderField && <Field name="foo" />
+        ));
+        const { form, unmount } = renderForm();
+        expect(form.data).toHaveProperty('foo');
+
+        renderField = false;
+        await renderAct(async () => {
+            delete form.data.foo;
+        });
+        expect(form.data).not.toHaveProperty('foo');
+        unmount();
+    });
+
     it('should not cause rerender after unmount', async () => {
         const renderForm = createFormComponent((form) => (
             <div>
@@ -1045,7 +1061,7 @@ describe('FormContext#validate', () => {
 describe('FormContext#reset', () => {
     it('should reset named field to default value', async () => {
         const { form, wrapper, unmount } = createFormContext();
-        const { result } = renderHook(() => useFormField({ name: 'foo' }, 'foo'), { wrapper });
+        const { result, rerender } = renderHook(() => useFormField({ name: 'foo' }, 'foo'), { wrapper });
 
         await act(async () => {
             form.data.foo = 'bar';
@@ -1053,7 +1069,9 @@ describe('FormContext#reset', () => {
         expect(result.current.value).toBe('bar');
 
         act(() => form.reset());
+        rerender();
         expect(result.current.value).toBe('foo');
+        expect(form.data.foo).toBe('foo');
         unmount();
     });
 
@@ -1068,6 +1086,22 @@ describe('FormContext#reset', () => {
 
         act(() => form.reset());
         expect(result.current.value).toBe('baz');
+        unmount();
+    });
+
+    it('should not create property if field is not rendered after reset', async () => {
+        let renderField = true;
+        const renderForm = createFormComponent(() => (
+            renderField && <Field name="foo" />
+        ));
+        const { form, unmount } = renderForm();
+        expect(form.data).toHaveProperty('foo');
+
+        renderField = false;
+        await renderAct(async () => {
+            form.reset();
+        });
+        expect(form.data).not.toHaveProperty('foo');
         unmount();
     });
 });

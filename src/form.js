@@ -50,10 +50,7 @@ function createDataObject(context, initialData) {
             return true;
         },
         deleteProperty: function (t, p) {
-            var field = state.fields[p];
-            if (field) {
-                proxy[p] = field.initialValue;
-            } else if (p in t) {
+            if (p in t) {
                 onChange(p);
                 delete t[p];
             }
@@ -163,12 +160,16 @@ definePrototype(FormContext, {
         for (var i in dict) {
             delete dict[i];
         }
+        extend(dict, data || state.initialData);
         each(state.fields, function (i, v) {
-            dict[i] = v.initialValue;
-            v.value = v.initialValue;
+            if (i in dict) {
+                v.value = dict[i];
+            } else if (v.controlled) {
+                dict[i] = v.initialValue;
+                v.value = v.initialValue;
+            }
             v.error = null;
         });
-        extend(dict, data || state.initialData);
         state.setValid();
         (state.unlock || noop)();
         emitter.emit('reset', self);
@@ -313,7 +314,7 @@ export function useFormField(type, props, defaultValue, prop) {
     })[0];
     const hasErrorProp = 'error' in props;
     const prevKey = field.name || key;
-    extend(field, { form, preset, props, dict, name: key });
+    extend(field, { form, preset, props, controlled, dict, name: key });
     if (controlled) {
         field.value = props[prop];
     }
@@ -326,7 +327,8 @@ export function useFormField(type, props, defaultValue, prop) {
             field.error = '';
         }
         if (!(key in dict)) {
-            _(dict)[key] = field.value;
+            _(dict)[key] = field.initialValue;
+            field.value = dict[key];
         } else if (!controlled && key !== prevKey) {
             field.value = dict[key];
         }
