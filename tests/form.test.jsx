@@ -617,6 +617,19 @@ describe('FormContext', () => {
         unmount();
     });
 
+    it('should be able to create new property with undefined value', async () => {
+        const { form, unmount } = createFormContext();
+        const cb = mockFn();
+        form.on('dataChange', cb);
+        await act(async () => {
+            form.data.foo = undefined;
+        });
+        expect(form.data).toHaveProperty('foo');
+        expect(cb).toBeCalledTimes(1);
+        expect(cb.mock.calls[0][0].data).toEqual(['foo']);
+        unmount();
+    });
+
     it('should not throw error when updating field with no rendered component', async () => {
         const { form, wrapper, unmount } = createFormContext({ foo: 'foo1', bar: 'bar1' });
         const { result } = renderHook(() => useFormField({ name: 'foo' }, ''), { wrapper });

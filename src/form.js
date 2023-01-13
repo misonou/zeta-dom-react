@@ -42,7 +42,7 @@ function createDataObject(context, initialData) {
     };
     var proxy = new Proxy(target, {
         set: function (t, p, v) {
-            if (typeof p === 'string' && t[p] !== v) {
+            if (typeof p === 'string' && (t[p] !== v || !(p in t))) {
                 onChange(p);
                 t[p] = v;
                 (state.fields[p] || {}).value = v;
