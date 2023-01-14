@@ -267,6 +267,13 @@ export class FormContext<T extends object = Zeta.Dictionary<any>> {
     reset(): void;
 
     /**
+     * Gets validation error for a specific field.
+     * If there is no error, an empty string is returned.
+     * @param name Name of the field.
+     */
+    getError(name: keyof T): string;
+
+    /**
      * Updates validation error for a specific field.
      * The error will be cleared when validation is called, or when field value is modified when `validateOnChange` is `true`.
      * @param name Name of the field.

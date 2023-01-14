@@ -801,6 +801,34 @@ describe('FormContext#isValid', () => {
     });
 });
 
+describe('FormContext#getError', () => {
+    it('should return empty string when no error', () => {
+        const renderForm = createFormComponent(() => (
+            <Field name="foo" />
+        ));
+        const { form, unmount } = renderForm();
+        expect(form.getError('foo')).toBe('');
+        expect(form.getError('bar')).toBe('');
+        unmount();
+    });
+
+    it('should return error message coerced as string', async () => {
+        const renderForm = createFormComponent(() => (<>
+            <Field name="foo" onValidate={() => 'error'} />
+            <Field name="bar" onValidate={() => ({ toString() { return 'error' } })} />
+            <Field name="baz" onValidate={() => (() => 'error')} />
+        </>));
+        const { form, unmount } = renderForm();
+        await renderAct(async () => {
+            await form.validate();
+        });
+        expect(form.getError('foo')).toBe('error');
+        expect(form.getError('bar')).toBe('error');
+        expect(form.getError('baz')).toBe('error');
+        unmount();
+    });
+});
+
 describe('FormContext#setError', () => {
     it('should update isValid property', () => {
         const { form, wrapper, unmount } = createFormContext();

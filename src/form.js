@@ -174,6 +174,9 @@ definePrototype(FormContext, {
         (state.unlock || noop)();
         emitter.emit('reset', self);
     },
+    getError: function (key) {
+        return String((_(this).fields[key] || '').error || '');
+    },
     setError: function (key, error) {
         (_(this).fields[key] || {}).error = error;
     },
