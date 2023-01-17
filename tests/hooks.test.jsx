@@ -112,22 +112,24 @@ describe('useAsync', () => {
     });
 
     it('should trigger component updates at the start and end of loading', async () => {
-        const cb = mockFn();
-        const promise = Promise.resolve({});
-        const { result, waitForNextUpdate } = renderHook(() => useAsync(() => promise));
+        const promise1 = delay(100).then(() => 'foo');
+        const promise2 = delay(500).then(() => 'bar');
+        const cb = mockFn().mockReturnValueOnce(promise1).mockReturnValueOnce(promise2);
+        const { result, waitForNextUpdate } = renderHook(() => useAsync(cb));
         await waitForNextUpdate();
 
         const state = result.current[1];
         expect(result.all.length).toBe(2);
         expect(state.loading).toBe(false);
 
-        watch(state, 'loading', cb);
-        await act(async () => void await state.refresh());
+        state.refresh();
+        await waitForNextUpdate();
+        expect(result.all.length).toBe(3);
+        expect(state.loading).toBe(true);
+
+        await act(async () => void await promise2);
         expect(result.all.length).toBe(4);
-        verifyCalls(cb, [
-            [true, false, 'loading', expect.sameObject(state)],
-            [false, true, 'loading', expect.sameObject(state)],
-        ]);
+        expect(state.loading).toBe(false);
     });
 
     it('should invoke callback when calling refresh and set value to the latest value', async () => {

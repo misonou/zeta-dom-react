@@ -219,7 +219,7 @@ describe('useDataView', () => {
         const viewState = {
             get: mockFn(),
             set: mockFn(),
-            onPopState: mockFn(),
+            onPopState: mockFn().mockReturnValue(() => { }),
         };
         const { result, unmount } = renderHook(() => useDataView({ foo: 1 }, 'foo', 'asc'), {
             wrapper: ({ children }) => (

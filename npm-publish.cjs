@@ -14,6 +14,7 @@ const { promisify } = require('util');
     var package = JSON.parse(fs.readFileSync('package.json', { encoding: 'utf-8' }));
     package.main = 'index.js';
     package.types = 'index.d.ts';
+    package.scripts = {};
 
     await Promise.all([
         promisify(fs.copyFile)('README.md', `${dst}/README.md`),

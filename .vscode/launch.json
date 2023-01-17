@@ -7,12 +7,28 @@
         {
             "type": "node",
             "request": "launch",
-            "name": "Launch Test",
+            "name": "Launch Test (React 17)",
             "skipFiles": [
                 "<node_internals>/**"
             ],
             "env": {
-                "NODE_OPTIONS": "--experimental-vm-modules"
+                "NODE_OPTIONS": "--experimental-vm-modules",
+                "REACT_VERSION": "17"
+            },
+            "runtimeExecutable": "npx",
+            "program": "jest",
+            "args": ["--runInBand"]
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Launch Test (React 18)",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "env": {
+                "NODE_OPTIONS": "--experimental-vm-modules",
+                "REACT_VERSION": "18"
             },
             "runtimeExecutable": "npx",
             "program": "jest",

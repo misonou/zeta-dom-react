@@ -2,3 +2,4 @@ dev
 build
 coverage
 tmp
+.cache

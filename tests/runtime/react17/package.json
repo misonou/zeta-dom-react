@@ -1,0 +1,10 @@
+{
+    "private": true,
+    "description": "Used to test react 17",
+    "type": "module",
+    "dependencies": {
+        "@testing-library/react": "12.1.5",
+        "react": "^17.0.0",
+        "react-dom": "^17.0.0"
+    }
+}

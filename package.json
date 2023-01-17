@@ -8,7 +8,12 @@
   "unpkg": "dist/zeta-dom-react.min.js",
   "scripts": {
     "build": "webpack",
+    "install:react17": "cd tests/runtime/react17 && npm install",
+    "install:react18": "cd tests/runtime/react18 && npm install",
+    "postinstall": "npm run install:react17 && npm run install:react18",
     "test": "cross-env NODE_OPTIONS=--experimental-vm-modules npx jest",
+    "test:react17": "cross-env NODE_OPTIONS=--experimental-vm-modules REACT_VERSION=17 npx jest",
+    "test:react18": "cross-env NODE_OPTIONS=--experimental-vm-modules REACT_VERSION=18 npx jest",
     "version": "npm run build && git add -A dist",
     "release": "node ./npm-publish.cjs"
   },
@@ -27,7 +32,7 @@
     "@babel/preset-env": "^7.16.11",
     "@babel/preset-react": "^7.16.7",
     "@jest/globals": "^26.6.2",
-    "@misonou/test-utils": "^1.0.1",
+    "@misonou/test-utils": "^1.0.2",
     "@testing-library/dom": "^8.11.3",
     "@testing-library/react": "^12.1.2",
     "@testing-library/react-hooks": "^7.0.2",
