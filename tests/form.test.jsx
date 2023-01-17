@@ -1,8 +1,10 @@
 import React, { createRef, useEffect } from "react";
 import { act as renderAct, render } from "@testing-library/react";
 import { act, renderHook } from '@testing-library/react-hooks'
-import { Form, FormContext, FormContextProvider, MultiChoiceField, useFormContext, useFormField } from "src/form";
+import { ViewStateProvider } from "src/viewState";
+import { combineValidators, Form, FormContext, FormContextProvider, MultiChoiceField, useFormContext, useFormField } from "src/form";
 import { delay, mockFn, verifyCalls } from "@misonou/test-utils";
+import dom from "zeta-dom/dom";
 import { cancelLock, locked } from "zeta-dom/domLock";
 import { catchAsync, combineFn } from "zeta-dom/util";
 
@@ -143,6 +145,55 @@ describe('useFormContext', () => {
         });
         expect(cb).not.toBeCalled();
         unmount();
+    });
+
+    it('should initiate form with persisted data from view state provider', async () => {
+        const getState = mockFn().mockReturnValue({
+            get() { return { foo: 2, baz: 'baz' } },
+            set() { }
+        });
+        const { result, unmount } = renderHook(() => useFormContext('persist', { foo: 1, bar: 0 }), {
+            wrapper: ({ children }) => (
+                <ViewStateProvider value={{ getState }}>{children}</ViewStateProvider>
+            )
+        });
+        expect(result.current.data).toEqual({ foo: 2, baz: 'baz' });
+        expect(getState).toBeCalledTimes(1);
+        expect(getState.mock.calls[0][1]).toBe('persist');
+        unmount();
+    });
+
+    it('should persist form data when unmount when autoPersist is true', async () => {
+        const viewState = {
+            get: mockFn(),
+            set: mockFn(),
+        };
+        const { result, unmount } = renderHook(() => useFormContext('persist', { foo: 1 }), {
+            wrapper: ({ children }) => (
+                <ViewStateProvider value={{ getState: () => viewState }}>{children}</ViewStateProvider>
+            )
+        });
+        await act(async () => {
+            Object.assign(result.current.data, { foo: 2, baz: 'baz' });
+        });
+        unmount();
+        expect(viewState.set).toBeCalledTimes(1);
+        expect(viewState.set.mock.calls[0][0]).toEqual({ foo: 2, baz: 'baz' });
+        expect(viewState.set.mock.calls[0][0]).not.toBe(result.current.data);
+    });
+
+    it('should not persist form data when unmount when autoPersist is false', async () => {
+        const viewState = {
+            get: mockFn(),
+            set: mockFn(),
+        };
+        const { unmount } = renderHook(() => useFormContext('persist', { foo: 1 }, { autoPersist: false }), {
+            wrapper: ({ children }) => (
+                <ViewStateProvider value={{ getState: () => viewState }}>{children}</ViewStateProvider>
+            )
+        });
+        unmount();
+        expect(viewState.set).not.toBeCalled();
     });
 });
 
@@ -539,6 +590,20 @@ describe('useFormField - multiChoice', () => {
         expect(cb).not.toBeCalled();
         unmount();
     });
+
+    it('should not trigger dataChange when toggleValue has no effect', async () => {
+        const { form, wrapper, unmount } = createFormContext();
+        const { result } = renderHook(() => useFormField(MultiChoiceField, { name: 'foo', items: ['foo', 'bar'] }, []), { wrapper });
+        const cb = mockFn();
+        form.on('dataChange', cb);
+
+        await act(async () => result.current.toggleValue('foo', true));
+        expect(cb).not.toBeCalled();
+
+        await act(async () => result.current.toggleValue('baz', false));
+        expect(cb).not.toBeCalled();
+        unmount();
+    });
 });
 
 describe('FormContext', () => {
@@ -797,6 +862,56 @@ describe('FormContext#isValid', () => {
 
         act(() => form.reset());
         expect(form.isValid).toBe(true);
+        unmount();
+    });
+});
+
+describe('FormContext#element', () => {
+    it('should return element of specified field', async () => {
+        const cb = mockFn();
+        const Field = function (props) {
+            const { elementRef } = useFormField(props, '');
+            cb.mockImplementation(elementRef);
+            return (<input ref={cb} />);
+        };
+        const renderForm = createFormComponent(() => (
+            <Field name="foo" />
+        ));
+        const { form, unmount } = renderForm();
+        expect(form.element('foo')).toBe(cb.mock.calls[0][0]);
+        unmount();
+    });
+
+    it('should return undefined for field not sending ref to HTML element', async () => {
+        const renderForm = createFormComponent(() => (
+            <Field name="foo" />
+        ));
+        const { form, unmount } = renderForm();
+        expect(form.element('foo')).toBeUndefined();
+        unmount();
+    });
+
+    it('should return undefined for inexist field', async () => {
+        const { form, unmount } = createFormContext();
+        expect(form.element('foo')).toBeUndefined();
+        unmount();
+    });
+});
+
+describe('FormContext#focus', () => {
+    it('should set focus to element of specified field', async () => {
+        const cb = mockFn();
+        const Field = function (props) {
+            const { elementRef } = useFormField(props, '');
+            cb.mockImplementation(elementRef);
+            return (<input ref={cb} />);
+        };
+        const renderForm = createFormComponent(() => (
+            <Field name="foo" />
+        ));
+        const { form, unmount } = renderForm();
+        form.focus('foo');
+        expect(dom.activeElement).toBe(cb.mock.calls[0][0]);
         unmount();
     });
 });
@@ -1145,9 +1260,87 @@ describe('FormContext#reset', () => {
         expect(form.data).not.toHaveProperty('foo');
         unmount();
     });
+
+    it('should call onChange callback with initial value for controlled field', () => {
+        let value = 'foo';
+        const onChange = mockFn(v => (value = v));
+        const { form, wrapper, unmount } = createFormContext();
+        const { rerender } = renderHook(() => useFormField({ name: 'foo', value, onChange }, ''), { wrapper });
+
+        value = 'bar';
+        rerender();
+        onChange.mockClear();
+
+        act(() => form.reset());
+        verifyCalls(onChange, [['foo']]);
+        unmount();
+    });
+});
+
+describe('FormContext#persist', () => {
+    it('should save current data to view state', async () => {
+        const viewState = {
+            get: mockFn(),
+            set: mockFn(),
+        };
+        const { result, unmount } = renderHook(() => useFormContext('persist', { foo: 1 }), {
+            wrapper: ({ children }) => (
+                <ViewStateProvider value={{ getState: () => viewState }}>{children}</ViewStateProvider>
+            )
+        });
+        act(() => {
+            result.current.data.foo = 2;
+        });
+        result.current.persist();
+        expect(viewState.set).toBeCalledTimes(1);
+        expect(viewState.set.mock.calls[0][0]).toEqual({ foo: 2 });
+        unmount();
+    });
+
+    it('should set autoPersist to false when called', async () => {
+        const { form, unmount } = createFormContext();
+        expect(form.autoPersist).toBe(true);
+        form.persist();
+        expect(form.autoPersist).toBe(false);
+        unmount();
+    });
+});
+
+describe('FormContext#restore', () => {
+    it('should reset form with persisted data', async () => {
+        let persistedData;
+        const getState = mockFn().mockReturnValue({
+            get() { return persistedData },
+            set() { }
+        });
+        const { result, unmount } = renderHook(() => useFormContext('persist', { foo: 1 }), {
+            wrapper: ({ children }) => (
+                <ViewStateProvider value={{ getState }}>{children}</ViewStateProvider>
+            )
+        });
+        expect(result.current.data).toEqual({ foo: 1 });
+        expect(getState).toBeCalledTimes(1);
+        expect(getState.mock.calls[0][1]).toBe('persist');
+
+        persistedData = { foo: 2 };
+        act(() => void result.current.restore());
+        expect(result.current.data).toEqual({ foo: 2 });
+        unmount();
+    });
 });
 
 describe('Form component', () => {
+    it('should handle native submit event', async () => {
+        const cb1 = mockFn();
+        const ref = createRef();
+        const { form, unmount } = createFormContext();
+
+        render(<Form ref={ref} context={form} onSubmit={cb1} />);
+        act(() => ref.current.submit());
+        expect(cb1).toBeCalledTimes(1);
+        unmount();
+    });
+
     it('should handle native reset event', async () => {
         const cb1 = mockFn();
         const cb2 = mockFn();
@@ -1210,5 +1403,57 @@ describe('Form component', () => {
         });
         expect(locked(formElement)).toBe(false);
         unmount();
+    });
+});
+
+describe('combineValidators', () => {
+    it('should execute validators sequentially', async () => {
+        let resolve;
+        const promise = new Promise(resolve_ => resolve = resolve_);
+        const cb1 = mockFn().mockReturnValue(promise);
+        const cb2 = mockFn();
+
+        combineValidators(cb1, cb2)('', 'foo', null);
+        await delay();
+        expect(cb1).toBeCalledTimes(1);
+        expect(cb2).not.toBeCalled();
+
+        resolve();
+        await promise;
+        expect(cb1).toBeCalledTimes(1);
+    });
+
+    it('should return falsy value if all validators return falsy values', async () => {
+        const cb = mockFn().mockResolvedValue('');
+        const validate = combineValidators(
+            () => false,
+            () => undefined,
+            () => null,
+            () => 0,
+            cb,
+        );
+        await expect(validate('', 'foo', null)).resolves.toBeFalsy();
+        expect(cb).toBeCalledTimes(1);
+    });
+
+    it('should return first truthy value from validators', async () => {
+        const cb = mockFn().mockResolvedValue('');
+        const validate = combineValidators(
+            () => false,
+            () => undefined,
+            () => null,
+            () => 1,
+            cb,
+        );
+        await expect(validate('', 'foo', null)).resolves.toBe(1);
+        expect(cb).not.toBeCalled();
+    });
+
+    it('should not throw when given non-function arguments', async () => {
+        let promise;
+        expect(() => {
+            promise = combineValidators(0, false, "", null, undefined)('', 'foo', null);
+        }).not.toThrow();
+        await expect(promise).resolves.toBeUndefined();
     });
 });

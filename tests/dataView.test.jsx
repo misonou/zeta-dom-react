@@ -2,7 +2,8 @@ import React from "react";
 import { jest } from "@jest/globals";
 import { act, renderHook } from '@testing-library/react-hooks'
 import { DataView, useDataView } from "src/dataView";
-import { mockFn, verifyCalls } from "@misonou/test-utils";
+import { ViewStateProvider } from "src/viewState";
+import { mockFn, verifyCalls, _ } from "@misonou/test-utils";
 
 const { objectContaining } = expect;
 
@@ -16,6 +17,10 @@ Object.defineProperty(DataView, 'pageSize', {
 });
 
 const defaultPageSize = jest.spyOn(DataView, 'pageSize', 'get');
+
+function items(...arr) {
+    return arr.map(foo => ({ foo }));
+}
 
 describe('useDataView', () => {
     it('should have correct default property values', () => {
@@ -159,6 +164,95 @@ describe('useDataView', () => {
         expect(result.current.getView([1, 2, 3, 4, 5], v => v)[0]).toEqual([5]);
         result.current.pageIndex = 3;
         expect(result.current.getView([1, 2, 3, 4, 5], v => v)[0]).toEqual([]);
+        unmount();
+    });
+
+    it('should initialize with persisted properties using default key', () => {
+        const initProps = {
+            filters: { foo: 2 },
+            pageIndex: 1,
+            pageSize: 20,
+            sortBy: 'bar',
+            sortOrder: 'desc'
+        };
+        const viewState = {
+            get: mockFn().mockReturnValue(initProps),
+            set: mockFn(),
+        };
+        const getState = mockFn().mockReturnValue(viewState);
+        const { result, unmount } = renderHook(() => useDataView({ foo: 1 }, 'foo', 'asc'), {
+            wrapper: ({ children }) => (
+                <ViewStateProvider value={{ getState }}>{children}</ViewStateProvider>
+            )
+        });
+        verifyCalls(getState, [[_, '__dataView']]);
+        expect(viewState.get).toBeCalledTimes(1);
+        expect(result.current).toEqual(expect.objectContaining(initProps));
+        unmount();
+    });
+
+    it('should initialize with persisted properties using specified key', () => {
+        const initProps = {
+            filters: { foo: 2 },
+            pageIndex: 1,
+            pageSize: 20,
+            sortBy: 'bar',
+            sortOrder: 'desc'
+        };
+        const viewState = {
+            get: mockFn().mockReturnValue(initProps),
+            set: mockFn(),
+        };
+        const getState = mockFn().mockReturnValue(viewState);
+        const { result, unmount } = renderHook(() => useDataView('persisted', { foo: 1 }, 'foo', 'asc'), {
+            wrapper: ({ children }) => (
+                <ViewStateProvider value={{ getState }}>{children}</ViewStateProvider>
+            )
+        });
+        verifyCalls(getState, [[_, 'persisted']]);
+        expect(viewState.get).toBeCalledTimes(1);
+        expect(result.current).toEqual(expect.objectContaining(initProps));
+        unmount();
+    });
+
+    it('should persist current and populate new properties in onPopState event', () => {
+        const viewState = {
+            get: mockFn(),
+            set: mockFn(),
+            onPopState: mockFn(),
+        };
+        const { result, unmount } = renderHook(() => useDataView({ foo: 1 }, 'foo', 'asc'), {
+            wrapper: ({ children }) => (
+                <ViewStateProvider value={{ getState: () => viewState }}>{children}</ViewStateProvider>
+            )
+        });
+        expect(viewState.onPopState).toBeCalledTimes(1);
+
+        const callback = viewState.onPopState.mock.calls[0][0];
+        expect(callback).toBeInstanceOf(Function);
+
+        const initProps = {
+            filters: { foo: 1 },
+            pageIndex: 0,
+            pageSize: DataView.pageSize,
+            sortBy: 'foo',
+            sortOrder: 'asc'
+        };
+        const newProps = {
+            filters: { foo: 2 },
+            pageIndex: 1,
+            pageSize: 20,
+            sortBy: 'bar',
+            sortOrder: 'desc'
+        };
+        callback(newProps);
+        expect(result.current).toEqual(expect.objectContaining(newProps));
+        verifyCalls(viewState.set, [[expect.objectContaining(initProps)]]);
+
+        viewState.set.mockClear();
+        callback();
+        expect(result.current).toEqual(expect.objectContaining(initProps));
+        verifyCalls(viewState.set, [[expect.objectContaining(newProps)]]);
         unmount();
     });
 });
@@ -322,6 +416,73 @@ describe('DataView#sort', () => {
         });
         await waitForNextUpdate();
         expect(result.current.getView(items, v => result.current.sort(v))[0]).toEqual([items[2], items[1], items[3], items[0]]);
+        unmount();
+    });
+
+    it('should maintain current order if sortBy is empty', async () => {
+        const { result, unmount } = renderHook(() => useDataView({}, '', 'asc'));
+        expect(result.current.sort(items(4, 3, 2, 1))).toEqual(items(4, 3, 2, 1));
+        unmount();
+    });
+
+    it('should sort undefined and null values first', () => {
+        const { result, unmount } = renderHook(() => useDataView({}, 'foo', 'asc'));
+        expect(result.current.sort(items(1, 2, undefined, null, 0))).toEqual(items(undefined, null, 0, 1, 2));
+        unmount();
+    });
+
+    it('should sort string values case-insensitively', () => {
+        const { result, unmount } = renderHook(() => useDataView({}, 'foo', 'asc'));
+        expect(result.current.sort(items('aaa', 'Aaa', 'aAa'))).toEqual(items('Aaa', 'aAa', 'aaa'));
+        unmount();
+    });
+});
+
+describe('DataView#reset', () => {
+    it('should reset properties to default values', () => {
+        const { result, unmount } = renderHook(() => useDataView({ foo: 1 }, 'foo', 'asc'));
+        Object.assign(result.current, {
+            filters: { foo: 2 },
+            pageIndex: 1,
+            pageSize: 20,
+            sortBy: 'bar',
+            sortOrder: 'desc'
+        });
+        result.current.reset();
+        expect(result.current).toEqual(expect.objectContaining({
+            filters: { foo: 1 },
+            pageIndex: 0,
+            pageSize: DataView.pageSize,
+            sortBy: 'foo',
+            sortOrder: 'asc'
+        }));
+        unmount();
+    });
+
+    it('should reset properties to default values, not initial values', () => {
+        const viewState = {
+            get: mockFn().mockReturnValue({
+                filters: { foo: 2 },
+                pageIndex: 1,
+                pageSize: 20,
+                sortBy: 'bar',
+                sortOrder: 'desc'
+            }),
+            set: mockFn()
+        };
+        const { result, unmount } = renderHook(() => useDataView({ foo: 1 }, 'foo', 'asc'), {
+            wrapper: ({ children }) => (
+                <ViewStateProvider value={{ getState: () => viewState }}>{children}</ViewStateProvider>
+            )
+        });
+        result.current.reset();
+        expect(result.current).toEqual(expect.objectContaining({
+            filters: { foo: 1 },
+            pageIndex: 0,
+            pageSize: DataView.pageSize,
+            sortBy: 'foo',
+            sortOrder: 'asc'
+        }));
         unmount();
     });
 });
