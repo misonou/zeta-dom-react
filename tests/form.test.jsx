@@ -2,8 +2,8 @@ import React, { createRef, useEffect, useRef, useState } from "react";
 import { act as renderAct, render } from "@testing-library/react";
 import { act, renderHook } from '@testing-library/react-hooks'
 import { ViewStateProvider } from "src/viewState";
-import { ChoiceField, combineValidators, Form, FormContext, FormContextProvider, MultiChoiceField, TextField, ToggleField, useFormContext, useFormField } from "src/form";
-import { delay, mockFn, verifyCalls } from "@misonou/test-utils";
+import { ChoiceField, combineValidators, Form, FormArray, FormContext, FormContextProvider, FormObject, MultiChoiceField, TextField, ToggleField, useFormContext, useFormField } from "src/form";
+import { delay, mockFn, verifyCalls, _ } from "@misonou/test-utils";
 import dom from "zeta-dom/dom";
 import { cancelLock, locked } from "zeta-dom/domLock";
 import { catchAsync, combineFn, setImmediate } from "zeta-dom/util";
@@ -62,6 +62,68 @@ describe('useFormContext', () => {
             form.data.foo = 'baz';
         });
         await findByText('baz');
+    });
+
+    it('should cause re-render when data in nested object has changed', async () => {
+        const renderForm = createFormComponent((form) => (
+            <div>{form.data.foo.inner}</div>
+        ));
+        const { form, getByText, findByText } = renderForm({ foo: { inner: 'bar' } });
+        getByText('bar');
+
+        await renderAct(async () => {
+            form.data.foo.inner = 'baz';
+        });
+        await findByText('baz');
+    });
+
+    it('should cause re-render when array item is added', async () => {
+        const renderForm = createFormComponent((form) => (
+            <div>{form.data.foo.length}</div>
+        ));
+        const { form, getByText, findByText } = renderForm({ foo: [1, 2, 3] });
+        getByText('3');
+
+        await renderAct(async () => {
+            form.data.foo.push(4);
+        });
+        await findByText('4');
+
+        await renderAct(async () => {
+            form.data.foo[4] = 5;
+        });
+        await findByText('5');
+    });
+
+    it('should cause re-render when array item is removed', async () => {
+        const renderForm = createFormComponent((form) => (
+            <div>{form.data.foo.length}</div>
+        ));
+        const { form, getByText, findByText } = renderForm({ foo: [1, 2, 3] });
+        getByText('3');
+
+        await renderAct(async () => {
+            form.data.foo.splice(2, 1);
+        });
+        await findByText('2');
+
+        await renderAct(async () => {
+            form.data.foo.length = 1;
+        });
+        await findByText('1');
+    });
+
+    it('should cause re-render when array item is re-ordered', async () => {
+        const renderForm = createFormComponent((form) => (
+            <div data-testid="text">{form.data.foo.join(',')}</div>
+        ));
+        const { form, getByText, findByText } = renderForm({ foo: [3, 2, 1] });
+        getByText('3,2,1');
+
+        await renderAct(async () => {
+            form.data.foo.sort();
+        });
+        await findByText('1,2,3');
     });
 
     it('should cause re-render when isValid state has changed', async () => {
@@ -222,6 +284,19 @@ describe('useFormField', () => {
         expect(result.current.value).toBe('bar');
     });
 
+    it('should set initial value from form context for named field in nested object', () => {
+        const { form, unmount } = createFormContext({ obj: { foo: 'bar' } });
+        const { result } = renderHook(() => useFormField({ name: 'foo' }, ''), {
+            wrapper: ({ children }) => (
+                <FormContextProvider value={form}>
+                    <FormObject name="obj">{children}</FormObject>
+                </FormContextProvider>
+            )
+        });
+        expect(result.current.value).toBe('bar');
+        unmount();
+    });
+
     it('should set initial error to empty string', () => {
         const { result } = renderHook(() => useFormField({}, ''));
         expect(result.current.error).toBe('');
@@ -262,6 +337,23 @@ describe('useFormField', () => {
         expect(result.current.value).toBe('bar');
     });
 
+    it('should update value when value in form.data changed for nested field when parent object is reassigned', async () => {
+        const { form, unmount } = createFormContext();
+        const { result } = renderHook(() => useFormField({ name: 'foo' }, ''), {
+            wrapper: ({ children }) => (
+                <FormContextProvider value={form}>
+                    <FormObject name="obj">{children}</FormObject>
+                </FormContextProvider>
+            )
+        });
+
+        await act(async () => {
+            form.data.obj = { foo: 'bar' };
+        });
+        expect(result.current.value).toBe('bar');
+        unmount();
+    });
+
     it('should reset to initial value when value in form.data is deleted for named field', async () => {
         const { form, wrapper } = createFormContext();
         const { result } = renderHook(() => useFormField({ name: 'foo' }, ''), { wrapper });
@@ -272,6 +364,49 @@ describe('useFormField', () => {
         });
         expect(result.current.value).toBe('');
         expect(form.data.foo).toBe('');
+    });
+
+    it('should reset to initial value when value in nested data object is deleted for named field', async () => {
+        const { form, unmount } = createFormContext();
+        const { result, rerender } = renderHook(() => useFormField({ name: 'foo' }, ''), {
+            wrapper: ({ children }) => (
+                <FormContextProvider value={form}>
+                    <FormObject name="obj">{children}</FormObject>
+                </FormContextProvider>
+            )
+        });
+
+        await act(async () => {
+            form.data.obj.foo = 'bar';
+        });
+        expect(result.current.value).toBe('bar');
+
+        await act(async () => {
+            delete form.data.obj;
+        });
+        rerender();
+        expect(result.current.value).toBe('');
+        expect(form.data.obj).toEqual({ foo: '' });
+        unmount();
+    });
+
+    it('should reset to current value when value in nested data object is deleted for named controlled field', async () => {
+        const { form, unmount } = createFormContext();
+        const { result, rerender } = renderHook(() => useFormField({ name: 'foo', value: 'bar' }, ''), {
+            wrapper: ({ children }) => (
+                <FormContextProvider value={form}>
+                    <FormObject name="obj">{children}</FormObject>
+                </FormContextProvider>
+            )
+        });
+
+        await act(async () => {
+            delete form.data.obj;
+        });
+        rerender();
+        expect(result.current.value).toBe('bar');
+        expect(form.data.obj).toEqual({ foo: 'bar' });
+        unmount();
     });
 
     it('should reset error state when it associates to another data path', async () => {
@@ -324,6 +459,39 @@ describe('useFormField', () => {
         verifyCalls(cb, [['foo']]);
     });
 
+    it('should call onChange callback when child property is updated', async () => {
+        const cb = mockFn();
+        const { form, wrapper, unmount } = createFormContext({ foo: { inner: 1 } });
+        const { result } = renderHook(() => useFormField({ name: 'foo', onChange: cb }, ''), { wrapper });
+        await act(async () => {
+            form.data.foo.inner = 2;
+        });
+        verifyCalls(cb, [[form.data.foo]]);
+        unmount();
+    });
+
+    it('should call onChange callback when child property is deleted', async () => {
+        const cb = mockFn();
+        const { form, wrapper, unmount } = createFormContext({ foo: { inner: 1 } });
+        const { result } = renderHook(() => useFormField({ name: 'foo', onChange: cb }, ''), { wrapper });
+        await act(async () => {
+            delete form.data.foo.inner;
+        });
+        verifyCalls(cb, [[form.data.foo]]);
+        unmount();
+    });
+
+    it('should call onChange callback exactly once when child properties are updated by a single assignment', async () => {
+        const cb = mockFn();
+        const { form, wrapper, unmount } = createFormContext({ foo: { inner1: 1, inner2: 1 } });
+        const { result } = renderHook(() => useFormField({ name: 'foo', onChange: cb }, ''), { wrapper });
+        await act(async () => {
+            form.data.foo = { inner1: 2 };
+        });
+        verifyCalls(cb, [[form.data.foo]]);
+        unmount();
+    });
+
     it('should not overwrite changes through data object', async () => {
         const { form, wrapper, unmount } = createFormContext();
         const { result } = renderHook(() => useFormField({ name: 'foo' }, ''), { wrapper });
@@ -358,6 +526,14 @@ describe('useFormField', () => {
         const { asFragment } = render(<Component />);
         await renderAct(async () => cb());
         expect(asFragment()).toMatchSnapshot();
+    });
+
+    it('should not replace value when field is bound to a data object', async () => {
+        const { form, wrapper, unmount } = createFormContext({ foo: { inner: 1 } });
+        const { result } = renderHook(() => useFormField({ name: 'foo' }, ''), { wrapper });
+        await act(async () => result.current.setValue({ inner: 2 }));
+        expect(result.current.value).toBe(form.data.foo);
+        unmount();
     });
 
     it('should consider empty when value is undefined', async () => {
@@ -472,6 +648,29 @@ describe('useFormField', () => {
         rerender({ name: 'bar' });
         expect(result.current.value).toBe('bar');
         expect(form.data).toEqual({ foo: 'foo', bar: 'bar' });
+        unmount();
+    });
+
+    it('should return same key for field associated with same object in data array', async () => {
+        const { form, unmount } = createFormContext({ foo: [{ id: 2 }, { id: 1 }] });
+        const { result, rerender } = renderHook(() => useFormField({ name: 'id' }, 0), {
+            wrapper: ({ children }) => (
+                <FormContextProvider value={form}>
+                    <FormArray name="foo">
+                        {arr => arr.filter(v => v.id === 2).map((v) => (
+                            <FormObject key={FormObject.keyFor(v)} value={v}>{children}</FormObject>
+                        ))}
+                    </FormArray>
+                </FormContextProvider>
+            )
+        });
+        const key = result.current.key;
+        expect(result.current.path).toBe('foo.0.id');
+
+        form.data.foo.sort((a, b) => a.id - b.id);
+        rerender();
+        expect(result.current.key).toBe(key);
+        expect(result.current.path).toBe('foo.1.id');
         unmount();
     });
 });
@@ -718,6 +917,18 @@ describe('FormContext', () => {
         unmount();
     });
 
+    it('should fire dataChange event when property on nested object is added manually', async () => {
+        const { form, unmount } = createFormContext({ foo: {} });
+        const cb = mockFn();
+        form.on('dataChange', cb);
+        await act(async () => {
+            form.data.foo.bar = 'bar';
+        });
+        expect(cb).toBeCalledTimes(1);
+        expect(cb.mock.calls[0][0].data).toEqual(['foo.bar', 'foo']);
+        unmount();
+    });
+
     it('should fire dataChange event with unique field keys', async () => {
         const { form, wrapper, unmount } = createFormContext();
         const { result } = renderHook(() => useFormField({ name: 'foo' }, 'foo'), { wrapper });
@@ -755,6 +966,48 @@ describe('FormContext', () => {
         expect(form.data).toHaveProperty('foo');
         expect(cb).toBeCalledTimes(1);
         expect(cb.mock.calls[0][0].data).toEqual(['foo']);
+        unmount();
+    });
+
+    it('should update correctly when assigning object', async () => {
+        const dataChange = mockFn();
+        const { form, unmount } = createFormContext({ obj: { foo: 1, bar: 2 } });
+        form.on('dataChange', dataChange);
+
+        const obj = form.data.obj;
+        await act(async () => {
+            form.data.obj = { foo: 0, baz: 3 };
+        });
+        expect(form.data.obj).toBe(obj);
+        expect(form.data.obj).toEqual({ foo: 0, baz: 3 });
+        verifyCalls(dataChange, [[expect.objectContaining({ data: ['obj.foo', 'obj.bar', 'obj.baz', 'obj'] }), _]]);
+        unmount();
+    });
+
+    it('should update correctly when assigning array', async () => {
+        const dataChange = mockFn();
+        const { form, unmount } = createFormContext({ arr: [2, 1, 0] });
+        form.on('dataChange', dataChange);
+
+        const arr = form.data.arr;
+        await act(async () => {
+            form.data.arr = [0, 1, 2, 3];
+        });
+        expect(form.data.arr).toBe(arr);
+        expect(form.data.arr).toEqual([0, 1, 2, 3]);
+        verifyCalls(dataChange, [[expect.objectContaining({ data: ['arr.0', 'arr.2', 'arr.3', 'arr'] }), _]]);
+        unmount();
+    });
+
+    it('should throw when assigning proxy object to form data', async () => {
+        const { form, unmount } = createFormContext({ foo: {} });
+        expect(() => {
+            form.data.bar = form.data.foo;
+        }).toThrow();
+        expect(() => {
+            form.data.foo = form.data.foo;
+            form.data.foo = {};
+        }).not.toThrow();
         unmount();
     });
 
@@ -801,6 +1054,71 @@ describe('FormContext', () => {
         unmount();
         await delay();
         expect(dataChange).not.toBeCalled();
+    });
+
+    it('should not include Array.length in dataChange event', async () => {
+        const { form, unmount } = createFormContext({ foo: [1, 2, 3] });
+        const cb = mockFn();
+        form.on('dataChange', cb);
+
+        await act(async () => {
+            form.data.foo.length = 1;
+        });
+        expect(cb).toBeCalledTimes(1);
+        expect(cb.mock.calls[0][0].data).not.toContain(['foo.length']);
+        unmount();
+    });
+
+    it('should not fire dataChange event when updating detached data object', async () => {
+        const renderForm = createFormComponent(() => (
+            <FormObject name="obj">
+                <FormObject name="inner">
+                    <Field name="foo" />
+                </FormObject>
+            </FormObject>
+        ));
+        const { unmount, form, dataChange } = renderForm();
+        const obj1 = form.data.obj;
+        expect(obj1).toEqual({ inner: { foo: '' } });
+
+        renderAct(() => form.reset());
+        expect(form.data.obj).not.toBe(obj1);
+
+        await renderAct(async () => {
+            obj1.inner.foo = 'bar';
+        });
+        expect(dataChange).not.toBeCalled();
+
+        const obj2 = form.data.obj;
+        await renderAct(async () => {
+            delete form.data.obj;
+            obj2.inner.foo = 'bar';
+        });
+        expect(dataChange).toBeCalledTimes(1);
+        expect(dataChange.mock.calls[0][0].data).toEqual(['obj']);
+        unmount();
+    });
+
+    it('should not cause field state to change when updating detached data object', async () => {
+        const onChange = mockFn();
+        const { form, unmount } = createFormContext();
+        const { result } = renderHook(() => useFormField({ name: 'foo', onChange }, ''), {
+            wrapper: ({ children }) => (
+                <FormContextProvider value={form}>
+                    <FormObject name="obj">{children}</FormObject>
+                </FormContextProvider>
+            )
+        });
+        const obj1 = form.data.obj;
+        act(() => form.reset());
+        expect(form.data.obj).not.toBe(obj1);
+
+        await act(async () => {
+            obj1.foo = 'bar';
+        });
+        expect(result.current.value).toBe('');
+        expect(onChange).not.toBeCalled();
+        unmount();
     });
 
     it('should fire beforeLeave event when unlocking form element', async () => {
@@ -979,6 +1297,59 @@ describe('FormContext#focus', () => {
     });
 });
 
+describe('FormContext#getValue', () => {
+    it('should get value by dot-separated path or path array', () => {
+        const { form, unmount } = createFormContext({ obj: { foo: 1 } });
+        expect(form.getValue('obj.foo')).toBe(1);
+        expect(form.getValue(['obj', 'foo'])).toBe(1);
+        expect(form.getValue('bar')).toBeUndefined();
+        expect(form.getValue(['obj', 'baz'])).toBeUndefined();
+        unmount();
+    });
+
+    it('should deeply clone nested data object', () => {
+        const { form, unmount } = createFormContext({ obj: { foo: 1, bar: {}, baz: [1, 2, 3] } });
+        const obj = form.getValue('obj');
+        expect(obj).toEqual({ foo: 1, bar: {}, baz: [1, 2, 3] });
+        expect(obj).not.toBe(form.data.obj);
+        expect(obj.bar).not.toBe(form.data.obj.bar);
+        expect(obj.baz).not.toBe(form.data.obj.baz);
+
+        const baz = form.getValue('obj.baz');
+        expect(baz).toEqual([1, 2, 3]);
+        expect(baz).not.toBe(form.data.obj.baz);
+        unmount();
+    });
+});
+
+describe('FormContext#setValue', () => {
+    it('should set value by dot-separated path or path array', () => {
+        const { form, unmount } = createFormContext({ obj: { foo: 1 } });
+        form.setValue('obj.foo', 2);
+        expect(form.data.obj.foo).toBe(2);
+        form.setValue(['obj', 'baz'], 3);
+        expect(form.data.obj.baz).toBe(3);
+        form.setValue('bar', null);
+        expect(form.data.bar).toBe(null);
+        unmount();
+    });
+
+    it('should deeply clone data object before assigning', () => {
+        const { form, unmount } = createFormContext({ obj: { foo: 1, bar: {}, baz: [1, 2, 3] } });
+        form.setValue('obj2', form.data.obj);
+        expect(form.data.obj2).toEqual({ foo: 1, bar: {}, baz: [1, 2, 3] });
+        expect(form.data.obj2).not.toBe(form.data.obj);
+        expect(form.data.obj2.bar).not.toBe(form.data.obj.bar);
+        expect(form.data.obj2.baz).not.toBe(form.data.obj.baz);
+
+        const baz = [4, 5, 6];
+        form.setValue('obj.baz', baz);
+        expect(form.data.obj.baz).toEqual([4, 5, 6]);
+        expect(form.data.obj.baz).not.toBe(baz);
+        unmount();
+    });
+});
+
 describe('FormContext#getError', () => {
     it('should return empty string when no error', () => {
         const renderForm = createFormComponent(() => (
@@ -1049,6 +1420,28 @@ describe('FormContext#validate', () => {
 
         await act(async () => void await form.validate('foo'));
         verifyCalls(cb, [['foo_value', 'foo', form]]);
+        unmount();
+    });
+
+    it('should trigger validation of nested field under specified path from form context', async () => {
+        const cb = mockFn();
+        const { form, unmount } = createFormContext();
+        renderHook(() => [
+            useFormField({ name: 'foo', onValidate: cb }, 'foo_value'),
+            useFormField({ name: 'bar', onValidate: cb }, 'bar_value'),
+        ], {
+            wrapper: ({ children }) => (
+                <FormContextProvider value={form}>
+                    <FormObject name="inner">{children}</FormObject>
+                </FormContextProvider>
+            )
+        });
+
+        await act(async () => void await form.validate('inner'));
+        verifyCalls(cb, [
+            ['foo_value', 'inner.foo', form],
+            ['bar_value', 'inner.bar', form],
+        ]);
         unmount();
     });
 
@@ -1339,6 +1732,27 @@ describe('FormContext#reset', () => {
         unmount();
     });
 
+    it('should call onChange callback with initial value for controlled field in nested object', async () => {
+        let value = 'foo';
+        const onChange = mockFn(v => (value = v));
+        const { form, unmount } = createFormContext();
+        const { rerender } = renderHook(() => useFormField({ name: 'foo', value, onChange }, ''), {
+            wrapper: ({ children }) => (
+                <FormContextProvider value={form}>
+                    <FormObject name="obj">{children}</FormObject>
+                </FormContextProvider>
+            )
+        });
+
+        value = 'bar';
+        rerender();
+        onChange.mockClear();
+
+        act(() => form.reset());
+        verifyCalls(onChange, [['foo']]);
+        unmount();
+    });
+
     it('should call onChange callback with current value for controlled field if property exists', () => {
         let value = 'foo';
         const onChange = mockFn(v => (value = v));
@@ -1480,6 +1894,74 @@ describe('Form component', () => {
             form.data.foo = 'bar';
         });
         expect(locked(formElement)).toBe(false);
+        unmount();
+    });
+});
+
+describe('FormObject component', () => {
+    it('should create child data object if the named property not exists', async () => {
+        const renderForm = createFormComponent(() => (
+            <FormObject name="foo" />
+        ));
+        const { unmount, form } = renderForm();
+        expect(form.data).toEqual({ foo: {} });
+        unmount();
+    });
+
+    it('should create child data object if the named property is not a data object', async () => {
+        const renderForm = createFormComponent(() => (
+            <FormObject name="foo" />
+        ));
+        const { unmount, form } = renderForm({ foo: '' });
+        expect(form.data).toEqual({ foo: {} });
+        unmount();
+    });
+
+    it('should throw if there is no parent form context', async () => {
+        expect(function () {
+            render(<FormObject name="foo" />);
+        }).toThrow();
+    });
+
+    it('should throw if value is not a data object', async () => {
+        const { form, unmount } = createFormContext();
+        expect(function () {
+            render(<FormContextProvider value={form}><FormObject value={{}} /></FormContextProvider>);
+        }).toThrow();
+        unmount();
+    });
+});
+
+describe('FormArray component', () => {
+    it('should create child data array if the named property not exists', async () => {
+        const renderForm = createFormComponent(() => (
+            <FormArray name="foo" />
+        ));
+        const { unmount, form } = renderForm();
+        expect(form.data).toEqual({ foo: [] });
+        unmount();
+    });
+
+    it('should create child data array if the named property is not a data object', async () => {
+        const renderForm = createFormComponent(() => (
+            <FormArray name="foo" />
+        ));
+        const { unmount, form } = renderForm({ foo: '' });
+        expect(form.data).toEqual({ foo: [] });
+        unmount();
+    });
+
+    it('should throw if there is no parent form context', async () => {
+        expect(function () {
+            render(<FormArray name="foo" />);
+        }).toThrow();
+    });
+
+    it('should throw if value is not a data object', async () => {
+        const { form, unmount } = createFormContext();
+        expect(function () {
+            render(<FormContextProvider value={form}><FormArray value={{}} /></FormContextProvider>);
+        }).toThrow();
         unmount();
     });
 });

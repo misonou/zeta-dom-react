@@ -5,7 +5,7 @@ export type ValidateResult = null | undefined | string | Stringifiable | ((props
 export type ValidateCallback<T = any> = (value: T, name: string, form: FormContext) => ValidateResult | Promise<ValidateResult>;
 
 type WithFallback<T, U> = [T] extends [never] ? U : T;
-type FieldValueType<T> = T extends FormFieldProps<any, infer V> ? V : any;
+type FieldValueType<T> = T extends FormFieldProps<any, infer V> ? V extends any[] ? V : Partial<V> : any;
 type FieldStateType<K, T> = WithFallback<{
     [P in keyof Zeta.ReactFieldTypeMap]: Zeta.ReactFieldTypeMap[P] extends Zeta.ReactFieldType<K, T> ? ReturnType<Zeta.ReactFieldTypeMap<T>[P]> : never;
 }[keyof Zeta.ReactFieldTypeMap],
@@ -17,6 +17,57 @@ export interface Stringifiable {
     toString(): string;
     [Symbol.toPrimitive](): string;
 }
+
+interface FormObjectHelper {
+    /**
+     * Returns a unique key for the form data object.
+     * The returned value can be used as the key for React nodes genereated from array items.
+     * @param obj A data object.
+     *
+     * @example
+     * ```jsx
+     * <FormArray name="children">
+     *   {arr => arr.map(v => (
+     *     <FormObject key={FormObject.keyFor(v)} value={v}>{...}</FormObject>)
+     *   )}
+     * </FormArray>
+     * ```
+     */
+    keyFor(obj: object): string | undefined;
+}
+
+export type FormObjectProps<V> = {
+    /**
+     * Specifies the name of property of which the data object is accessible in parent data object.
+     */
+    name: string;
+    children?: React.ReactNode | ((data: WithFallback<V, any>) => React.ReactNode);
+} | {
+    /**
+     * Specifies the data item contained in parent data array.
+     */
+    value: V;
+    children?: React.ReactNode | ((data: WithFallback<V, any>) => React.ReactNode);
+};
+
+/**
+ * Represents a nested data object.
+ */
+export const FormObject: React.FC<FormObjectProps<any>> & FormObjectHelper;
+
+/**
+ * Represents a nested data array.
+ *
+ * @example
+ * ```jsx
+ * <FormArray name="children">
+ *   {arr => arr.map(v => (
+ *     <FormObject key={FormObject.keyFor(v)} value={v}>{...}</FormObject>)
+ *   )}
+ * </FormArray>
+ * ```
+ */
+export const FormArray: React.FC<FormObjectProps<any[]>>;
 
 /**
  * Represent internal working of a custom field type.
@@ -139,6 +190,16 @@ export interface FormFieldState<T = any> {
      */
     readonly form: FormContext | undefined;
     /**
+     * Gets a unique key identifying the field.
+     * If there is no parent form context, an empty string will be returned.
+     */
+    readonly key: string;
+    /**
+     * Gets the current data path to the associated value on the data object.
+     * If there is no parent form context, an empty string will be returned.
+     */
+    readonly path: string;
+    /**
      * Gets current field value.
      */
     readonly value: T;
@@ -239,16 +300,16 @@ export class FormContext<T extends object = Zeta.Dictionary<any>> {
     /**
      * Gets the input element for the specified field.
      * This method only works when {@link FormFieldState.elementRef} is passed to HTML elements.
-     * @param name Name of the field.
+     * @param path A string containing dot-separated property names or an array containing property names.
      */
-    element(name: keyof T): HTMLElement | undefined;
+    element(path: string | string[]): HTMLElement | undefined;
 
     /**
      * Focus the input element for the specified field.
      * This method only works when {@link FormFieldState.elementRef} is passed to HTML elements.
-     * @param name Name of the field.
+     * @param path A string containing dot-separated property names or an array containing property names.
      */
-    focus(name: keyof T): void;
+    focus(path: string | string[]): void;
 
     /**
      * Registers event handlers.
@@ -277,19 +338,32 @@ export class FormContext<T extends object = Zeta.Dictionary<any>> {
     reset(): void;
 
     /**
+     * Gets the value accessible by the specified path.
+     * @param path A string containing dot-separated property names or an array containing property names.
+     */
+    getValue(path: string | string[]): any;
+
+    /**
+     * Sets the value to the specified path.
+     * @param path A string containing dot-separated property names or an array containing property names.
+     * @param value Any value.
+     */
+    setValue(path: string | string[], value: any): void;
+
+    /**
      * Gets validation error for a specific field.
      * If there is no error, an empty string is returned.
-     * @param name Name of the field.
+     * @param path A string containing dot-separated property names or an array containing property names.
      */
-    getError(name: keyof T): string;
+    getError(path: string | string[]): string;
 
     /**
      * Updates validation error for a specific field.
      * The error will be cleared when validation is called, or when field value is modified when `validateOnChange` is `true`.
-     * @param name Name of the field.
+     * @param path A string containing dot-separated property names or an array containing property names.
      * @param error A non-empty string or stringifiable object indicating error; or a falsy value to clear previous error.
      */
-    setError(name: keyof T, error: ValidateResult): void;
+    setError(path: string | string[], error: ValidateResult): void;
 
     /**
      * Validates all fields.
