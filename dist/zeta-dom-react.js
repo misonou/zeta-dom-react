@@ -860,7 +860,7 @@ function createDataObject(context, initialData) {
 
   var proxy = new Proxy(target, {
     set: function set(t, p, v) {
-      if (typeof p === 'string' && t[p] !== v) {
+      if (typeof p === 'string' && (t[p] !== v || !(p in t))) {
         onChange(p);
         t[p] = v;
         (state.fields[p] || {}).value = v;
@@ -869,11 +869,7 @@ function createDataObject(context, initialData) {
       return true;
     },
     deleteProperty: function deleteProperty(t, p) {
-      var field = state.fields[p];
-
-      if (field) {
-        proxy[p] = field.initialValue;
-      } else if (p in t) {
+      if (p in t) {
         onChange(p);
         delete t[p];
       }
@@ -1003,15 +999,23 @@ definePrototype(FormContext, {
       delete dict[i];
     }
 
+    extend(dict, data || state.initialData);
     each(state.fields, function (i, v) {
-      dict[i] = v.initialValue;
-      v.value = v.initialValue;
+      if (i in dict) {
+        v.value = dict[i];
+      } else if (v.controlled) {
+        dict[i] = v.initialValue;
+        v.value = v.initialValue;
+      }
+
       v.error = null;
     });
-    extend(dict, data || state.initialData);
     state.setValid();
     (state.unlock || noop)();
     form_emitter.emit('reset', self);
+  },
+  getError: function getError(key) {
+    return String((form_(this).fields[key] || '').error || '');
   },
   setError: function setError(key, error) {
     (form_(this).fields[key] || {}).error = error;
@@ -1167,6 +1171,7 @@ function useFormField(type, props, defaultValue, prop) {
     form: form,
     preset: preset,
     props: props,
+    controlled: controlled,
     dict: dict,
     name: key
   });
@@ -1187,7 +1192,8 @@ function useFormField(type, props, defaultValue, prop) {
     }
 
     if (!(key in dict)) {
-      form_(dict)[key] = field.value;
+      form_(dict)[key] = field.initialValue;
+      field.value = dict[key];
     } else if (!controlled && key !== prevKey) {
       field.value = dict[key];
     }
