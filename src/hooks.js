@@ -84,6 +84,7 @@ export function useAsync(init, deps) {
     deps = [deps !== false].concat(isArray(deps) || []);
     init = useMemoizedFunction(init);
     useEffect(function () {
+        state.disposed = false;
         return function () {
             state.disposed = true;
         };
