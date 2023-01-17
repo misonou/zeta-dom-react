@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { act, renderHook } from "@testing-library/react-hooks";
 import { partial } from "../src/util";
-import { mockFn, verifyCalls } from "./testUtil";
+import { mockFn, verifyCalls } from "@misonou/test-utils";
 
 const partialInitialState = {
     prop1: 'true',

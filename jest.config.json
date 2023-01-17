@@ -1,5 +1,9 @@
 {
     "testEnvironment": "jsdom",
+    "setupFilesAfterEnv": [
+        "@misonou/test-utils/mock/matchMedia",
+        "@misonou/test-utils/mock/scrollBy"
+    ],
     "modulePathIgnorePatterns": [
         "<rootDir>/build/"
     ],
@@ -7,10 +11,13 @@
         "^src/(.*)$": "<rootDir>/src/$1",
         "^zeta-dom/(.*)$": "<rootDir>/../zeta-dom/src/$1"
     },
-    "extensionsToTreatAsEsm": [".jsx"],
+    "extensionsToTreatAsEsm": [
+        ".jsx"
+    ],
+    "clearMocks": true,
     "collectCoverageFrom": [
         "src/**/*.js",
-        "!src/index.js",
+        "!src/{index,entry}.js",
         "!src/include/**/*"
     ]
 }

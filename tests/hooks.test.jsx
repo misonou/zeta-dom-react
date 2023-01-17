@@ -5,7 +5,7 @@ import { catchAsync, errorWithCode, watch } from "src/include/zeta-dom/util";
 import dom from "src/include/zeta-dom/dom";
 import { combineRef } from "src/util";
 import { useAsync, useDispose, useErrorHandler, useMemoizedFunction, useObservableProperty, useRefInitCallback } from "src/hooks";
-import { delay, mockFn, verifyCalls, _ } from "./testUtil";
+import { delay, mockFn, verifyCalls, _ } from "@misonou/test-utils";
 
 describe('useMemoizedFunction', () => {
     it('should return the same callback every cycle', () => {

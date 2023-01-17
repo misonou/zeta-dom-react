@@ -2,8 +2,7 @@ import React from "react";
 import { jest } from "@jest/globals";
 import { act, renderHook } from '@testing-library/react-hooks'
 import { DataView, useDataView } from "src/dataView";
-import { mockFn, verifyCalls } from "./testUtil";
-import { async } from "regenerator-runtime";
+import { mockFn, verifyCalls } from "@misonou/test-utils";
 
 const { objectContaining } = expect;
 
