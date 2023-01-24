@@ -45,7 +45,9 @@ export function useAsync(init, deps) {
         var element;
         var currentPromise;
         return {
-            loading: true,
+            loading: false,
+            value: undefined,
+            error: undefined,
             elementRef: function (current) {
                 element = current;
             },

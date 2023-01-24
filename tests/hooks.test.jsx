@@ -75,6 +75,15 @@ describe('useAsync', () => {
         await waitForNextUpdate();
     });
 
+    it('should be initially not in loading state and value is undefined if second argument is false', async () => {
+        const { result } = renderHook(() => useAsync(() => Promise.resolve(true), false));
+        expect(result.current[0]).toBeUndefined();
+        expect(result.current[1]).toMatchObject({
+            loading: false,
+            error: undefined
+        });
+    });
+
     it('should update value and set loading state to false when promise is fulfilled', async () => {
         const obj = {};
         const promise = Promise.resolve(obj);
