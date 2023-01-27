@@ -1930,6 +1930,111 @@ describe('FormObject component', () => {
         }).toThrow();
         unmount();
     });
+
+    it('should not consider empty when data object has no properties', async () => {
+        const renderForm = createFormComponent(() => (
+            <FormObject name="foo" required={true} />
+        ));
+        const { unmount, form } = renderForm();
+        expect(form.isValid).toBe(true);
+        unmount();
+    });
+
+    it('should call isEmpty callback', async () => {
+        const cb = mockFn().mockReturnValue(true);
+        const renderForm = createFormComponent(() => (
+            <FormObject name="foo" required={true} isEmpty={cb} />
+        ));
+        const { unmount, form } = renderForm();
+        expect(form.isValid).toBe(false);
+        verifyCalls(cb, [
+            [expect.sameObject(form.data.foo)]
+        ]);
+        unmount();
+    });
+
+    it('should call onChange callback when child property changes', async () => {
+        const cb = mockFn();
+        const renderForm = createFormComponent(() => (
+            <FormObject name="foo" onChange={cb} />
+        ));
+        const { unmount, form } = renderForm();
+        await renderAct(async () => {
+            form.data.foo.inner = 'bar';
+        });
+        verifyCalls(cb, [
+            [form.data.foo]
+        ]);
+        unmount();
+    });
+
+    it('should trigger validation when child property changes if validateOnChange is set to true', async () => {
+        const cb = mockFn();
+        const renderForm = createFormComponent(() => (
+            <FormObject name="foo" onValidate={cb} />
+        ));
+        const { unmount, form } = renderForm();
+        expect(form.validateOnChange).toBe(true);
+        await renderAct(async () => {
+            form.data.foo.inner = 'bar';
+        });
+        verifyCalls(cb, [
+            [expect.sameObject(form.data.foo), 'foo', form],
+        ]);
+        unmount();
+    });
+
+    it('should not trigger validation when child property changes if validateOnChange set to false', async () => {
+        const cb = mockFn();
+        const renderForm = createFormComponent(() => (
+            <FormObject name="foo" onValidate={cb} validateOnChange={false} />
+        ));
+        const { unmount, form } = renderForm();
+        expect(form.validateOnChange).toBe(true);
+        await renderAct(async () => {
+            form.data.foo.inner = 'bar';
+        });
+        expect(cb).not.toBeCalled();
+        unmount();
+    });
+
+    it('should delete form data when unmounted if clearWhenUnmount is true', async () => {
+        const renderForm = createFormComponent(() => (
+            <FormObject name="foo" clearWhenUnmount={true} />
+        ));
+        const { unmount, form } = renderForm();
+        expect(form.data).toEqual({ foo: {} });
+        unmount();
+        expect(form.data).toEqual({});
+    });
+
+    it('should ignore field properties if the field is already registered with useFormField', async () => {
+        const isEmpty = mockFn().mockReturnValue(true);
+        const onChange = mockFn();
+        const onValidate = mockFn();
+        const Component = function () {
+            const { value } = useFormField({ name: 'foo' }, {});
+            return (
+                <FormObject value={value} required={true} isEmpty={isEmpty} onChange={onChange} onValidate={onValidate} />
+            );
+        };
+        const renderForm = createFormComponent(() => <Component />);
+        const { unmount, form } = renderForm();
+
+        expect(form.isValid).toBe(true);
+        expect(isEmpty).not.toBeCalled();
+
+        await renderAct(async () => {
+            await form.validate('foo');
+        });
+        expect(onValidate).not.toBeCalled();
+
+        await renderAct(async () => {
+            form.data.foo.inner = 1;
+        });
+        expect(onChange).not.toBeCalled();
+        unmount();
+    });
 });
 
 describe('FormArray component', () => {
@@ -1962,6 +2067,111 @@ describe('FormArray component', () => {
         expect(function () {
             render(<FormContextProvider value={form}><FormArray value={{}} /></FormContextProvider>);
         }).toThrow();
+        unmount();
+    });
+
+    it('should consider empty when data array is empty', async () => {
+        const renderForm = createFormComponent(() => (
+            <FormArray name="foo" required={true} />
+        ));
+        const { unmount, form } = renderForm();
+        expect(form.isValid).toBe(false);
+        unmount();
+    });
+
+    it('should call isEmpty callback', async () => {
+        const cb = mockFn().mockReturnValue(true);
+        const renderForm = createFormComponent(() => (
+            <FormArray name="foo" required={true} isEmpty={cb} />
+        ));
+        const { unmount, form } = renderForm();
+        expect(form.isValid).toBe(false);
+        verifyCalls(cb, [
+            [expect.sameObject(form.data.foo)]
+        ]);
+        unmount();
+    });
+
+    it('should call onChange callback when child property changes', async () => {
+        const cb = mockFn();
+        const renderForm = createFormComponent(() => (
+            <FormArray name="foo" onChange={cb} />
+        ));
+        const { unmount, form } = renderForm();
+        await renderAct(async () => {
+            form.data.foo.inner = 'bar';
+        });
+        verifyCalls(cb, [
+            [form.data.foo]
+        ]);
+        unmount();
+    });
+
+    it('should trigger validation when child property changes if validateOnChange is set to true', async () => {
+        const cb = mockFn();
+        const renderForm = createFormComponent(() => (
+            <FormArray name="foo" onValidate={cb} />
+        ));
+        const { unmount, form } = renderForm();
+        expect(form.validateOnChange).toBe(true);
+        await renderAct(async () => {
+            form.data.foo.inner = 'bar';
+        });
+        verifyCalls(cb, [
+            [expect.sameObject(form.data.foo), 'foo', form],
+        ]);
+        unmount();
+    });
+
+    it('should not trigger validation when child property changes if validateOnChange set to false', async () => {
+        const cb = mockFn();
+        const renderForm = createFormComponent(() => (
+            <FormArray name="foo" onValidate={cb} validateOnChange={false} />
+        ));
+        const { unmount, form } = renderForm();
+        expect(form.validateOnChange).toBe(true);
+        await renderAct(async () => {
+            form.data.foo.inner = 'bar';
+        });
+        expect(cb).not.toBeCalled();
+        unmount();
+    });
+
+    it('should delete form data when unmounted if clearWhenUnmount is true', async () => {
+        const renderForm = createFormComponent(() => (
+            <FormArray name="foo" clearWhenUnmount={true} />
+        ));
+        const { unmount, form } = renderForm();
+        expect(form.data).toEqual({ foo: [] });
+        unmount();
+        expect(form.data).toEqual({});
+    });
+
+    it('should ignore field properties if the field is already registered with useFormField', async () => {
+        const isEmpty = mockFn().mockReturnValue(true);
+        const onChange = mockFn();
+        const onValidate = mockFn();
+        const Component = function () {
+            const { value } = useFormField({ name: 'foo' }, []);
+            return (
+                <FormArray value={value} required={true} isEmpty={isEmpty} onChange={onChange} onValidate={onValidate} />
+            );
+        };
+        const renderForm = createFormComponent(() => <Component />);
+        const { unmount, form } = renderForm();
+
+        expect(form.isValid).toBe(true);
+        expect(isEmpty).not.toBeCalled();
+
+        await renderAct(async () => {
+            await form.validate('foo');
+        });
+        expect(onValidate).not.toBeCalled();
+
+        await renderAct(async () => {
+            form.data.foo.inner = 1;
+        });
+        expect(onChange).not.toBeCalled();
         unmount();
     });
 });

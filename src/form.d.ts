@@ -36,7 +36,7 @@ interface FormObjectHelper {
     keyFor(obj: object): string | undefined;
 }
 
-export type FormObjectProps<V> = {
+export type FormObjectProps<V> = Pick<FormFieldProps, 'clearWhenUnmount' | 'disabled' | 'isEmpty' | 'required' | 'onChange' | 'onValidate' | 'validateOnChange'> & ({
     /**
      * Specifies the name of property of which the data object is accessible in parent data object.
      */
@@ -48,7 +48,7 @@ export type FormObjectProps<V> = {
      */
     value: V;
     children?: React.ReactNode | ((data: WithFallback<V, any>) => React.ReactNode);
-};
+});
 
 /**
  * Represents a nested data object.

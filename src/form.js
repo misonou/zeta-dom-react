@@ -1,4 +1,4 @@
-import { createContext, createElement, forwardRef, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, createElement, forwardRef, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { always, any, combineFn, createPrivateStore, define, defineObservableProperty, definePrototype, each, either, exclude, extend, grep, hasOwnProperty, isArray, isFunction, isPlainObject, isUndefinedOrNull, keys, makeArray, map, mapGet, mapRemove, noop, pick, pipe, randomId, reject, resolve, resolveAll, setImmediateOnce, splice, throws, values, watch } from "./include/zeta-dom/util.js";
 import { ZetaEventContainer } from "./include/zeta-dom/events.js";
 import dom, { focus } from "./include/zeta-dom/dom.js";
@@ -236,6 +236,7 @@ function createFieldState(initialValue) {
         },
         setError: function (v) {
             field.error = isFunction(v) ? v(field.error) : v;
+            (field.form || {}).isValid = null;
         },
         elementRef: function (v) {
             field.element = v;
@@ -270,6 +271,42 @@ function createFieldState(initialValue) {
         }
     });
     return field;
+}
+
+function useFormFieldInternal(form, state, field, preset, props, controlled, dict, key) {
+    var hasErrorProp = 'error' in props;
+    var prevKey = field.key || key;
+    extend(field, { form, props, preset, controlled, dict, key });
+    if (form && key) {
+        field.name = key.slice(9);
+        field.path = getPath(form, dict, field.name);
+        if (prevKey !== key) {
+            field.locks = [];
+            if (!hasErrorProp) {
+                field.error = '';
+            }
+        }
+        state.fields[key] = field;
+    }
+    if (hasErrorProp) {
+        field.error = props.error;
+    }
+    useEffect(function () {
+        return function () {
+            if (state && state.fields[key] === field) {
+                delete state.fields[key];
+                if (field.props.clearWhenUnmount) {
+                    _(dict).delete(key.slice(9));
+                }
+                state.setValid();
+            }
+        };
+    }, [state, field, key]);
+    useEffect(function () {
+        if (state) {
+            state.setValid();
+        }
+    }, [state, field.error, props.disabled, props.required]);
 }
 
 function validateFields(form, fields) {
@@ -482,30 +519,17 @@ export function useFormField(type, props, defaultValue, prop) {
     const state = form && _(form);
     const name = props.name || '';
     const key = form && name && (keyFor(dict) + '.' + name);
-    const path = key && getPath(form, dict, name);
     const controlled = prop in props;
 
     const field = useState(function () {
         var initialValue = controlled ? props[prop] : (preset.normalizeValue || pipe)(form && name in dict ? dict[name] : defaultValue !== undefined ? defaultValue : preset.defaultValue);
         return createFieldState(initialValue);
     })[0];
-    const hasErrorProp = 'error' in props;
-    const prevKey = field.key || key;
-    extend(field, { form, preset, props, controlled, dict, name, key, path });
+    useFormFieldInternal(form, state, field, preset, props, controlled, dict, key);
     if (controlled) {
         field.value = props[prop];
     }
-    if (hasErrorProp) {
-        field.error = props.error;
-    }
     if (form && key) {
-        state.fields[key] = field;
-        if (key !== prevKey) {
-            field.locks = [];
-            if (!hasErrorProp) {
-                field.error = '';
-            }
-        }
         if (!(name in dict)) {
             field.value = _(dict).set(name, field.initialValue);
         } else if (!controlled) {
@@ -514,33 +538,14 @@ export function useFormField(type, props, defaultValue, prop) {
     }
     const state1 = (preset.postHook || pipe)({
         form: form,
-        path: path,
         key: key,
+        path: field.path,
         value: field.value,
         error: String(field.error),
         setValue: field.setValue,
         setError: field.setError,
         elementRef: field.elementRef
     }, props);
-
-    useEffect(function () {
-        return function () {
-            if (state && state.fields[key] === field) {
-                delete state.fields[key];
-                if (field.props.clearWhenUnmount) {
-                    _(field.dict).delete(name);
-                }
-                state.setValid();
-            }
-        };
-    }, [state, key, name]);
-
-    useEffect(function () {
-        if (state) {
-            state.setValid();
-        }
-    }, [state, field.error, props.disabled, props.required]);
-
     state1.value = useObservableProperty(field, 'value');
     state1.error = String(useObservableProperty(field, 'error'));
     return state1;
@@ -599,6 +604,9 @@ export function FormObject(props) {
     if (!_(dict)) {
         throws('Missing form context');
     }
+    var fieldRef = useRef();
+    var form = _(dict).context;
+    var state = _(form);
     var name = props.name;
     var value = props.value;
     if (name) {
@@ -606,6 +614,17 @@ export function FormObject(props) {
         value = _(dict).set(name, value);
     } else if (!(_(value) || '').context) {
         throws('Value must be a data object or array');
+    }
+    // field state registered by useFormField has a higher priority
+    // create own field state only when needed
+    var key = state.paths[keyFor(value)];
+    if (typeof (state.fields[key] || '').controlled !== 'boolean') {
+        var field = fieldRef.current || (fieldRef.current = createFieldState(value));
+        useFormFieldInternal(form, state, field, {}, props, 0, dict, key);
+        field.value = value;
+    } else {
+        useEffect(noop, [null]);
+        useEffect(noop, [null]);
     }
     var children = props.children;
     if (isFunction(children)) {
