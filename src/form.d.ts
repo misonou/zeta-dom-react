@@ -7,7 +7,7 @@ export type ValidateCallback<T = any> = (value: T, name: string, form: FormConte
 type WithFallback<T, U> = [T] extends [never] ? U : T;
 type FieldValueType<T> = T extends FormFieldProps<any, infer V> ? V : any;
 type FieldStateType<K, T> = WithFallback<{
-    [P in keyof Zeta.ReactFieldTypeMap]: Zeta.ReactFieldTypeMap[P] extends Zeta.ReactFieldType<K, any> ? ReturnType<Zeta.ReactFieldTypeMap<T>[P]> : never;
+    [P in keyof Zeta.ReactFieldTypeMap]: Zeta.ReactFieldTypeMap[P] extends Zeta.ReactFieldType<K, T> ? ReturnType<Zeta.ReactFieldTypeMap<T>[P]> : never;
 }[keyof Zeta.ReactFieldTypeMap],
     ReturnType<InstanceType<K>['postHook']>>;
 /** @deprecated */
@@ -318,7 +318,7 @@ export function useFormContext<T extends object = Zeta.Dictionary<any>>(persistK
  */
 export function useFormField<K extends keyof Zeta.ReactFieldTypes, T extends Parameters<Zeta.ReactFieldTypes[K]>[0]>(type: K, props: T, defaultValue: FieldValueType<T>, prop?: keyof T): ReturnType<Zeta.ReactFieldTypes<T>[K]>;
 
-export function useFormField<K extends FieldTypeConstructor, T extends (K extends FieldTypeConstructor<infer T> ? T : any)>(type: K, props: T, defaultValue: FieldValueType<T>): FieldStateType<K, T>;
+export function useFormField<K extends FieldTypeConstructor<any, any>, T extends (K extends FieldTypeConstructor<infer T, any> ? T : any)>(type: K, props: T, defaultValue: FieldValueType<T>): FieldStateType<K, T>;
 
 export function useFormField<T extends FormFieldProps>(props: T, defaultValue: FieldValueType<T>, prop: keyof T = 'value'): FormFieldState<FieldValueType<T>>;
 
