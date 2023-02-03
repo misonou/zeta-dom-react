@@ -43,9 +43,13 @@ function createDataObject(context, initialData) {
     var proxy = new Proxy(target, {
         set: function (t, p, v) {
             if (typeof p === 'string' && (t[p] !== v || !(p in t))) {
+                var field = state.fields[p];
                 onChange(p);
                 t[p] = v;
-                (state.fields[p] || {}).value = v;
+                if (field) {
+                    field.value = v;
+                    (field.props.onChange || noop)(v);
+                }
             }
             return true;
         },
@@ -167,6 +171,7 @@ definePrototype(FormContext, {
             } else if (v.controlled) {
                 dict[i] = v.initialValue;
                 v.value = v.initialValue;
+                (v.props.onChange || noop)(v.value);
             }
             v.error = null;
         });
@@ -287,7 +292,12 @@ export function useFormField(type, props, defaultValue, prop) {
             value: initialValue,
             error: '',
             setValue: function (v) {
-                field.value = isFunction(v) ? v(field.value) : v;
+                v = isFunction(v) ? v(field.value) : v;
+                if (field.controlled) {
+                    (field.props.onChange || noop)(v);
+                } else {
+                    field.value = v;
+                }
             },
             setError: function (v) {
                 field.error = isFunction(v) ? v(field.error) : v;
@@ -302,7 +312,6 @@ export function useFormField(type, props, defaultValue, prop) {
         });
         watch(field, 'value', function (v) {
             (field.dict || {})[field.name] = v;
-            (field.props.onChange || noop)(v);
         });
         watch(field, 'error', function (v) {
             if (field.dict && field.name) {

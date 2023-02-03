@@ -1,0 +1,9 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`useFormField should not discard committed value due to rerender with hooks in controlled field 1`] = `
+<DocumentFragment>
+  <div>
+    foo
+  </div>
+</DocumentFragment>
+`;

@@ -1,4 +1,4 @@
-import React, { createRef, useEffect } from "react";
+import React, { createRef, useEffect, useRef, useState } from "react";
 import { act as renderAct, render } from "@testing-library/react";
 import { act, renderHook } from '@testing-library/react-hooks'
 import { ViewStateProvider } from "src/viewState";
@@ -6,7 +6,7 @@ import { combineValidators, Form, FormContext, FormContextProvider, MultiChoiceF
 import { delay, mockFn, verifyCalls } from "@misonou/test-utils";
 import dom from "zeta-dom/dom";
 import { cancelLock, locked } from "zeta-dom/domLock";
-import { catchAsync, combineFn } from "zeta-dom/util";
+import { catchAsync, combineFn, setImmediate } from "zeta-dom/util";
 
 function createFormContext(initialData, validateOnChange) {
     const { result: { current: form }, unmount } = renderHook(() => useFormContext(initialData, validateOnChange));
@@ -326,6 +326,31 @@ describe('useFormField', () => {
         });
         expect(form.data.foo).toBe('baz');
         unmount();
+    });
+
+    it('should not discard committed value due to rerender with hooks in controlled field', async () => {
+        const cb = mockFn();
+        const Field = function (props) {
+            const { value, setValue } = useFormField(props, '');
+            const [, setState] = useState(false);
+            cb.mockImplementation(() => {
+                setState(true);
+                setValue('foo');
+            });
+            return (<div>{value}</div>);
+        };
+        const Component = function () {
+            const value = useRef('');
+            const [, setState] = useState(false);
+            const onChange = (v) => {
+                value.current = v;
+                setImmediate(() => setState(true));
+            };
+            return (<Field value={value.current} onChange={onChange} />);
+        }
+        const { asFragment } = render(<Component />);
+        await renderAct(async () => cb());
+        expect(asFragment()).toMatchSnapshot();
     });
 
     it('should consider empty when value is undefined', async () => {
