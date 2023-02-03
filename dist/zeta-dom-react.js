@@ -861,9 +861,14 @@ function createDataObject(context, initialData) {
   var proxy = new Proxy(target, {
     set: function set(t, p, v) {
       if (typeof p === 'string' && (t[p] !== v || !(p in t))) {
+        var field = state.fields[p];
         onChange(p);
         t[p] = v;
-        (state.fields[p] || {}).value = v;
+
+        if (field) {
+          field.value = v;
+          (field.props.onChange || noop)(v);
+        }
       }
 
       return true;
@@ -1006,6 +1011,7 @@ definePrototype(FormContext, {
       } else if (v.controlled) {
         dict[i] = v.initialValue;
         v.value = v.initialValue;
+        (v.props.onChange || noop)(v.value);
       }
 
       v.error = null;
@@ -1137,7 +1143,13 @@ function useFormField(type, props, defaultValue, prop) {
       value: initialValue,
       error: '',
       setValue: function setValue(v) {
-        field.value = isFunction(v) ? v(field.value) : v;
+        v = isFunction(v) ? v(field.value) : v;
+
+        if (field.controlled) {
+          (field.props.onChange || noop)(v);
+        } else {
+          field.value = v;
+        }
       },
       setError: function setError(v) {
         field.error = isFunction(v) ? v(field.error) : v;
@@ -1152,7 +1164,6 @@ function useFormField(type, props, defaultValue, prop) {
     });
     watch(field, 'value', function (v) {
       (field.dict || {})[field.name] = v;
-      (field.props.onChange || noop)(v);
     });
     watch(field, 'error', function (v) {
       if (field.dict && field.name) {
@@ -1310,12 +1321,12 @@ function ChoiceField() {
     var selectedIndex = items.findIndex(function (v) {
       return v.value === state.value;
     });
-
-    if (selectedIndex < 0) {
-      selectedIndex = props.allowUnselect || !items[0] ? -1 : 0;
-      state.setValue(selectedIndex < 0 ? '' : items[0].value);
-    }
-
+    (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
+      if (selectedIndex < 0) {
+        selectedIndex = props.allowUnselect || !items[0] ? -1 : 0;
+        state.setValue(selectedIndex < 0 ? '' : items[0].value);
+      }
+    });
     return extend(state, {
       items: items,
       selectedIndex: selectedIndex,
@@ -1353,16 +1364,16 @@ function MultiChoiceField() {
         });
       }
     });
+    (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
+      if (!allowCustomValues) {
+        var cur = makeArray(state.value);
+        var arr = splice(cur, isUnknown);
 
-    if (!allowCustomValues) {
-      var cur = makeArray(state.value);
-      var arr = splice(cur, isUnknown);
-
-      if (arr.length) {
-        state.setValue(cur);
+        if (arr.length) {
+          state.setValue(cur);
+        }
       }
-    }
-
+    });
     return extend(state, {
       items: items,
       toggleValue: toggleValue
