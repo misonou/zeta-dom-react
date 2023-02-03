@@ -437,10 +437,12 @@ export function ChoiceField() {
         var selectedIndex = items.findIndex(function (v) {
             return v.value === state.value;
         });
-        if (selectedIndex < 0) {
-            selectedIndex = props.allowUnselect || !items[0] ? -1 : 0;
-            state.setValue(selectedIndex < 0 ? '' : items[0].value);
-        }
+        useEffect(() => {
+            if (selectedIndex < 0) {
+                selectedIndex = props.allowUnselect || !items[0] ? -1 : 0;
+                state.setValue(selectedIndex < 0 ? '' : items[0].value);
+            }
+        });
         return extend(state, {
             items: items,
             selectedIndex: selectedIndex,
@@ -474,13 +476,15 @@ export function MultiChoiceField() {
                 });
             }
         });
-        if (!allowCustomValues) {
-            var cur = makeArray(state.value);
-            var arr = splice(cur, isUnknown);
-            if (arr.length) {
-                state.setValue(cur);
+        useEffect(() => {
+            if (!allowCustomValues) {
+                var cur = makeArray(state.value);
+                var arr = splice(cur, isUnknown);
+                if (arr.length) {
+                    state.setValue(cur);
+                }
             }
-        }
+        });
         return extend(state, {
             items: items,
             toggleValue: toggleValue
