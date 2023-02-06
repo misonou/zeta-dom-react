@@ -317,6 +317,13 @@ describe('useFormField', () => {
         unmount();
     });
 
+    it('should call onChange callback for uncontrolled field without form context', async () => {
+        const cb = mockFn();
+        const { result } = renderHook(() => useFormField({ name: 'foo', onChange: cb }, ''));
+        await act(async () => result.current.setValue('foo'));
+        verifyCalls(cb, [['foo']]);
+    });
+
     it('should not overwrite changes through data object', async () => {
         const { form, wrapper, unmount } = createFormContext();
         const { result } = renderHook(() => useFormField({ name: 'foo' }, ''), { wrapper });

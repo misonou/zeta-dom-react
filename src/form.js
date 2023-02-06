@@ -48,7 +48,7 @@ function createDataObject(context, initialData) {
                 t[p] = v;
                 if (field) {
                     field.value = v;
-                    (field.props.onChange || noop)(v);
+                    field.onChange(v);
                 }
             }
             return true;
@@ -171,7 +171,7 @@ definePrototype(FormContext, {
             } else if (v.controlled) {
                 dict[i] = v.initialValue;
                 v.value = v.initialValue;
-                (v.props.onChange || noop)(v.value);
+                v.onChange(v.value);
             }
             v.error = null;
         });
@@ -291,10 +291,13 @@ export function useFormField(type, props, defaultValue, prop) {
             initialValue: initialValue,
             value: initialValue,
             error: '',
+            onChange: function (v) {
+                (field.props.onChange || noop)(v);
+            },
             setValue: function (v) {
                 v = isFunction(v) ? v(field.value) : v;
                 if (field.controlled) {
-                    (field.props.onChange || noop)(v);
+                    field.onChange(v);
                 } else {
                     field.value = v;
                 }
@@ -311,7 +314,11 @@ export function useFormField(type, props, defaultValue, prop) {
             return isFunction(v) ? wrapErrorResult(field, v) : v || '';
         });
         watch(field, 'value', function (v) {
-            (field.dict || {})[field.name] = v;
+            if (field.dict) {
+                field.dict[field.name] = v;
+            } else if (!field.controlled) {
+                field.onChange(v);
+            }
         });
         watch(field, 'error', function (v) {
             if (field.dict && field.name) {
