@@ -284,7 +284,7 @@ export function useFormField(type, props, defaultValue, prop) {
     const controlled = prop in props;
 
     const field = useState(function () {
-        var initialValue = controlled ? props[prop] : form && key in dict ? dict[key] : defaultValue;
+        var initialValue = controlled ? props[prop] : (preset.normalizeValue || pipe)(form && key in dict ? dict[key] : defaultValue !== undefined ? defaultValue : preset.defaultValue);
         var field = {
             initialValue: initialValue,
             value: initialValue,
@@ -308,6 +308,9 @@ export function useFormField(type, props, defaultValue, prop) {
             }
         };
         watch(field, true);
+        defineObservableProperty(field, 'value', initialValue, function (v) {
+            return (field.preset.normalizeValue || pipe)(v, field.props);
+        });
         defineObservableProperty(field, 'error', '', function (v) {
             return isFunction(v) ? wrapErrorResult(field, v) : v || '';
         });
@@ -431,6 +434,7 @@ function normalizeChoiceItems(items) {
 }
 
 export function TextField() {
+    this.defaultValue = '';
     this.postHook = function (state, props) {
         var form = state.form;
         var inputProps = pick(props, ['type', 'autoComplete', 'maxLength', 'inputMode', 'placeholder', 'enterKeyHint']);
@@ -446,6 +450,7 @@ export function TextField() {
 }
 
 export function ChoiceField() {
+    this.defaultValue = '';
     this.postHook = function (state, props) {
         var items = normalizeChoiceItems(props.items);
         var selectedIndex = items.findIndex(function (v) {
@@ -466,6 +471,10 @@ export function ChoiceField() {
 }
 
 export function MultiChoiceField() {
+    this.defaultValue = [];
+    this.normalizeValue = function (newValue) {
+        return isArray(newValue) || makeArray(newValue);
+    };
     this.postHook = function (state, props) {
         var allowCustomValues = props.allowCustomValues || !props.items;
         var items = normalizeChoiceItems(props.items);
@@ -507,6 +516,7 @@ export function MultiChoiceField() {
 }
 
 export function ToggleField() {
+    this.defaultValue = false;
     this.valueProperty = 'checked';
     this.isEmpty = function (value) {
         return !value;

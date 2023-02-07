@@ -34,6 +34,10 @@ export interface FieldTypeConstructor<P extends FormFieldProps, S extends FormFi
 
 export interface FieldType<P extends FormFieldProps, S extends FormFieldState> {
     /**
+     * Specifies default value when there initial value has not been passed or set.
+     */
+    defaultValue?: FieldValueType<P>;
+    /**
      * Specifies the name of prop that will control {@link FormFieldState.value} when specified.
      * Default is `value`.
      */
@@ -44,6 +48,12 @@ export interface FieldType<P extends FormFieldProps, S extends FormFieldState> {
      * @param value Current field value.
      */
     isEmpty?(value: FieldValueType<P>): boolean;
+    /**
+     * Normalizes value when being updated.
+     * @param value Field value being set to.
+     * @param props Props passed to {@link useFormField}.
+     */
+    normalizeValue?(value: FieldValueType<P>, props: P): FieldValueType<P>;
     /**
      * Applies additional logic and modification to field state.
      * @param state Untouched field state returned from hook.
@@ -318,7 +328,7 @@ export function useFormContext<T extends object = Zeta.Dictionary<any>>(persistK
  */
 export function useFormField<K extends keyof Zeta.ReactFieldTypes, T extends Parameters<Zeta.ReactFieldTypes[K]>[0]>(type: K, props: T, defaultValue: FieldValueType<T>, prop?: keyof T): ReturnType<Zeta.ReactFieldTypes<T>[K]>;
 
-export function useFormField<K extends FieldTypeConstructor<any, any>, T extends (K extends FieldTypeConstructor<infer T, any> ? T : any)>(type: K, props: T, defaultValue: FieldValueType<T>): FieldStateType<K, T>;
+export function useFormField<K extends FieldTypeConstructor<any, any>, T extends (K extends FieldTypeConstructor<infer T, any> ? T : any)>(type: K, props: T, defaultValue?: FieldValueType<T>): FieldStateType<K, T>;
 
 export function useFormField<T extends FormFieldProps>(props: T, defaultValue: FieldValueType<T>, prop: keyof T = 'value'): FormFieldState<FieldValueType<T>>;
 

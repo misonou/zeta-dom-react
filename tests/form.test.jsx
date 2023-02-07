@@ -2,7 +2,7 @@ import React, { createRef, useEffect, useRef, useState } from "react";
 import { act as renderAct, render } from "@testing-library/react";
 import { act, renderHook } from '@testing-library/react-hooks'
 import { ViewStateProvider } from "src/viewState";
-import { combineValidators, Form, FormContext, FormContextProvider, MultiChoiceField, useFormContext, useFormField } from "src/form";
+import { ChoiceField, combineValidators, Form, FormContext, FormContextProvider, MultiChoiceField, TextField, ToggleField, useFormContext, useFormField } from "src/form";
 import { delay, mockFn, verifyCalls } from "@misonou/test-utils";
 import dom from "zeta-dom/dom";
 import { cancelLock, locked } from "zeta-dom/domLock";
@@ -502,6 +502,11 @@ describe('useFormField - text', () => {
         const { result } = renderHook(() => useFormField('text', { type: 'password' }, ''));
         expect(result.current.inputProps.autoComplete).toBe('current-password');
     });
+
+    it('should default value to empty string if not supplied', () => {
+        const { result } = renderHook(() => useFormField(TextField, {}));
+        expect(result.current.value).toBe('');
+    });
 });
 
 describe('useFormField - choice', () => {
@@ -541,6 +546,11 @@ describe('useFormField - choice', () => {
         expect(result.current.selectedItem.value).toBe('bar');
         expect(result.current.selectedIndex).toBe(1);
     });
+
+    it('should default value to empty string if not supplied', () => {
+        const { result } = renderHook(() => useFormField(ChoiceField, {}));
+        expect(result.current.value).toBe('');
+    });
 });
 
 describe('useFormField - toggle', () => {
@@ -554,6 +564,11 @@ describe('useFormField - toggle', () => {
         renderHook(() => useFormField('toggle', { name: 'foo', required: true }, false), { wrapper });
         expect(form.isValid).toBe(false);
         unmount();
+    });
+
+    it('should default value to false if not supplied', () => {
+        const { result } = renderHook(() => useFormField(ToggleField, {}));
+        expect(result.current.value).toBe(false);
     });
 });
 
@@ -635,6 +650,22 @@ describe('useFormField - multiChoice', () => {
         await act(async () => result.current.toggleValue('baz', false));
         expect(cb).not.toBeCalled();
         unmount();
+    });
+
+    it('should default value to empty array if not supplied', () => {
+        const { result } = renderHook(() => useFormField(MultiChoiceField, {}));
+        expect(result.current.value).toEqual([]);
+    });
+
+    it('should normalize value as array', () => {
+        const { result } = renderHook(() => useFormField(MultiChoiceField, { items: ['foo', 'bar'] }, 'bar'));
+        expect(result.current.value).toEqual(['bar']);
+
+        act(() => result.current.setValue('foo'));
+        expect(result.current.value).toEqual(['foo']);
+
+        act(() => result.current.setValue(null));
+        expect(result.current.value).toEqual([]);
     });
 });
 
