@@ -166,12 +166,10 @@ definePrototype(FormContext, {
         }
         extend(dict, data || state.initialData);
         each(state.fields, function (i, v) {
-            if (i in dict) {
+            if (v.controlled) {
+                v.onChange(i in dict ? dict[i] : v.initialValue);
+            } else if (i in dict) {
                 v.value = dict[i];
-            } else if (v.controlled) {
-                dict[i] = v.initialValue;
-                v.value = v.initialValue;
-                v.onChange(v.value);
             }
             v.error = null;
         });

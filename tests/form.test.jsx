@@ -1307,6 +1307,21 @@ describe('FormContext#reset', () => {
         verifyCalls(onChange, [['foo']]);
         unmount();
     });
+
+    it('should call onChange callback with current value for controlled field if property exists', () => {
+        let value = 'foo';
+        const onChange = mockFn(v => (value = v));
+        const { form, wrapper, unmount } = createFormContext({ foo: 'baz' });
+        const { rerender } = renderHook(() => useFormField({ name: 'foo', value, onChange }, ''), { wrapper });
+
+        value = 'bar';
+        rerender();
+        onChange.mockClear();
+
+        act(() => form.reset());
+        verifyCalls(onChange, [['baz']]);
+        unmount();
+    });
 });
 
 describe('FormContext#persist', () => {
