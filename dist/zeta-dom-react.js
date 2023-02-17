@@ -345,7 +345,9 @@ function useAsync(init, deps) {
     var element;
     var currentPromise;
     return {
-      loading: true,
+      loading: false,
+      value: undefined,
+      error: undefined,
       elementRef: function elementRef(current) {
         element = current;
       },
@@ -397,6 +399,7 @@ function useAsync(init, deps) {
   deps = [deps !== false].concat(isArray(deps) || []);
   init = useMemoizedFunction(init);
   (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
+    state.disposed = false;
     return function () {
       state.disposed = true;
     };
@@ -867,7 +870,7 @@ function createDataObject(context, initialData) {
 
         if (field) {
           field.value = v;
-          (field.props.onChange || noop)(v);
+          field.onChange(v);
         }
       }
 
@@ -1006,12 +1009,10 @@ definePrototype(FormContext, {
 
     extend(dict, data || state.initialData);
     each(state.fields, function (i, v) {
-      if (i in dict) {
+      if (v.controlled) {
+        v.onChange(i in dict ? dict[i] : v.initialValue);
+      } else if (i in dict) {
         v.value = dict[i];
-      } else if (v.controlled) {
-        dict[i] = v.initialValue;
-        v.value = v.initialValue;
-        (v.props.onChange || noop)(v.value);
       }
 
       v.error = null;
@@ -1137,16 +1138,19 @@ function useFormField(type, props, defaultValue, prop) {
   var key = props.name || '';
   var controlled = (prop in props);
   var field = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)(function () {
-    var initialValue = controlled ? props[prop] : form && key in dict ? dict[key] : defaultValue;
+    var initialValue = controlled ? props[prop] : (preset.normalizeValue || pipe)(form && key in dict ? dict[key] : defaultValue !== undefined ? defaultValue : preset.defaultValue);
     var field = {
       initialValue: initialValue,
       value: initialValue,
       error: '',
+      onChange: function onChange(v) {
+        (field.props.onChange || noop)(v);
+      },
       setValue: function setValue(v) {
         v = isFunction(v) ? v(field.value) : v;
 
         if (field.controlled) {
-          (field.props.onChange || noop)(v);
+          field.onChange(v);
         } else {
           field.value = v;
         }
@@ -1159,11 +1163,18 @@ function useFormField(type, props, defaultValue, prop) {
       }
     };
     watch(field, true);
+    defineObservableProperty(field, 'value', initialValue, function (v) {
+      return (field.preset.normalizeValue || pipe)(v, field.props);
+    });
     defineObservableProperty(field, 'error', '', function (v) {
       return isFunction(v) ? wrapErrorResult(field, v) : v || '';
     });
     watch(field, 'value', function (v) {
-      (field.dict || {})[field.name] = v;
+      if (field.dict) {
+        field.dict[field.name] = v;
+      } else if (!field.controlled) {
+        field.onChange(v);
+      }
     });
     watch(field, 'error', function (v) {
       if (field.dict && field.name) {
@@ -1300,6 +1311,8 @@ function normalizeChoiceItems(items) {
 }
 
 function TextField() {
+  this.defaultValue = '';
+
   this.postHook = function (state, props) {
     var form = state.form;
     var inputProps = pick(props, ['type', 'autoComplete', 'maxLength', 'inputMode', 'placeholder', 'enterKeyHint']);
@@ -1316,6 +1329,8 @@ function TextField() {
   };
 }
 function ChoiceField() {
+  this.defaultValue = '';
+
   this.postHook = function (state, props) {
     var items = normalizeChoiceItems(props.items);
     var selectedIndex = items.findIndex(function (v) {
@@ -1335,6 +1350,12 @@ function ChoiceField() {
   };
 }
 function MultiChoiceField() {
+  this.defaultValue = [];
+
+  this.normalizeValue = function (newValue) {
+    return isArray(newValue) || makeArray(newValue);
+  };
+
   this.postHook = function (state, props) {
     var allowCustomValues = props.allowCustomValues || !props.items;
     var items = normalizeChoiceItems(props.items);
@@ -1381,6 +1402,7 @@ function MultiChoiceField() {
   };
 }
 function ToggleField() {
+  this.defaultValue = false;
   this.valueProperty = 'checked';
 
   this.isEmpty = function (value) {
