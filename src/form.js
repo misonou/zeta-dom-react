@@ -462,7 +462,9 @@ definePrototype(FormContext, {
         var fields = _(self).fields;
         var prefix = makeArray(arguments);
         if (!prefix[0]) {
-            return validateFields(self, values(fields));
+            return validateFields(self, grep(fields, function (v) {
+                return !v.props.disabled;
+            }));
         }
         return validateFields(self, grep(fields, function (v) {
             return any(prefix, function (w) {

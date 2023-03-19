@@ -1410,6 +1410,21 @@ describe('FormContext#validate', () => {
         unmount();
     });
 
+    it('should not trigger validation of disabled field if argument is not specified', async () => {
+        const cb = mockFn();
+        const { form, wrapper, unmount } = createFormContext();
+        renderHook(() => [
+            useFormField({ name: 'foo', onValidate: cb }, 'foo_value'),
+            useFormField({ name: 'bar', onValidate: cb, disabled: true }, 'bar_value'),
+        ], { wrapper });
+
+        await act(async () => void await form.validate());
+        verifyCalls(cb, [
+            ['foo_value', 'foo', form],
+        ]);
+        unmount();
+    });
+
     it('should trigger validation of specified field from form context', async () => {
         const cb = mockFn();
         const { form, wrapper, unmount } = createFormContext();
