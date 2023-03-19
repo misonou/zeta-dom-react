@@ -25,6 +25,10 @@ function isEmpty(value) {
     return isUndefinedOrNull(value) || value === '' || (isArray(value) && !value.length);
 }
 
+function hasImplicitError(field) {
+    return field.props.required && (field.props.isEmpty || field.preset.isEmpty || isEmpty)(field.value);
+}
+
 function cloneValue(value) {
     return _(value) ? extend(true, isArray(value) ? [] : {}, value) : value;
 }
@@ -311,6 +315,7 @@ function useFormFieldInternal(form, state, field, preset, props, controlled, dic
 
 function validateFields(form, fields) {
     var state = _(form);
+    var imlicitErrors = map(fields, hasImplicitError);
     var validate = function (field) {
         var name = field.path;
         var value = field.value;
@@ -343,6 +348,7 @@ function validateFields(form, fields) {
                 v.locks.shift();
                 v.error = result[i];
             }
+            result[i] = result[i] || imlicitErrors[i];
         });
         state.setValid();
         return !any(result);
@@ -379,9 +385,8 @@ export function FormContext(initialData, options, viewState) {
         paths: {},
         initialData: initialData,
         setValid: defineObservableProperty(this, 'isValid', true, function () {
-            return !any(fields, function (v, i) {
-                var props = v.props;
-                return !props.disabled && (v.error || (props.required && (props.isEmpty || v.preset.isEmpty || isEmpty)(v.value)));
+            return !any(fields, function (v) {
+                return !v.props.disabled && (v.error || hasImplicitError(v));
             });
         })
     });
