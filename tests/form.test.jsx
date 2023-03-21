@@ -3,7 +3,7 @@ import { act as renderAct, render } from "@testing-library/react";
 import { act, renderHook } from '@testing-library/react-hooks'
 import { ViewStateProvider } from "src/viewState";
 import { ChoiceField, combineValidators, Form, FormArray, FormContext, FormContextProvider, FormObject, MultiChoiceField, TextField, ToggleField, useFormContext, useFormField } from "src/form";
-import { delay, mockFn, verifyCalls, _ } from "@misonou/test-utils";
+import { body, delay, mockFn, verifyCalls, _ } from "@misonou/test-utils";
 import dom from "zeta-dom/dom";
 import { cancelLock, locked } from "zeta-dom/domLock";
 import { catchAsync, combineFn, setImmediate } from "zeta-dom/util";
@@ -1244,6 +1244,22 @@ describe('FormContext#isValid', () => {
         act(() => form.reset());
         expect(form.isValid).toBe(true);
         unmount();
+    });
+});
+
+describe('FormContext#get', () => {
+    it('should return FormContext object associated to specified element or its parent elements', () => {
+        const renderForm = createFormComponent();
+        const { form, formElement } = renderForm();
+        expect(FormContext.get(formElement)).toBe(form);
+
+        const button = document.createElement('button');
+        formElement.appendChild(button);
+        expect(FormContext.get(button)).toBe(form);
+    });
+
+    it('should return null if there is no associated FormContext', () => {
+        expect(FormContext.get(body)).toBeNull();
     });
 });
 

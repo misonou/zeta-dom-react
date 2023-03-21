@@ -1,8 +1,9 @@
 import { createContext, createElement, forwardRef, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { always, any, combineFn, createPrivateStore, define, defineObservableProperty, definePrototype, each, either, exclude, extend, grep, hasOwnProperty, isArray, isFunction, isPlainObject, isUndefinedOrNull, keys, makeArray, map, mapGet, mapRemove, noop, pick, pipe, randomId, reject, resolve, resolveAll, setImmediateOnce, splice, throws, values, watch } from "./include/zeta-dom/util.js";
+import { always, any, combineFn, createPrivateStore, define, defineObservableProperty, definePrototype, each, either, exclude, extend, grep, hasOwnProperty, isArray, isFunction, isPlainObject, isUndefinedOrNull, keys, makeArray, map, mapGet, mapRemove, noop, pick, pipe, randomId, reject, resolve, resolveAll, setImmediateOnce, single, splice, throws, values, watch } from "./include/zeta-dom/util.js";
 import { ZetaEventContainer } from "./include/zeta-dom/events.js";
 import dom, { focus } from "./include/zeta-dom/dom.js";
 import { preventLeave } from "./include/zeta-dom/domLock.js";
+import { parentsAndSelf } from "./include/zeta-dom/domUtil.js";
 import { useMemoizedFunction, useObservableProperty, useUpdateTrigger } from "./hooks.js";
 import { combineRef } from "./util.js";
 import { useViewState } from "./viewState.js";
@@ -10,6 +11,7 @@ import { useViewState } from "./viewState.js";
 const _ = createPrivateStore();
 const emitter = new ZetaEventContainer();
 const presets = new WeakMap();
+const instances = new WeakMap();
 const changedProps = new Map();
 const fieldTypes = {
     text: TextField,
@@ -396,14 +398,23 @@ export function FormContext(initialData, options, viewState) {
     extend(self, normalizeOptions(options));
     self.ref = function (element) {
         state.ref = element;
+        if (element) {
+            instances.set(element, self);
+        }
     };
     self.isValid = true;
     self.data = createDataObject(self, viewState.get() || state.initialData);
 }
 
+define(FormContext, {
+    get: function (element) {
+        return single(parentsAndSelf(element), instances.get.bind(instances)) || null;
+    }
+});
+
 definePrototype(FormContext, {
     element: function (key) {
-        return (getField(this, key) || '').element;
+        return key ? (getField(this, key) || '').element : _(this).ref;
     },
     focus: function (key) {
         var element = this.element(key);

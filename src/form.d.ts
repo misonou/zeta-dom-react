@@ -298,11 +298,30 @@ export class FormContext<T extends object = Zeta.Dictionary<any>> {
     enterKeyHint?: 'enter' | 'done' | 'go' | 'next' | 'previous' | 'search' | 'send';
 
     /**
+     * Gets the associated {@link FormContext} instance for the given element.
+     * @param element A DOM element.
+     */
+    static get(element: Element): FormContext | null;
+
+    /**
+     * Gets the form element.
+     * This method only works when {@link FormContext.ref} is passed to HTML elements.
+     */
+    element(): HTMLElement | undefined;
+
+    /**
      * Gets the input element for the specified field.
      * This method only works when {@link FormFieldState.elementRef} is passed to HTML elements.
      * @param path A string containing dot-separated property names or an array containing property names.
      */
     element(path: string | string[]): HTMLElement | undefined;
+
+    /**
+     * Focus the form element.
+     * This method only works when {@link FormContext.ref} is passed to HTML elements.
+     * @returns Whether the given element is set focused.
+     */
+    focus(): boolean;
 
     /**
      * Focus the input element for the specified field.
