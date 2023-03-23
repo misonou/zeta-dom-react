@@ -296,6 +296,9 @@ function useFormFieldInternal(form, state, field, preset, props, controlled, dic
         field.error = props.error;
     }
     useEffect(function () {
+        if (form && key) {
+            state.fields[key] = field;
+        }
         return function () {
             if (state && state.fields[key] === field) {
                 delete state.fields[key];
