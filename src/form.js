@@ -407,9 +407,7 @@ definePrototype(FormContext, {
     },
     focus: function (key) {
         var element = this.element(key);
-        if (element) {
-            focus(element);
-        }
+        return !!element && focus(element);
     },
     on: function (event, handler) {
         return emitter.add(this, event, handler);

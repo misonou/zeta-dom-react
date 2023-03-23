@@ -308,8 +308,9 @@ export class FormContext<T extends object = Zeta.Dictionary<any>> {
      * Focus the input element for the specified field.
      * This method only works when {@link FormFieldState.elementRef} is passed to HTML elements.
      * @param path A string containing dot-separated property names or an array containing property names.
+     * @returns Whether the given element is set focused.
      */
-    focus(path: string | string[]): void;
+    focus(path: string | string[]): boolean;
 
     /**
      * Registers event handlers.
