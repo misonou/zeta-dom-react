@@ -115,18 +115,20 @@ export function useObservableProperty<T extends object, P extends keyof T>(obj: 
  * The value in the first element of the returned array is initially `undefined`.
  * @param init A callback that returns data asynchronously.
  * @param autoload Whether to autoload the data once the component is mounted, defaults to `true`.
+ * @param debounce Debounce interval in milliseconds.
  * @returns An array containing the data when available, and a state object, see {@link AsyncContentState}.
  */
-export function useAsync<T>(init: () => T | Promise<T>, autoload: boolean = true): [value: T | undefined, state: AsyncContentState<T>];
+export function useAsync<T>(init: () => T | Promise<T>, autoload: boolean = true, debounce?: number): [value: T | undefined, state: AsyncContentState<T>];
 
 /**
  * Gets asynchronous data and refreshes the components once data is ready or error has occurred.
  * The value in the first element of the returned array is initially `undefined`.
  * @param init A callback that returns data asynchronously.
  * @param deps Triggers reload if the values in the list change.
+ * @param debounce Debounce interval in milliseconds.
  * @returns An array containing the data when available, and a state object, see {@link AsyncContentState}.
  */
-export function useAsync<T>(init: () => T | Promise<T>, deps: React.DependencyList): [value: T | undefined, state: AsyncContentState<T>];
+export function useAsync<T>(init: () => T | Promise<T>, deps: React.DependencyList, debounce?: number): [value: T | undefined, state: AsyncContentState<T>];
 
 /**
  * Creates a React ref callback, that will invoke the supplied callback only once for each a new DOM element created.

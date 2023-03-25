@@ -233,6 +233,25 @@ describe('useAsync', () => {
         await reactAct(async () => void await catchAsync(promise));
         expect(cb).not.toBeCalled();
     });
+
+    it('should delay callback invocation and return same result when debounce interval is specified', async () => {
+        const cb = mockFn().mockImplementation(() => Promise.resolve(Date.now()));
+        const { result } = renderHook(() => useAsync(cb, false, 500));
+
+        const t1 = Date.now();
+        const promise = result.current[1].refresh();
+        expect(result.current[1].loading).toBe(false);
+        expect(cb).not.toBeCalled();
+
+        await delay(100);
+        expect(result.current[1].refresh()).toBe(promise);
+        expect(result.current[1].loading).toBe(false);
+        expect(cb).not.toBeCalled();
+
+        const t2 = await promise;
+        expect(cb).toBeCalledTimes(1);
+        expect(t2 - t1).toBeGreaterThan(500);
+    });
 });
 
 describe('useRefInitCallback', () => {

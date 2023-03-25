@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dom from "./include/zeta-dom/dom.js";
 import { notifyAsync } from "./include/zeta-dom/domLock.js";
 import { ZetaEventContainer } from "./include/zeta-dom/events.js";
-import { always, combineFn, extend, is, isArray, isErrorWithCode, isFunction, makeArray, makeAsync, map, pipe, resolve, setAdd, watch } from "./include/zeta-dom/util.js";
+import { always, combineFn, deferrable, delay, extend, is, isArray, isErrorWithCode, isFunction, makeArray, makeAsync, map, pipe, resolve, setAdd, watch } from "./include/zeta-dom/util.js";
 
 const fnWeakMap = new WeakMap();
 const container = new ZetaEventContainer();
@@ -40,10 +40,11 @@ export function useObservableProperty(obj, key) {
     return value;
 }
 
-export function useAsync(init, deps) {
+export function useAsync(init, deps, debounce) {
     const state = useState(function () {
         var element;
         var currentPromise;
+        var nextResult;
         return {
             loading: false,
             value: undefined,
@@ -59,7 +60,15 @@ export function useAsync(init, deps) {
                     return handler.call(state, e.error);
                 });
             },
-            refresh: function () {
+            refresh: function (force) {
+                if (debounce && !force) {
+                    nextResult = nextResult || deferrable();
+                    nextResult.waitFor(delay(debounce));
+                    return nextResult.d || (nextResult.d = nextResult.then(function () {
+                        nextResult = null;
+                        return state.refresh(true);
+                    }));
+                }
                 extend(state, { loading: true, error: undefined });
                 var result = makeAsync(init)();
                 var promise = always(result, function (resolved, value) {
@@ -97,7 +106,7 @@ export function useAsync(init, deps) {
         }
     }, deps);
     useMemo(function () {
-        if (deps[0]) {
+        if (deps[0] && !debounce) {
             state.loading = true;
         }
     }, deps);
