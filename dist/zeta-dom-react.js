@@ -98,8 +98,10 @@ __webpack_require__.d(src_namespaceObject, {
   "ChoiceField": () => (ChoiceField),
   "DataView": () => (DataView),
   "Form": () => (Form),
+  "FormArray": () => (FormArray),
   "FormContext": () => (FormContext),
   "FormContextProvider": () => (FormContextProvider),
+  "FormObject": () => (FormObject),
   "MultiChoiceField": () => (MultiChoiceField),
   "TextField": () => (TextField),
   "ToggleField": () => (ToggleField),
@@ -340,10 +342,11 @@ function useObservableProperty(obj, key) {
   }, [obj, key]);
   return value;
 }
-function useAsync(init, deps) {
+function useAsync(init, deps, debounce) {
   var state = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)(function () {
     var element;
     var currentPromise;
+    var nextResult;
     return {
       loading: false,
       value: undefined,
@@ -359,7 +362,16 @@ function useAsync(init, deps) {
           return handler.call(state, e.error);
         });
       },
-      refresh: function refresh() {
+      refresh: function refresh(force) {
+        if (debounce && !force) {
+          nextResult = nextResult || deferrable();
+          nextResult.waitFor(delay(debounce));
+          return nextResult.d || (nextResult.d = nextResult.then(function () {
+            nextResult = null;
+            return state.refresh(true);
+          }));
+        }
+
         extend(state, {
           loading: true,
           error: undefined
@@ -412,7 +424,7 @@ function useAsync(init, deps) {
     }
   }, deps);
   (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useMemo)(function () {
-    if (deps[0]) {
+    if (deps[0] && !debounce) {
       state.loading = true;
     }
   }, deps);
@@ -824,71 +836,420 @@ function _typeof(obj) { "@babel/helpers - typeof"; return _typeof = "function" =
 
 
 
+
 var form_ = createPrivateStore();
 
 var form_emitter = new ZetaEventContainer();
 var presets = new WeakMap();
+var instances = new WeakMap();
 var changedProps = new Map();
 var fieldTypes = {
   text: TextField,
   toggle: ToggleField,
   choice: ChoiceField
 };
-/** @type {React.Context<import ("./form").FormContext>} */
-// @ts-ignore: type inference issue
+/** @type {React.Context<any>} */
 
-var _FormContext = /*#__PURE__*/(0,external_commonjs_react_commonjs2_react_amd_react_root_React_.createContext)(null);
-
-var FormContextProvider = _FormContext.Provider;
+var FormObjectContext = /*#__PURE__*/(0,external_commonjs_react_commonjs2_react_amd_react_root_React_.createContext)(null);
+var FormObjectProvider = FormObjectContext.Provider;
 
 function isEmpty(value) {
   return isUndefinedOrNull(value) || value === '' || isArray(value) && !value.length;
 }
 
+function hasImplicitError(field) {
+  return field.props.required && (field.props.isEmpty || field.preset.isEmpty || isEmpty)(field.value);
+}
+
+function cloneValue(value) {
+  return form_(value) ? extend(true, isArray(value) ? [] : {}, value) : value;
+}
+
+function keyFor(value) {
+  return (form_(value) || '').uniqueId;
+}
+
+function resolvePathInfo(form, path) {
+  var arr = isArray(path) || path.split('.');
+  var value = form.data;
+  var parent = value;
+
+  for (var i = 0, len = arr.length; i < len; i++) {
+    if (!util_hasOwnProperty(value, arr[i])) {
+      return {
+        name: arr[len - 1],
+        parent: i === len - 1 ? value : null
+      };
+    }
+
+    parent = value;
+    value = value[arr[i]];
+  }
+
+  return {
+    exists: true,
+    name: arr[len - 1],
+    value: value,
+    parent: parent
+  };
+}
+
+function getField(form, path) {
+  var prop = resolvePathInfo(form, path);
+  var key = keyFor(prop.parent);
+  return key && form_(form).fields[key + '.' + prop.name];
+}
+
+function getPath(form, obj, name) {
+  if (obj === form.data) {
+    return name;
+  }
+
+  var paths = form_(form).paths;
+
+  var path = [name];
+
+  for (var key = keyFor(obj); key = paths[key]; key = key.slice(0, 8)) {
+    path.unshift(key.slice(9));
+  }
+
+  return resolvePathInfo(form, path).parent === obj ? path.join('.') : '';
+}
+
 function emitDataChangeEvent() {
-  each(changedProps, function (i) {
-    form_emitter.emit('dataChange', i, Object.keys(mapRemove(changedProps, i)));
+  each(changedProps, function (form) {
+    var state = form_(form);
+
+    var props = mapRemove(changedProps, form);
+
+    for (var i in props) {
+      while (i = i.replace(/(^|\.)[^.]+$/, '')) {
+        props[i] = true;
+      }
+    }
+
+    form_emitter.emit('dataChange', form, keys(props));
+
+    if (form.validateOnChange) {
+      validateFields(form, grep(state.fields, function (v) {
+        return props[v.path] && v.props.validateOnChange !== false;
+      }));
+    }
+
+    if (form.preventLeave && !state.unlock) {
+      var promise = new Promise(function (resolve) {
+        state.unlock = function () {
+          state.unlock = null;
+          resolve();
+        };
+      });
+      preventLeave(state.ref || zeta_dom_dom.root, promise, function () {
+        return form_emitter.emit('beforeLeave', form) || reject();
+      });
+    }
   });
 }
+
+function handleDataChange(callback) {
+  var local;
+  var map = handleDataChange.d || (handleDataChange.d = local = new Set());
+
+  try {
+    callback();
+  } finally {
+    if (map === local) {
+      each(local, function (i, v) {
+        v.onChange(v.value);
+      });
+      handleDataChange.d = null;
+    }
+  }
+}
+
+handleDataChange.d = null;
 
 function createDataObject(context, initialData) {
   var state = form_(context);
 
-  var target = extend({}, initialData);
+  var target = isArray(initialData) ? [] : {};
+  var uniqueId = randomId();
 
   var onChange = function onChange(p) {
-    mapGet(changedProps, context, Object)[p] = true;
-    setImmediateOnce(emitDataChangeEvent);
+    var path = getPath(context, proxy, p);
+
+    if (path) {
+      // ensure field associated with parent data object got notified
+      for (var key = uniqueId; key = state.paths[key]; key = key.slice(0, 8)) {
+        if (state.fields[key]) {
+          handleDataChange.d.add(state.fields[key]);
+        }
+      }
+
+      mapGet(changedProps, context, Object)[path] = true;
+      setImmediateOnce(emitDataChangeEvent);
+      return true;
+    }
+  };
+
+  var setValue = function setValue(p, v) {
+    if (isPlainObject(v) || isArray(v)) {
+      // ensure changes to nested data objects
+      // emits data change event to correct form context
+      if ((form_(v) || '').context !== context) {
+        v = createDataObject(context, v);
+      }
+
+      state.paths[keyFor(v)] = uniqueId + '.' + p;
+    }
+
+    target[p] = v;
+    return v;
+  };
+
+  var deleteValue = function deleteValue(p) {
+    delete target[p];
   };
 
   var proxy = new Proxy(target, {
     set: function set(t, p, v) {
       if (typeof p === 'string' && (t[p] !== v || !(p in t))) {
-        var field = state.fields[p];
-        onChange(p);
-        t[p] = v;
+        handleDataChange(function () {
+          var field = state.fields[uniqueId + '.' + p];
+          var prev = t[p];
 
-        if (field) {
-          field.value = v;
-          field.onChange(v);
-        }
+          if (isArray(t)) {
+            if (p === 'length') {
+              // check for truncated indexes that would be deleted without calling the trap
+              for (var index = prev - 1; index >= v; index--) {
+                onChange(index);
+              }
+
+              t[p] = v;
+              return true;
+            }
+          } else {
+            if (form_(v)) {
+              _throws("Cannot assign proxied data object");
+            } // apply changes to existing object or array when assigning new object or array
+            // so that fields of the same path can have consistent key and state
+
+
+            if (isArray(v) && isArray(prev)) {
+              prev.splice.apply(prev, [0, prev.length].concat(v));
+              return true;
+            }
+
+            if (isPlainObject(v) && form_(prev)) {
+              for (var i in exclude(prev, v)) {
+                delete prev[i];
+              }
+
+              extend(prev, v);
+              return true;
+            }
+          }
+
+          v = setValue(p, v);
+
+          if (onChange(p) && field) {
+            field.value = v;
+            handleDataChange.d.add(field);
+          }
+        });
       }
 
       return true;
     },
     deleteProperty: function deleteProperty(t, p) {
-      if (p in t) {
-        onChange(p);
-        delete t[p];
+      if (typeof p === 'string' && p in t) {
+        handleDataChange(function () {
+          deleteValue(p);
+          onChange(p);
+        });
       }
 
       return true;
     }
   });
 
-  form_(proxy, target);
+  form_(proxy, {
+    context: context,
+    uniqueId: uniqueId,
+    set: setValue,
+    "delete": deleteValue
+  });
 
+  each(initialData, function (i, v) {
+    setValue(i, v);
+  });
   return proxy;
+}
+
+function createFieldState(initialValue) {
+  var field = {
+    initialValue: initialValue,
+    value: initialValue,
+    error: '',
+    preset: {},
+    onChange: function onChange(v) {
+      if (field.props.onChange) {
+        field.props.onChange(cloneValue(v));
+      }
+    },
+    setValue: function setValue(v) {
+      v = isFunction(v) ? v(field.value) : v;
+
+      if (field.controlled) {
+        field.onChange(v);
+      } else {
+        field.value = v;
+      }
+    },
+    setError: function setError(v) {
+      field.error = isFunction(v) ? v(field.error) : v;
+      (field.form || {}).isValid = null;
+    },
+    elementRef: function elementRef(v) {
+      field.element = v;
+    }
+  };
+  watch(field, true);
+  defineObservableProperty(field, 'value', initialValue, function (newValue, oldValue) {
+    newValue = (field.preset.normalizeValue || pipe)(newValue, field.props);
+
+    if (newValue !== oldValue && form_(oldValue)) {
+      field.dict[field.name] = newValue;
+      return oldValue;
+    }
+
+    return newValue;
+  });
+  defineObservableProperty(field, 'error', '', function (v) {
+    return isFunction(v) ? wrapErrorResult(field, v) : v || '';
+  });
+  watch(field, 'value', function (v) {
+    if (field.dict) {
+      field.dict[field.name] = v;
+    } else if (!field.controlled) {
+      field.onChange(v);
+    }
+  });
+  watch(field, 'error', function (v) {
+    if (field.key) {
+      form_emitter.emit('validationChange', field.form, {
+        name: field.path,
+        isValid: !v,
+        message: String(v)
+      });
+    }
+  });
+  return field;
+}
+
+function useFormFieldInternal(form, state, field, preset, props, controlled, dict, key) {
+  var hasErrorProp = ('error' in props);
+  var prevKey = field.key || key;
+  extend(field, {
+    form: form,
+    props: props,
+    preset: preset,
+    controlled: controlled,
+    dict: dict,
+    key: key
+  });
+
+  if (form && key) {
+    field.name = key.slice(9);
+    field.path = getPath(form, dict, field.name);
+
+    if (prevKey !== key) {
+      field.locks = [];
+
+      if (!hasErrorProp) {
+        field.error = '';
+      }
+    }
+
+    state.fields[key] = field;
+  }
+
+  if (hasErrorProp) {
+    field.error = props.error;
+  }
+
+  (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
+    if (form && key) {
+      state.fields[key] = field;
+    }
+
+    return function () {
+      if (state && state.fields[key] === field) {
+        delete state.fields[key];
+
+        if (field.props.clearWhenUnmount) {
+          form_(dict)["delete"](key.slice(9));
+        }
+
+        state.setValid();
+      }
+    };
+  }, [state, field, key]);
+  (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
+    if (state) {
+      state.setValid();
+    }
+  }, [state, field.error, props.disabled, props.required]);
+}
+
+function validateFields(form, fields) {
+  var state = form_(form);
+
+  var imlicitErrors = map(fields, hasImplicitError);
+
+  var validate = function validate(field) {
+    var name = field.path;
+    var value = field.value;
+    return form_emitter.emit('validate', form, {
+      name: name,
+      value: value
+    }) || ((field.props || '').onValidate || noop)(value, name, form);
+  };
+
+  var promises = fields.map(function (v) {
+    var locks = v.locks || (v.locks = []);
+    var prev = locks[0];
+
+    if (prev) {
+      // debounce async validation
+      return locks[1] || (locks[1] = always(locks[0], function () {
+        var next = validate(v);
+        always(next, function () {
+          // dismiss effects of previous validation if later one resolves earlier
+          // so that validity always reflects on latest data
+          if (locks[0] === prev) {
+            locks.shift();
+          }
+        });
+        return next;
+      }));
+    }
+
+    locks[0] = resolve(validate(v));
+    return locks[0];
+  });
+  return resolveAll(promises).then(function (result) {
+    fields.forEach(function (v, i) {
+      // checks if current validation is of the latest
+      if (v.locks[0] === promises[i]) {
+        v.locks.shift();
+        v.error = result[i];
+      }
+
+      result[i] = result[i] || imlicitErrors[i];
+    });
+    state.setValid();
+    return !any(result);
+  });
 }
 
 function wrapErrorResult(field, error) {
@@ -920,12 +1281,11 @@ function FormContext(initialData, options, viewState) {
   var state = form_(self, {
     fields: fields,
     viewState: viewState,
-    vlocks: {},
+    paths: {},
     initialData: initialData,
     setValid: defineObservableProperty(this, 'isValid', true, function () {
-      return !any(fields, function (v, i) {
-        var props = v.props;
-        return !props.disabled && (v.error || props.required && (props.isEmpty || v.preset.isEmpty || isEmpty)(v.value));
+      return !any(fields, function (v) {
+        return !v.props.disabled && (v.error || hasImplicitError(v));
       });
     })
   });
@@ -934,46 +1294,27 @@ function FormContext(initialData, options, viewState) {
 
   self.ref = function (element) {
     state.ref = element;
+
+    if (element) {
+      instances.set(element, self);
+    }
   };
 
   self.isValid = true;
   self.data = createDataObject(self, viewState.get() || state.initialData);
-  self.on('dataChange', function (e) {
-    if (self.validateOnChange) {
-      var fieldsToValidate = grep(e.data, function (v) {
-        return fields[v] && fields[v].props.validateOnChange !== false;
-      });
-
-      if (fieldsToValidate[0]) {
-        self.validate.apply(self, fieldsToValidate);
-      }
-    }
-
-    if (self.preventLeave && !state.unlock) {
-      var promise = new Promise(function (resolve) {
-        state.unlock = function () {
-          state.unlock = null;
-          resolve();
-        };
-      });
-      preventLeave(state.ref || zeta_dom_dom.root, promise, function () {
-        return form_emitter.emit('beforeLeave', self) || reject();
-      });
-    }
-  });
 }
+util_define(FormContext, {
+  get: function get(element) {
+    return single(parentsAndSelf(element), instances.get.bind(instances)) || null;
+  }
+});
 definePrototype(FormContext, {
   element: function element(key) {
-    var field = form_(this).fields[key];
-
-    return field && field.element;
+    return key ? (getField(this, key) || '').element : form_(this).ref;
   },
   focus: function focus(key) {
     var element = this.element(key);
-
-    if (element) {
-      dom_focus(element);
-    }
+    return !!element && dom_focus(element);
   },
   on: function on(event, handler) {
     return form_emitter.add(this, event, handler);
@@ -1003,16 +1344,20 @@ definePrototype(FormContext, {
 
     var dict = form_(self.data);
 
-    for (var i in dict) {
-      delete dict[i];
+    for (var i in self.data) {
+      dict["delete"](i);
     }
 
-    extend(dict, data || state.initialData);
+    each(data || state.initialData, function (i, v) {
+      dict.set(i, v);
+    });
     each(state.fields, function (i, v) {
+      var prop = resolvePathInfo(self, v.path);
+
       if (v.controlled) {
-        v.onChange(i in dict ? dict[i] : v.initialValue);
-      } else if (i in dict) {
-        v.value = dict[i];
+        v.onChange(prop.exists ? prop.value : v.initialValue);
+      } else if (prop.exists) {
+        v.value = prop.value;
       }
 
       v.error = null;
@@ -1021,74 +1366,41 @@ definePrototype(FormContext, {
     (state.unlock || noop)();
     form_emitter.emit('reset', self);
   },
+  getValue: function getValue(key) {
+    return cloneValue(resolvePathInfo(this, key).value);
+  },
+  setValue: function setValue(key, value) {
+    var prop = resolvePathInfo(this, key);
+
+    if (prop.parent) {
+      prop.parent[prop.name] = cloneValue(value);
+    }
+  },
   getError: function getError(key) {
-    return String((form_(this).fields[key] || '').error || '');
+    return String((getField(this, key) || '').error || '');
   },
   setError: function setError(key, error) {
-    (form_(this).fields[key] || {}).error = error;
+    (getField(this, key) || {}).error = error;
   },
   validate: function validate() {
     var self = this;
 
-    var state = form_(self);
+    var fields = form_(self).fields;
 
-    var vlocks = state.vlocks;
-    var props = makeArray(arguments);
+    var prefix = makeArray(arguments);
 
-    if (!props.length) {
-      props = keys(state.fields);
+    if (!prefix[0]) {
+      return validateFields(self, grep(fields, function (v) {
+        return !v.props.disabled;
+      }));
     }
 
-    var validate = function validate(name) {
-      var field = state.fields[name];
-      var value = self.data[name];
-      var result = form_emitter.emit('validate', self, {
-        name: name,
-        value: value
+    return validateFields(self, grep(fields, function (v) {
+      return any(prefix, function (w) {
+        var len = w.length;
+        return v.path.slice(0, len) === w && (!v.path[len] || v.path[len] === '.');
       });
-
-      if (!result && field) {
-        result = (field.props.onValidate || noop)(value, name, self);
-      }
-
-      return result;
-    };
-
-    var promises = props.map(function (v) {
-      var arr = vlocks[v] = vlocks[v] || [];
-      var prev = arr[0];
-
-      if (prev) {
-        // debounce async validation
-        return arr[1] || (arr[1] = always(arr[0], function () {
-          var next = validate(v);
-          always(next, function () {
-            // dismiss effects of previous validation if later one resolves earlier
-            // so that validity always reflects on latest data
-            if (arr[0] === prev) {
-              arr.shift();
-            }
-          });
-          return next;
-        }));
-      }
-
-      arr[0] = resolve(validate(v));
-      return arr[0];
-    });
-    return resolveAll(promises).then(function (result) {
-      props.forEach(function (v, i) {
-        // checks if current validation is of the latest
-        if (vlocks[v][0] === promises[i]) {
-          vlocks[v].shift();
-          self.setError(v, result[i]);
-        }
-      });
-      state.setValid();
-      return !any(result, function (v) {
-        return v;
-      });
-    });
+    }));
   },
   toJSON: function toJSON() {
     return extend(true, {}, this.data);
@@ -1130,123 +1442,43 @@ function useFormField(type, props, defaultValue, prop) {
 
   var preset = type ? mapGet(presets, type, type) : {};
   prop = prop || preset.valueProperty || 'value';
-  var form = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useContext)(_FormContext);
-  var dict = form && form.data;
+  var dict = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useContext)(FormObjectContext);
+
+  var form = dict && form_(dict).context;
 
   var state = form && form_(form);
 
-  var key = props.name || '';
+  var name = props.name || '';
+  var key = form && name && keyFor(dict) + '.' + name;
   var controlled = (prop in props);
   var field = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)(function () {
-    var initialValue = controlled ? props[prop] : (preset.normalizeValue || pipe)(form && key in dict ? dict[key] : defaultValue !== undefined ? defaultValue : preset.defaultValue);
-    var field = {
-      initialValue: initialValue,
-      value: initialValue,
-      error: '',
-      onChange: function onChange(v) {
-        (field.props.onChange || noop)(v);
-      },
-      setValue: function setValue(v) {
-        v = isFunction(v) ? v(field.value) : v;
-
-        if (field.controlled) {
-          field.onChange(v);
-        } else {
-          field.value = v;
-        }
-      },
-      setError: function setError(v) {
-        field.error = isFunction(v) ? v(field.error) : v;
-      },
-      elementRef: function elementRef(v) {
-        field.element = v;
-      }
-    };
-    watch(field, true);
-    defineObservableProperty(field, 'value', initialValue, function (v) {
-      return (field.preset.normalizeValue || pipe)(v, field.props);
-    });
-    defineObservableProperty(field, 'error', '', function (v) {
-      return isFunction(v) ? wrapErrorResult(field, v) : v || '';
-    });
-    watch(field, 'value', function (v) {
-      if (field.dict) {
-        field.dict[field.name] = v;
-      } else if (!field.controlled) {
-        field.onChange(v);
-      }
-    });
-    watch(field, 'error', function (v) {
-      if (field.dict && field.name) {
-        form_emitter.emit('validationChange', field.form, {
-          name: field.name,
-          isValid: !v,
-          message: String(v)
-        });
-      }
-    });
-    return field;
+    var initialValue = controlled ? props[prop] : (preset.normalizeValue || pipe)(form && name in dict ? dict[name] : defaultValue !== undefined ? defaultValue : preset.defaultValue);
+    return createFieldState(initialValue);
   })[0];
-  var hasErrorProp = ('error' in props);
-  var prevKey = field.name || key;
-  extend(field, {
-    form: form,
-    preset: preset,
-    props: props,
-    controlled: controlled,
-    dict: dict,
-    name: key
-  });
+  useFormFieldInternal(form, state, field, preset, props, controlled, dict, key);
 
   if (controlled) {
     field.value = props[prop];
   }
 
-  if (hasErrorProp) {
-    field.error = props.error;
-  }
-
   if (form && key) {
-    state.fields[key] = field;
-
-    if (!hasErrorProp && key !== prevKey) {
-      field.error = '';
-    }
-
-    if (!(key in dict)) {
-      form_(dict)[key] = field.initialValue;
-      field.value = dict[key];
-    } else if (!controlled && key !== prevKey) {
-      field.value = dict[key];
+    if (!(name in dict)) {
+      field.value = form_(dict).set(name, field.initialValue);
+    } else if (!controlled) {
+      field.value = dict[name];
     }
   }
 
   var state1 = (preset.postHook || pipe)({
     form: form,
+    key: key,
+    path: field.path,
     value: field.value,
     error: String(field.error),
     setValue: field.setValue,
     setError: field.setError,
     elementRef: field.elementRef
   }, props);
-  (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
-    return function () {
-      if (state && state.fields[key] === field) {
-        delete state.fields[key];
-
-        if (field.props.clearWhenUnmount) {
-          delete form_(field.dict)[key];
-        }
-
-        state.setValid();
-      }
-    };
-  }, [state, key]);
-  (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
-    if (state) {
-      state.setValid();
-    }
-  }, [state, field.error, props.disabled, props.required]);
   state1.value = useObservableProperty(field, 'value');
   state1.error = String(useObservableProperty(field, 'error'));
   return state1;
@@ -1290,13 +1522,72 @@ var Form = /*#__PURE__*/(0,external_commonjs_react_commonjs2_react_amd_react_roo
   };
 
   extend(form, pick(props, ['enterKeyHint', 'preventLeave']));
-  return /*#__PURE__*/(0,external_commonjs_react_commonjs2_react_amd_react_root_React_.createElement)(FormContextProvider, {
-    value: form
+  return /*#__PURE__*/(0,external_commonjs_react_commonjs2_react_amd_react_root_React_.createElement)(FormObjectProvider, {
+    value: form.data
   }, /*#__PURE__*/(0,external_commonjs_react_commonjs2_react_amd_react_root_React_.createElement)('form', extend(exclude(props, ['context', 'enterKeyHint', 'preventLeave']), {
     ref: combineRef(ref, form.ref),
     onSubmit: onSubmit,
     onReset: onReset
   })));
+});
+function FormContextProvider(props) {
+  return /*#__PURE__*/(0,external_commonjs_react_commonjs2_react_amd_react_root_React_.createElement)(FormObjectProvider, {
+    value: props.value.data
+  }, props.children);
+}
+function FormArray(props) {
+  return FormObject(extend({}, props, {
+    defaultValue: []
+  }));
+}
+function FormObject(props) {
+  var dict = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useContext)(FormObjectContext);
+
+  if (!form_(dict)) {
+    _throws('Missing form context');
+  }
+
+  var fieldRef = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useRef)();
+
+  var form = form_(dict).context;
+
+  var state = form_(form);
+
+  var name = props.name;
+  var value = props.value;
+
+  if (name) {
+    value = isPlainObject(dict[name]) || isArray(dict[name]) || props.defaultValue || {};
+    value = form_(dict).set(name, value);
+  } else if (!(form_(value) || '').context) {
+    _throws('Value must be a data object or array');
+  } // field state registered by useFormField has a higher priority
+  // create own field state only when needed
+
+
+  var key = state.paths[keyFor(value)];
+
+  if (typeof (state.fields[key] || '').controlled !== 'boolean') {
+    var field = fieldRef.current || (fieldRef.current = createFieldState(value));
+    useFormFieldInternal(form, state, field, {}, props, 0, dict, key);
+    field.value = value;
+  } else {
+    (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(noop, [null]);
+    (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(noop, [null]);
+  }
+
+  var children = props.children;
+
+  if (isFunction(children)) {
+    children = children(value);
+  }
+
+  return /*#__PURE__*/(0,external_commonjs_react_commonjs2_react_amd_react_root_React_.createElement)(FormObjectProvider, {
+    value: value
+  }, children);
+}
+util_define(FormObject, {
+  keyFor: keyFor
 });
 
 function normalizeChoiceItems(items) {
