@@ -1,17 +1,18 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { defineObservableProperty, each, watch } from "./include/zeta-dom/util.js";
 import { bind } from "./include/zeta-dom/domUtil.js";
 import { useDispose, useUpdateTrigger } from "./hooks.js";
 
 export function useMediaQuery(query) {
-    var onDispose = useDispose();
-    var state = useState(function () {
-        var mq = matchMedia(query);
-        onDispose.push(bind(mq, 'change', () => {
+    var mq = useMemo(function () {
+        return matchMedia(query);
+    }, [query]);
+    var state = useState(mq.matches);
+    useEffect(function () {
+        return bind(mq, 'change', function () {
             state[1](mq.matches);
-        }));
-        return mq.matches;
-    });
+        });
+    }, [mq]);
     return state[0];
 }
 
