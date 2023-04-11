@@ -2,7 +2,7 @@ import React, { createRef, useEffect, useRef, useState } from "react";
 import { act as renderAct, render } from "@testing-library/react";
 import { act, renderHook } from '@testing-library/react-hooks'
 import { ViewStateProvider } from "src/viewState";
-import { ChoiceField, combineValidators, Form, FormArray, FormContext, FormContextProvider, FormObject, MultiChoiceField, TextField, ToggleField, useFormContext, useFormField } from "src/form";
+import { ChoiceField, combineValidators, Form, FormArray, FormContext, FormContextProvider, FormObject, MultiChoiceField, NumericField, TextField, ToggleField, useFormContext, useFormField } from "src/form";
 import { body, delay, mockFn, verifyCalls, _ } from "@misonou/test-utils";
 import dom from "zeta-dom/dom";
 import { cancelLock, locked } from "zeta-dom/domLock";
@@ -879,6 +879,86 @@ describe('useFormField - multiChoice', () => {
 
         act(() => result.current.setValue(null));
         expect(result.current.value).toEqual([]);
+    });
+});
+
+describe('useFormField - numeric', () => {
+    it('should clamp value to minimum value', () => {
+        const { result } = renderHook(() => useFormField(NumericField, { min: 10 }, 0));
+        expect(result.current.value).toBe(10);
+    });
+
+    it('should clamp value to maximum value', () => {
+        const { result } = renderHook(() => useFormField(NumericField, { max: -10 }, 0));
+        expect(result.current.value).toBe(-10);
+    });
+
+    it('should round value to multiple of such number if step is specified', () => {
+        const { result } = renderHook(() => useFormField(NumericField, { step: 10 }, 0));
+        expect(result.current.value).toBe(0);
+
+        act(() => result.current.setValue(14));
+        expect(result.current.value).toBe(10);
+
+        act(() => result.current.setValue(16));
+        expect(result.current.value).toBe(20);
+
+        act(() => result.current.setValue(-14));
+        expect(result.current.value).toBe(-10);
+
+        act(() => result.current.setValue(-16));
+        expect(result.current.value).toBe(-20);
+    });
+
+    it('should round value correctly if step is a decimal number', () => {
+        const { result } = renderHook(() => useFormField(NumericField, { step: 0.5 }, 0));
+        expect(result.current.value).toBe(0);
+
+        act(() => result.current.setValue(1.6));
+        expect(result.current.value).toBe(1.5);
+    });
+
+    it('should clamp value correctly if step is also specified', () => {
+        const { result } = renderHook(() => useFormField(NumericField, { min: 2, max: 18, step: 10 }, 0));
+        expect(result.current.value).toBe(2);
+
+        act(() => result.current.setValue(4));
+        expect(result.current.value).toBe(2);
+
+        act(() => result.current.setValue(16));
+        expect(result.current.value).toBe(18);
+    });
+
+    it('should ignore if step is a negative number', () => {
+        const { result } = renderHook(() => useFormField(NumericField, { step: -10 }, 0));
+        expect(result.current.value).toBe(0);
+
+        act(() => result.current.setValue(16));
+        expect(result.current.value).toBe(16);
+    });
+
+    it('should normalize value as number or undefined if it is not a number', () => {
+        const { result } = renderHook(() => useFormField(NumericField, { allowEmpty: true }, 0));
+        expect(result.current.value).toEqual(0);
+
+        act(() => result.current.setValue('1'));
+        expect(result.current.value).toEqual(1);
+
+        act(() => result.current.setValue(true));
+        expect(result.current.value).toEqual(1);
+
+        act(() => result.current.setValue('abc'));
+        expect(result.current.value).toEqual(undefined);
+    });
+
+    it('should default value to 0 if allowEmpty is not set to true', () => {
+        const { result } = renderHook(() => useFormField(NumericField, { allowEmpty: false }));
+        expect(result.current.value).toEqual(0);
+    });
+
+    it('should default value to minimum value if allowEmpty is not set to true', () => {
+        const { result } = renderHook(() => useFormField(NumericField, { allowEmpty: false, min: -10 }));
+        expect(result.current.value).toEqual(-10);
     });
 });
 

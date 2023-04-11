@@ -475,6 +475,7 @@ declare global {
             θ2: ReactFieldType<typeof ToggleField, ToggleFieldState>;
             θ3: ReactFieldType<typeof ChoiceField, ChoiceFieldState<Props extends ChoiceFieldProps<infer V> ? V : ChoiceItem>>;
             θ4: ReactFieldType<typeof MultiChoiceField, MultiChoiceFieldState<Props extends MultiChoiceFieldProps<infer V> ? V : ChoiceItem>>;
+            θ5: ReactFieldType<typeof NumericField, NumericFieldState>;
         }
     }
 }
@@ -483,6 +484,7 @@ export const TextField: FieldTypeConstructor<TextFieldProps, TextFieldState<stri
 export const ToggleField: FieldTypeConstructor<ToggleFieldProps, ToggleFieldState>;
 export const ChoiceField: FieldTypeConstructor<ChoiceFieldProps, ChoiceFieldState>;
 export const MultiChoiceField: FieldTypeConstructor<MultiChoiceFieldProps, MultiChoiceFieldState>;
+export const NumericField: FieldTypeConstructor<NumericFieldProps, NumericFieldState>;
 
 export type TextInputAttributes = Pick<React.InputHTMLAttributes<HTMLInputElement>, 'autoComplete' | 'enterKeyHint' | 'inputMode' | 'maxLength' | 'placeholder' | 'type'>;
 
@@ -576,4 +578,29 @@ export interface MultiChoiceFieldState<T extends ChoiceItem = ChoiceItem> extend
      * @param selected If true, the item is added to the array if it is not present; otherwise the item is removed from the array if it is present.
      */
     toggleValue(value: ChoiceItemValueType<T>, selected: boolean);
+}
+
+export interface NumericFieldProps extends FormFieldProps<number> {
+    /**
+     * Specifies the minimum value allowed.
+     * Value will be automatically set to this value if a smaller value is entered.
+     */
+    min?: number;
+    /**
+     * Specifies the maximum value allowed.
+     * Value will be automatically set to this value if a larger value is entered.
+     */
+    max?: number;
+    /**
+     * Specifies that the field value must be a multiple of such number.
+     * If not specified or `0` is supplied, field value can have arbitary decimal places. Negative values will be ignored.
+     */
+    step?: number;
+    /**
+     * Specifies whether the field can be empty.
+     */
+    allowEmpty?: boolean;
+}
+
+export interface NumericFieldState extends FormFieldState<number> {
 }
