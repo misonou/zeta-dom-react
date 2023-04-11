@@ -765,6 +765,20 @@ describe('useFormField - toggle', () => {
         unmount();
     });
 
+    it('should normalize value as boolean', () => {
+        const { result } = renderHook(() => useFormField(ToggleField, {}, false));
+        expect(result.current.value).toEqual(false);
+
+        act(() => result.current.setValue('1'));
+        expect(result.current.value).toEqual(true);
+
+        act(() => result.current.setValue(0));
+        expect(result.current.value).toEqual(false);
+
+        act(() => result.current.setValue(undefined));
+        expect(result.current.value).toEqual(false);
+    });
+
     it('should default value to false if not supplied', () => {
         const { result } = renderHook(() => useFormField(ToggleField, {}));
         expect(result.current.value).toBe(false);

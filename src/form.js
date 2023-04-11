@@ -747,6 +747,9 @@ export function MultiChoiceField() {
 export function ToggleField() {
     this.defaultValue = false;
     this.valueProperty = 'checked';
+    this.normalizeValue = function (value) {
+        return !!value;
+    };
     this.isEmpty = function (value) {
         return !value;
     };
