@@ -1,8 +1,9 @@
 export const FormContextProvider: React.Provider<FormContext>;
 export const Form: <T>(props: FormProps<T>) => JSX.Element;
 
-export type ValidateResult = null | undefined | string | Stringifiable | ((props: any) => string);
+export type ValidateResult = null | undefined | string | Stringifiable | ValidationError | ((props: FormFieldProps<any>) => string);
 export type ValidateCallback<T = any> = (value: T, name: string, form: FormContext) => ValidateResult | Promise<ValidateResult>;
+export type FormatErrorCallback = (err: ValidationError, name: string | null, props: FormFieldProps & Zeta.Dictionary, form: FormContext | null) => string | undefined;
 
 type WithFallback<T, U> = [T] extends [never] ? U : T;
 type FieldValueType<T> = T extends FormFieldProps<any, infer V> ? V extends any[] ? V : Partial<V> : any;
@@ -16,6 +17,29 @@ type FieldPostHookCallback = <S extends FormFieldState, P extends FormFieldProps
 export interface Stringifiable {
     toString(): string;
     [Symbol.toPrimitive](): string;
+}
+
+export class ValidationError {
+    /**
+     * Creates an object representing the invalid condition.
+     * @param kind Unique name identifying the kind of validation.
+     * @param message Default error message. The message can be overriden by `formatError` callback in field, form or global level.
+     * @param args Arguments passed to the validator, usually an object containing dynamic constraints.
+     */
+    constructor(kind: string, message: string, args?: any);
+
+    /**
+     * Gets the kind of validation.
+     */
+    readonly kind: string;
+    /**
+     * Gets the default error message.
+     */
+    readonly message: string;
+    /**
+     * Gets the arguments passed to the validator, usually an object containing dynamic constraints.
+     */
+    readonly args: any;
 }
 
 interface FormObjectHelper {
@@ -182,6 +206,13 @@ export interface FormFieldProps<T = any, V = T> {
      * @param value Current value of the field.
      */
     onChange?: (value: V) => void;
+    /**
+     * Specifies a callback to generate custom error message for this particular field.
+     *
+     * The first argument will be the {@link ValidationError} instance returned from validation callback.
+     * Note that the callback will not be invoked for values other than {@link ValidationError}.
+     */
+    formatError?: FormatErrorCallback;
 }
 
 export interface FormFieldState<T = any> {
@@ -217,7 +248,7 @@ export interface FormFieldState<T = any> {
      * Sets validation error.
      * Falsy values like `null`, `undefined` or empty string indicates the field is valid.
      */
-    readonly setError: React.Dispatch<React.SetStateAction<null | undefined | string | Stringifiable>>;
+    readonly setError: React.Dispatch<React.SetStateAction<null | undefined | string | Stringifiable | ValidationError>>;
     /**
      * A callback to be passed to `ref` attribute to capture the rendered DOM element.
      * The element can be retrieved by {@link FormContext.element}.
@@ -225,7 +256,7 @@ export interface FormFieldState<T = any> {
     readonly elementRef: React.RefCallback<HTMLElement>;
 }
 
-export interface FormProps<T = any> extends React.ComponentPropsWithRef<'form'>, Pick<FormContextOptions, 'enterKeyHint' | 'preventLeave'> {
+export interface FormProps<T = any> extends React.ComponentPropsWithRef<'form'>, Pick<FormContextOptions, 'enterKeyHint' | 'preventLeave' | 'formatError'> {
     context: FormContext<T>;
 }
 
@@ -271,6 +302,13 @@ export interface FormContextOptions {
      * Sets the default action label (or icon) to present for the enter key on virtual keyboards.
      */
     enterKeyHint?: 'enter' | 'done' | 'go' | 'next' | 'previous' | 'search' | 'send';
+    /**
+     * Specifies a callback to generate custom error message for fields associated with this form context.
+     *
+     * The first argument will be the {@link ValidationError} instance returned from validation callback.
+     * Note that the callback will not be invoked for values other than {@link ValidationError}.
+     */
+    formatError?: FormatErrorCallback;
 }
 
 export class FormContext<T extends object = Zeta.Dictionary<any>> {
@@ -296,6 +334,22 @@ export class FormContext<T extends object = Zeta.Dictionary<any>> {
      * Sets the default action label (or icon) to present for the enter key on virtual keyboards.
      */
     enterKeyHint?: 'enter' | 'done' | 'go' | 'next' | 'previous' | 'search' | 'send';
+
+    /**
+     * Specifies a callback to generate custom error message for fields associated with this form context.
+     *
+     * The first argument will be the {@link ValidationError} instance returned from validation callback.
+     * Note that the callback will not be invoked for values other than {@link ValidationError}.
+     */
+    formatError?: FormatErrorCallback;
+
+    /**
+     * Specifies a callback to generate custom error message globally.
+     *
+     * The first argument will be the {@link ValidationError} instance returned from validation callback.
+     * Note that the callback will not be invoked for values other than {@link ValidationError}.
+     */
+    static formatError?: FormatErrorCallback;
 
     /**
      * Gets the associated {@link FormContext} instance for the given element.

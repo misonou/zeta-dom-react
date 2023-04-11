@@ -2,7 +2,7 @@ import React, { createRef, useEffect, useRef, useState } from "react";
 import { act as renderAct, render } from "@testing-library/react";
 import { act, renderHook } from '@testing-library/react-hooks'
 import { ViewStateProvider } from "src/viewState";
-import { ChoiceField, combineValidators, Form, FormArray, FormContext, FormContextProvider, FormObject, MultiChoiceField, NumericField, TextField, ToggleField, useFormContext, useFormField } from "src/form";
+import { ChoiceField, combineValidators, Form, FormArray, FormContext, FormContextProvider, FormObject, MultiChoiceField, NumericField, TextField, ToggleField, useFormContext, useFormField, ValidationError } from "src/form";
 import { body, delay, mockFn, verifyCalls, _ } from "@misonou/test-utils";
 import dom from "zeta-dom/dom";
 import { cancelLock, locked } from "zeta-dom/domLock";
@@ -49,6 +49,10 @@ function Field(props) {
     useFormField(props, '');
     return <></>;
 }
+
+beforeEach(() => {
+    FormContext.formatError = undefined;
+});
 
 describe('useFormContext', () => {
     it('should cause re-render when data has changed', async () => {
@@ -325,6 +329,79 @@ describe('useFormField', () => {
         expect(result.current.error).toBe('');
         act(() => result.current.setError('foo'));
         expect(result.current.error).toBe('foo');
+    });
+
+    it('should update error with error message from ValidationError object by default', () => {
+        const { result } = renderHook(() => useFormField({}, ''));
+        expect(result.current.error).toBe('');
+        act(() => result.current.setError(new ValidationError('custom', 'test', {})));
+        expect(result.current.error).toBe('test');
+    });
+
+    it('should call formatError callback when error is a ValidationError object', () => {
+        const formatError = mockFn().mockReturnValue('foo');
+        const { form, wrapper } = createFormContext();
+        const { result } = renderHook(() => useFormField({ name: 'foo', formatError }, ''), { wrapper });
+        expect(result.current.error).toBe('');
+
+        const error = new ValidationError('custom', 'test', {});
+        act(() => result.current.setError(error));
+        expect(result.current.error).toBe('foo');
+        expect(formatError).lastCalledWith(error, 'foo', expect.objectContaining({ formatError }), form);
+    });
+
+    it('should call formatError callback with name and form equal to null when there is no form context', () => {
+        const formatError = mockFn().mockReturnValue('foo');
+        const { result } = renderHook(() => useFormField({ name: 'foo', formatError }, ''));
+        expect(result.current.error).toBe('');
+
+        const error = new ValidationError('custom', 'test', {});
+        act(() => result.current.setError(error));
+        expect(result.current.error).toBe('foo');
+        expect(formatError).lastCalledWith(error, null, expect.objectContaining({ formatError }), null);
+    });
+
+    it('should not call formatError callback when error is not a ValidationError object', () => {
+        const formatError = mockFn().mockReturnValue('foo');
+        const { result } = renderHook(() => useFormField({ formatError }, ''));
+        expect(result.current.error).toBe('');
+
+        act(() => result.current.setError('foo'));
+        expect(result.current.error).toBe('foo');
+        expect(formatError).not.toBeCalled();
+    });
+
+    it('should call form-level formatError callback when error message is not returned in field-level', () => {
+        const formatError = mockFn();
+        const formatErrorReal = mockFn().mockReturnValue('foo');
+        const { form, wrapper } = createFormContext();
+        const { result } = renderHook(() => useFormField({ name: 'foo', formatError }, ''), { wrapper });
+        expect(result.current.error).toBe('');
+
+        form.formatError = formatErrorReal;
+
+        const error = new ValidationError('custom', 'test', {});
+        act(() => result.current.setError(error));
+        expect(result.current.error).toBe('foo');
+        expect(formatError).lastCalledWith(error, 'foo', expect.objectContaining({ formatError }), form);
+        expect(formatErrorReal).lastCalledWith(error, 'foo', expect.objectContaining({ formatError }), form);
+    });
+
+    it('should call global-level formatError callback when error message is not returned in field-level or form-level', () => {
+        const formatError = mockFn();
+        const formatErrorReal = mockFn().mockReturnValue('foo');
+        const { form, wrapper } = createFormContext();
+        const { result } = renderHook(() => useFormField({ name: 'foo', formatError }, ''), { wrapper });
+        expect(result.current.error).toBe('');
+
+        form.formatError = formatError;
+        FormContext.formatError = formatErrorReal;
+
+        const error = new ValidationError('custom', 'test', {});
+        act(() => result.current.setError(error));
+        expect(result.current.error).toBe('foo');
+        expect(formatError).lastCalledWith(error, 'foo', expect.objectContaining({ formatError }), form);
+        expect(formatErrorReal).lastCalledWith(error, 'foo', expect.objectContaining({ formatError }), form);
     });
 
     it('should update value when value in form.data changed for named field', async () => {

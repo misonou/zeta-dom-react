@@ -1,5 +1,5 @@
 import { createContext, createElement, forwardRef, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { always, any, combineFn, createPrivateStore, define, defineObservableProperty, definePrototype, each, either, exclude, extend, grep, hasOwnProperty, isArray, isFunction, isPlainObject, isUndefinedOrNull, keys, makeArray, map, mapGet, mapRemove, noop, pick, pipe, randomId, reject, resolve, resolveAll, setImmediateOnce, single, splice, throws, values, watch } from "./include/zeta-dom/util.js";
+import { always, any, combineFn, createPrivateStore, define, defineObservableProperty, definePrototype, each, either, exclude, extend, grep, hasOwnProperty, is, isArray, isFunction, isPlainObject, isUndefinedOrNull, keys, makeArray, map, mapGet, mapRemove, noop, pick, pipe, randomId, reject, resolve, resolveAll, setImmediateOnce, single, splice, throws, watch } from "./include/zeta-dom/util.js";
 import { ZetaEventContainer } from "./include/zeta-dom/events.js";
 import dom, { focus } from "./include/zeta-dom/dom.js";
 import { preventLeave } from "./include/zeta-dom/domLock.js";
@@ -22,6 +22,12 @@ const fieldTypes = {
 /** @type {React.Context<any>} */
 const FormObjectContext = createContext(null);
 const FormObjectProvider = FormObjectContext.Provider;
+
+export function ValidationError(kind, message, args) {
+    this.kind = kind;
+    this.args = args;
+    this.message = message;
+}
 
 function isEmpty(value) {
     return isUndefinedOrNull(value) || value === '' || (isArray(value) && !value.length);
@@ -258,7 +264,7 @@ function createFieldState(initialValue) {
         return newValue;
     });
     defineObservableProperty(field, 'error', '', function (v) {
-        return isFunction(v) ? wrapErrorResult(field, v) : v || '';
+        return isFunction(v) || is(v, ValidationError) ? wrapErrorResult(field, v) : v || '';
     });
     watch(field, 'value', function (v) {
         if (field.dict) {
@@ -363,6 +369,11 @@ function validateFields(form, fields) {
 function wrapErrorResult(field, error) {
     return {
         toString: function () {
+            if (is(error, ValidationError)) {
+                return single([field.props, field.form || '', FormContext], function (v) {
+                    return (v.formatError || noop).call(v, error, field.path || null, field.props, field.form);
+                }) || error.message;
+            }
             return error(field.props || {});
         }
     };
@@ -605,9 +616,9 @@ export const Form = forwardRef(function (props, ref) {
         form.reset();
         (props.onReset || noop).call(this, e);
     };
-    extend(form, pick(props, ['enterKeyHint', 'preventLeave']));
+    extend(form, pick(props, ['enterKeyHint', 'preventLeave', 'formatError']));
     return createElement(FormObjectProvider, { value: form.data },
-        createElement('form', extend(exclude(props, ['context', 'enterKeyHint', 'preventLeave']), { ref: combineRef(ref, form.ref), onSubmit, onReset })));
+        createElement('form', extend(exclude(props, ['context', 'enterKeyHint', 'preventLeave', 'formatError']), { ref: combineRef(ref, form.ref), onSubmit, onReset })));
 });
 
 export function FormContextProvider(props) {
