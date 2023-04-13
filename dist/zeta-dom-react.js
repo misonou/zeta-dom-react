@@ -103,8 +103,10 @@ __webpack_require__.d(src_namespaceObject, {
   "FormContextProvider": () => (FormContextProvider),
   "FormObject": () => (FormObject),
   "MultiChoiceField": () => (MultiChoiceField),
+  "NumericField": () => (NumericField),
   "TextField": () => (TextField),
   "ToggleField": () => (ToggleField),
+  "ValidationError": () => (ValidationError),
   "ViewStateProvider": () => (ViewStateProvider),
   "classNames": () => (classNames),
   "combineRef": () => (combineRef),
@@ -526,14 +528,15 @@ function useErrorHandler() {
 
 
 function useMediaQuery(query) {
-  var onDispose = useDispose();
-  var state = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)(function () {
-    var mq = matchMedia(query);
-    onDispose.push(bind(mq, 'change', function () {
+  var mq = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useMemo)(function () {
+    return matchMedia(query);
+  }, [query]);
+  var state = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)(mq.matches);
+  (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
+    return bind(mq, 'change', function () {
       state[1](mq.matches);
-    }));
-    return mq.matches;
-  });
+    });
+  }, [mq]);
   return state[0];
 }
 /**
@@ -852,6 +855,11 @@ var fieldTypes = {
 
 var FormObjectContext = /*#__PURE__*/(0,external_commonjs_react_commonjs2_react_amd_react_root_React_.createContext)(null);
 var FormObjectProvider = FormObjectContext.Provider;
+function ValidationError(kind, message, args) {
+  this.kind = kind;
+  this.args = args;
+  this.message = message;
+}
 
 function isEmpty(value) {
   return isUndefinedOrNull(value) || value === '' || isArray(value) && !value.length;
@@ -1125,7 +1133,7 @@ function createFieldState(initialValue) {
     return newValue;
   });
   defineObservableProperty(field, 'error', '', function (v) {
-    return isFunction(v) ? wrapErrorResult(field, v) : v || '';
+    return isFunction(v) || is(v, ValidationError) ? wrapErrorResult(field, v) : v || '';
   });
   watch(field, 'value', function (v) {
     if (field.dict) {
@@ -1255,6 +1263,12 @@ function validateFields(form, fields) {
 function wrapErrorResult(field, error) {
   return {
     toString: function toString() {
+      if (is(error, ValidationError)) {
+        return single([field.props, field.form || '', FormContext], function (v) {
+          return (v.formatError || noop).call(v, error, field.path || null, field.props, field.form);
+        }) || error.message;
+      }
+
       return error(field.props || {});
     }
   };
@@ -1521,10 +1535,10 @@ var Form = /*#__PURE__*/(0,external_commonjs_react_commonjs2_react_amd_react_roo
     (props.onReset || noop).call(this, e);
   };
 
-  extend(form, pick(props, ['enterKeyHint', 'preventLeave']));
+  extend(form, pick(props, ['enterKeyHint', 'preventLeave', 'formatError']));
   return /*#__PURE__*/(0,external_commonjs_react_commonjs2_react_amd_react_root_React_.createElement)(FormObjectProvider, {
     value: form.data
-  }, /*#__PURE__*/(0,external_commonjs_react_commonjs2_react_amd_react_root_React_.createElement)('form', extend(exclude(props, ['context', 'enterKeyHint', 'preventLeave']), {
+  }, /*#__PURE__*/(0,external_commonjs_react_commonjs2_react_amd_react_root_React_.createElement)('form', extend(exclude(props, ['context', 'enterKeyHint', 'preventLeave', 'formatError']), {
     ref: combineRef(ref, form.ref),
     onSubmit: onSubmit,
     onReset: onReset
@@ -1696,8 +1710,40 @@ function ToggleField() {
   this.defaultValue = false;
   this.valueProperty = 'checked';
 
+  this.normalizeValue = function (value) {
+    return !!value;
+  };
+
   this.isEmpty = function (value) {
     return !value;
+  };
+}
+function NumericField() {
+  this.normalizeValue = function (newValue) {
+    newValue = +newValue;
+    return isNaN(newValue) ? undefined : newValue;
+  };
+
+  this.postHook = function (state, props) {
+    var value = state.value;
+    var min = props.min;
+    var max = props.max;
+    var step = props.step;
+    var allowEmpty = props.allowEmpty;
+    (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
+      var rounded = step > 0 ? Math.round(value / step) * step : value;
+
+      if (rounded < min || isNaN(rounded) && !allowEmpty) {
+        rounded = min || 0;
+      } else if (rounded > max) {
+        rounded = max;
+      }
+
+      if (rounded !== value) {
+        state.setValue(rounded);
+      }
+    }, [value, min, max, step, allowEmpty]);
+    return state;
   };
 }
 ;// CONCATENATED MODULE: ./src/index.js
