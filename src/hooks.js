@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dom from "./include/zeta-dom/dom.js";
 import { notifyAsync } from "./include/zeta-dom/domLock.js";
 import { ZetaEventContainer } from "./include/zeta-dom/events.js";
-import { always, combineFn, deferrable, delay, extend, is, isArray, isErrorWithCode, isFunction, makeArray, makeAsync, map, pipe, resolve, setAdd, watch } from "./include/zeta-dom/util.js";
+import { always, any, combineFn, deferrable, delay, extend, is, isArray, isErrorWithCode, isFunction, makeArray, makeAsync, map, pipe, resolve, setAdd, watch } from "./include/zeta-dom/util.js";
 
 const fnWeakMap = new WeakMap();
 const container = new ZetaEventContainer();
@@ -156,10 +156,16 @@ export function useErrorHandler() {
             },
             catch: function (filter, callback) {
                 var isErrorOf;
-                if (callback) {
+                if (!callback) {
+                    callback = filter;
+                } else if (!isArray(filter)) {
                     isErrorOf = isFunction(filter) ? is : isErrorWithCode;
                 } else {
-                    callback = filter;
+                    isErrorOf = function (error, filter) {
+                        return any(filter, function (filter) {
+                            return (isFunction(filter) ? is : isErrorWithCode)(error, filter);
+                        });
+                    };
                 }
                 return container.add(handler, isErrorOf ? 'error' : 'default', function (e) {
                     if ((isErrorOf || pipe)(e.error, filter)) {

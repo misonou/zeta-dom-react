@@ -359,6 +359,27 @@ describe('useErrorHandler', () => {
         unmount();
     });
 
+    it('should catch error with any specific error code', () => {
+        const cb = mockFn();
+        const Component = function () {
+            let errorHandler = useErrorHandler();
+            useEffect(() => {
+                errorHandler.catch(['test', 'test2'], cb);
+            }, [errorHandler]);
+            return (
+                <div ref={errorHandler.ref}>
+                    <button>button</button>
+                </div>
+            );
+        };
+        const { unmount } = render(<Component />);
+        dom.emit('error', screen.getByRole('button'), { error: errorWithCode('test') }, true);
+        dom.emit('error', screen.getByRole('button'), { error: errorWithCode('test2') }, true);
+        dom.emit('error', screen.getByRole('button'), { error: new Error() }, true);
+        expect(cb).toBeCalledTimes(2);
+        unmount();
+    });
+
     it('should catch error with specific type', () => {
         class CustomError extends Error { }
         const cb = mockFn();
@@ -378,6 +399,29 @@ describe('useErrorHandler', () => {
         dom.emit('error', screen.getByRole('button'), { error }, true);
         dom.emit('error', screen.getByRole('button'), { error: new Error() }, true);
         expect(cb).toBeCalledTimes(1);
+        unmount();
+    });
+
+    it('should catch error with any specific type', () => {
+        class CustomError extends Error { }
+        class CustomError2 extends Error { }
+        const cb = mockFn();
+        const Component = function () {
+            let errorHandler = useErrorHandler();
+            useEffect(() => {
+                errorHandler.catch([CustomError, CustomError2], cb);
+            }, [errorHandler]);
+            return (
+                <div ref={errorHandler.ref}>
+                    <button>button</button>
+                </div>
+            );
+        };
+        const { unmount } = render(<Component />);
+        dom.emit('error', screen.getByRole('button'), { error: new CustomError() }, true);
+        dom.emit('error', screen.getByRole('button'), { error: new CustomError2() }, true);
+        dom.emit('error', screen.getByRole('button'), { error: new Error() }, true);
+        expect(cb).toBeCalledTimes(2);
         unmount();
     });
 
