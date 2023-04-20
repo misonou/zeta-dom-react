@@ -3,7 +3,7 @@ import { always, any, combineFn, createPrivateStore, define, defineObservablePro
 import { ZetaEventContainer } from "./include/zeta-dom/events.js";
 import dom, { focus } from "./include/zeta-dom/dom.js";
 import { preventLeave } from "./include/zeta-dom/domLock.js";
-import { parentsAndSelf } from "./include/zeta-dom/domUtil.js";
+import { comparePosition, parentsAndSelf } from "./include/zeta-dom/domUtil.js";
 import { useMemoizedFunction, useObservableProperty, useUpdateTrigger } from "./hooks.js";
 import { combineRef } from "./util.js";
 import { useViewState } from "./viewState.js";
@@ -418,6 +418,8 @@ export function FormContext(initialData, options, viewState) {
 }
 
 define(FormContext, {
+    ERROR_FIELD: 1,
+    EMPTY_FIELD: 2,
     get: function (element) {
         return single(parentsAndSelf(element), instances.get.bind(instances)) || null;
     }
@@ -428,7 +430,14 @@ definePrototype(FormContext, {
         return key ? (getField(this, key) || '').element : _(this).ref;
     },
     focus: function (key) {
-        var element = this.element(key);
+        var element;
+        if (typeof key === 'number') {
+            element = map(_(this).fields, function (v) {
+                return (v.error && (key & 1)) || (isEmpty(v.value) && (key & 2)) ? v.element : null;
+            }).sort(comparePosition)[0];
+        } else {
+            element = this.element(key);
+        }
         return !!element && focus(element);
     },
     on: function (event, handler) {

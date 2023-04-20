@@ -1482,6 +1482,76 @@ describe('FormContext#focus', () => {
         expect(dom.activeElement).toBe(cb.mock.calls[0][0]);
         unmount();
     });
+
+    it('should set focus to element of first error field in document order', async () => {
+        const Field = function (props) {
+            const { elementRef } = useFormField(props, '');
+            return (<input ref={elementRef} />);
+        };
+        const renderForm = createFormComponent(() => (
+            <div>
+                <Field name="foo" />
+                <Field name="bar" onValidate={() => 'error'} />
+                <Field name="baz" onValidate={() => 'error'} />
+            </div>
+        ));
+        const { form, unmount } = renderForm();
+        await renderAct(async () => {
+            await form.validate();
+        });
+        form.focus(FormContext.ERROR_FIELD);
+        expect(dom.activeElement).toBe(form.element('bar'));
+        unmount();
+    });
+
+    it('should set focus to element of first empty field in document order', async () => {
+        const Field = function (props) {
+            const { elementRef } = useFormField(props, '');
+            return (<input ref={elementRef} />);
+        };
+        const renderForm = createFormComponent(() => (
+            <div>
+                <Field name="foo" value="foo" />
+                <Field name="bar" />
+                <Field name="baz" />
+            </div>
+        ));
+        const { form, unmount } = renderForm();
+        form.focus(FormContext.EMPTY_FIELD);
+        expect(dom.activeElement).toBe(form.element('bar'));
+        unmount();
+    });
+
+    it('should set focus to element of first empty or error field in document order', async () => {
+        const Field = function (props) {
+            const { elementRef } = useFormField(props, '');
+            return (<input ref={elementRef} />);
+        };
+        const renderForm = createFormComponent(() => (
+            <div>
+                <Field name="foo" value="foo" />
+                <Field name="bar" onValidate={() => 'error'} />
+                <Field name="baz" onValidate={() => 'error'} />
+            </div>
+        ));
+        const { form, unmount } = renderForm();
+        form.focus(FormContext.EMPTY_FIELD | FormContext.ERROR_FIELD);
+        expect(dom.activeElement).toBe(form.element('bar'));
+
+        await renderAct(async () => {
+            form.validateOnChange = false;
+            form.data.bar = 'bar';
+        });
+        form.focus(FormContext.EMPTY_FIELD | FormContext.ERROR_FIELD);
+        expect(dom.activeElement).toBe(form.element('baz'));
+
+        await renderAct(async () => {
+            await form.validate('bar');
+        });
+        form.focus(FormContext.EMPTY_FIELD | FormContext.ERROR_FIELD);
+        expect(dom.activeElement).toBe(form.element('bar'));
+        unmount();
+    });
 });
 
 describe('FormContext#getValue', () => {

@@ -312,6 +312,9 @@ export interface FormContextOptions {
 }
 
 export class FormContext<T extends object = Zeta.Dictionary<any>> {
+    static readonly ERROR_FIELD = 1;
+    static readonly EMPTY_FIELD = 2;
+
     readonly isValid: boolean;
     readonly data: Partial<T>;
     readonly ref: React.RefCallback<HTMLFormElement>;
@@ -376,6 +379,13 @@ export class FormContext<T extends object = Zeta.Dictionary<any>> {
      * @returns Whether the given element is set focused.
      */
     focus(): boolean;
+
+    /**
+     * Focus the first field of the specified kind.
+     * @param kind Bitwise combination of {@link FormContext.ERROR_FIELD} or {@link FormContext.EMPTY_FIELD}.
+     * @returns Whether the given element is set focused.
+     */
+    focus(kind: number): boolean;
 
     /**
      * Focus the input element for the specified field.
