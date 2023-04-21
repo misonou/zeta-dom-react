@@ -1,10 +1,10 @@
-import { createContext, createElement, forwardRef, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { always, any, combineFn, createPrivateStore, define, defineObservableProperty, definePrototype, each, either, exclude, extend, grep, hasOwnProperty, is, isArray, isFunction, isPlainObject, isUndefinedOrNull, keys, makeArray, map, mapGet, mapRemove, noop, pick, pipe, randomId, reject, resolve, resolveAll, setImmediateOnce, single, splice, throws, watch } from "./include/zeta-dom/util.js";
+import { createContext, createElement, forwardRef, useContext, useEffect, useRef, useState } from "react";
+import { always, any, combineFn, createPrivateStore, define, defineObservableProperty, definePrototype, each, exclude, extend, grep, hasOwnProperty, is, isArray, isFunction, isPlainObject, isUndefinedOrNull, keys, makeArray, map, mapGet, mapRemove, noop, pick, pipe, randomId, reject, resolve, resolveAll, setImmediateOnce, single, throws, watch } from "./include/zeta-dom/util.js";
 import { ZetaEventContainer } from "./include/zeta-dom/events.js";
 import dom, { focus } from "./include/zeta-dom/dom.js";
 import { preventLeave } from "./include/zeta-dom/domLock.js";
 import { comparePosition, parentsAndSelf } from "./include/zeta-dom/domUtil.js";
-import { useMemoizedFunction, useObservableProperty, useUpdateTrigger } from "./hooks.js";
+import { useObservableProperty, useUpdateTrigger } from "./hooks.js";
 import { combineRef } from "./util.js";
 import { useViewState } from "./viewState.js";
 
@@ -674,129 +674,16 @@ export function FormObject(props) {
 
 define(FormObject, { keyFor });
 
-function normalizeChoiceItems(items) {
-    return useMemo(function () {
-        return (items || []).map(function (v) {
-            return typeof v === 'object' ? v : { label: String(v), value: v };
-        });
-    }, [items]);
-}
+import ChoiceField from "./fields/ChoiceField.js";
+import MultiChoiceField from "./fields/MultiChoiceField.js";
+import NumericField from "./fields/NumericField.js";
+import TextField from "./fields/TextField.js";
+import ToggleField from "./fields/ToggleField.js";
 
-export function TextField() {
-    this.defaultValue = '';
-    this.postHook = function (state, props) {
-        var form = state.form;
-        var inputProps = pick(props, ['type', 'autoComplete', 'maxLength', 'inputMode', 'placeholder', 'enterKeyHint']);
-        if (props.type === 'password' && !inputProps.autoComplete) {
-            inputProps.autoComplete = 'current-password';
-        }
-        inputProps.type = inputProps.type || 'text';
-        inputProps.enterKeyHint = inputProps.enterKeyHint || (form && form.enterKeyHint);
-        return extend(state, {
-            inputProps: inputProps
-        });
-    };
-}
-
-export function ChoiceField() {
-    this.defaultValue = '';
-    this.postHook = function (state, props) {
-        var items = normalizeChoiceItems(props.items);
-        var selectedIndex = items.findIndex(function (v) {
-            return v.value === state.value;
-        });
-        useEffect(() => {
-            if (selectedIndex < 0) {
-                selectedIndex = props.allowUnselect || !items[0] ? -1 : 0;
-                state.setValue(selectedIndex < 0 ? '' : items[0].value);
-            }
-        });
-        return extend(state, {
-            items: items,
-            selectedIndex: selectedIndex,
-            selectedItem: items[selectedIndex]
-        });
-    };
-}
-
-export function MultiChoiceField() {
-    this.defaultValue = [];
-    this.normalizeValue = function (newValue) {
-        return isArray(newValue) || makeArray(newValue);
-    };
-    this.postHook = function (state, props) {
-        var allowCustomValues = props.allowCustomValues || !props.items;
-        var items = normalizeChoiceItems(props.items);
-        var isUnknown = function (value) {
-            return !items.some(function (v) {
-                return v.value === value;
-            });
-        };
-        var toggleValue = useMemoizedFunction(function (value, selected) {
-            if (allowCustomValues || !isUnknown(value)) {
-                state.setValue(function (arr) {
-                    var index = arr.indexOf(value);
-                    if (isUndefinedOrNull(selected) || either(index < 0, selected)) {
-                        arr = makeArray(arr);
-                        if (index < 0) {
-                            arr.push(value);
-                        } else {
-                            arr.splice(index, 1);
-                        }
-                    }
-                    return arr;
-                });
-            }
-        });
-        useEffect(() => {
-            if (!allowCustomValues) {
-                var cur = makeArray(state.value);
-                var arr = splice(cur, isUnknown);
-                if (arr.length) {
-                    state.setValue(cur);
-                }
-            }
-        });
-        return extend(state, {
-            items: items,
-            toggleValue: toggleValue
-        });
-    };
-}
-
-export function ToggleField() {
-    this.defaultValue = false;
-    this.valueProperty = 'checked';
-    this.normalizeValue = function (value) {
-        return !!value;
-    };
-    this.isEmpty = function (value) {
-        return !value;
-    };
-}
-
-export function NumericField() {
-    this.normalizeValue = function (newValue) {
-        newValue = +newValue;
-        return isNaN(newValue) ? undefined : newValue;
-    };
-    this.postHook = function (state, props) {
-        var value = state.value;
-        var min = props.min;
-        var max = props.max;
-        var step = props.step;
-        var allowEmpty = props.allowEmpty;
-        useEffect(function () {
-            var rounded = step > 0 ? Math.round(value / step) * step : value;
-            if (rounded < min || (isNaN(rounded) && !allowEmpty)) {
-                rounded = min || 0;
-            } else if (rounded > max) {
-                rounded = max;
-            }
-            if (rounded !== value) {
-                state.setValue(rounded);
-            }
-        }, [value, min, max, step, allowEmpty]);
-        return state;
-    };
+export {
+    ChoiceField,
+    MultiChoiceField,
+    NumericField,
+    TextField,
+    ToggleField
 }

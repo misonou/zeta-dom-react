@@ -111,12 +111,12 @@ export interface FieldType<P extends FormFieldProps, S extends FormFieldState> {
     /**
      * Specifies default value when there initial value has not been passed or set.
      */
-    defaultValue?: FieldValueType<P>;
+    readonly defaultValue?: FieldValueType<P>;
     /**
      * Specifies the name of prop that will control {@link FormFieldState.value} when specified.
      * Default is `value`.
      */
-    valueProperty?: string;
+    readonly valueProperty?: string;
     /**
      * Overrides default behavior of empty field checking.
      * The field is invalid when it is required and the `isEmpty` callback return `true`.
@@ -128,7 +128,7 @@ export interface FieldType<P extends FormFieldProps, S extends FormFieldState> {
      * @param value Field value being set to.
      * @param props Props passed to {@link useFormField}.
      */
-    normalizeValue?(value: FieldValueType<P>, props: P): FieldValueType<P>;
+    normalizeValue?(value: any, props: P): FieldValueType<P>;
     /**
      * Applies additional logic and modification to field state.
      * @param state Untouched field state returned from hook.
@@ -544,127 +544,22 @@ declare global {
     }
 }
 
-export const TextField: FieldTypeConstructor<TextFieldProps, TextFieldState<string>>
-export const ToggleField: FieldTypeConstructor<ToggleFieldProps, ToggleFieldState>;
-export const ChoiceField: FieldTypeConstructor<ChoiceFieldProps, ChoiceFieldState>;
-export const MultiChoiceField: FieldTypeConstructor<MultiChoiceFieldProps, MultiChoiceFieldState>;
-export const NumericField: FieldTypeConstructor<NumericFieldProps, NumericFieldState>;
+import ChoiceField, { ChoiceFieldState, ChoiceFieldProps, ChoiceItem } from "./fields/ChoiceField";
+import MultiChoiceField, { MultiChoiceFieldProps, MultiChoiceFieldState } from "./fields/MultiChoiceField";
+import NumericField, { NumericFieldState } from "./fields/NumericField";
+import TextField, { TextFieldState } from "./fields/TextField";
+import ToggleField, { ToggleFieldState } from "./fields/ToggleField";
 
-export type TextInputAttributes = Pick<React.InputHTMLAttributes<HTMLInputElement>, 'autoComplete' | 'enterKeyHint' | 'inputMode' | 'maxLength' | 'placeholder' | 'type'>;
+export type * from "./fields/ChoiceField";
+export type * from "./fields/MultiChoiceField";
+export type * from "./fields/NumericField";
+export type * from "./fields/TextField";
+export type * from "./fields/ToggleField";
 
-export interface TextFieldProps<T = string, V = T> extends FormFieldProps<T, V>, TextInputAttributes {
-    /**
-     * Specifies the text input type.
-     */
-    type?: 'color' | 'date' | 'datetime-local' | 'email' | 'month' | 'number' | 'password' | 'tel' | 'text' | 'time' | 'url' | 'week' | string & {};
-}
-
-export interface TextFieldState<T> extends FormFieldState<T> {
-    /**
-     * Returns HTML attributes to be applied to an input element.
-     */
-    readonly inputProps: TextInputAttributes;
-}
-
-export interface ToggleFieldProps<T = string> extends FormFieldProps<T, boolean> {
-    /**
-     * Whether the field is checked.
-     */
-    checked?: boolean;
-}
-
-export interface ToggleFieldState extends FormFieldState<boolean> {
-}
-
-type ChoiceItemValueType<T extends ChoiceItem> = T extends ChoiceItem<infer U> ? U : any;
-
-export interface ChoiceItem<T = any> {
-    value: T;
-    label: string;
-    hidden?: boolean;
-    disabled?: boolean;
-}
-
-export interface ChoiceFieldProps<T extends ChoiceItem = ChoiceItem> extends FormFieldProps<ChoiceItemValueType<T> | ''> {
-    /**
-     * A list of items as choices.
-     * Primitive values in the list will be normalized as {@link ChoiceItem}.
-     */
-    items: readonly (T | Extract<T['value'], number | string | boolean>)[];
-    /**
-     * Whether the field can be empty, i.e. none of the choices are selected.
-     */
-    allowUnselect?: boolean;
-}
-
-export interface ChoiceFieldState<T extends ChoiceItem = ChoiceItem> extends FormFieldState<ChoiceItemValueType<T> | ''> {
-    /**
-     * Returns a list of choices as normalized items.
-     */
-    readonly items: T[];
-    /**
-     * Returns the index of selected item, `-1` if there's none.
-     */
-    readonly selectedIndex: number;
-    /**
-     * Returns the selected item.
-     */
-    readonly selectedItem: T | undefined;
-}
-
-export interface MultiChoiceFieldProps<T extends ChoiceItem = ChoiceItem> extends FormFieldProps<ChoiceItemValueType<T>[]> {
-    /**
-     * A list of items as choices.
-     * Primitive values in the list will be normalized as {@link ChoiceItem}.
-     * If not specified, `allowCustomValues` will be set to `true`.
-     */
-    items?: readonly (T | Extract<T['value'], number | string | boolean>)[];
-    /**
-     * Whether values not in the list of items are allowed.
-     */
-    allowCustomValues?: boolean;
-}
-
-export interface MultiChoiceFieldState<T extends ChoiceItem = ChoiceItem> extends FormFieldState<readonly ChoiceItemValueType<T>[]> {
-    /**
-     * Returns a list of choices as normalized items.
-     */
-    readonly items: T[];
-    /**
-     * Toggles the presence of the specified item in the value array associated with the field.
-     * If the item is already present, the item will be removed; otherwise the item will be added.
-     * @param value Item value.
-     */
-    toggleValue(value: ChoiceItemValueType<T>);
-    /**
-     * Adds or removes the specified item to/from the value array associated with the field.
-     * @param value Item value.
-     * @param selected If true, the item is added to the array if it is not present; otherwise the item is removed from the array if it is present.
-     */
-    toggleValue(value: ChoiceItemValueType<T>, selected: boolean);
-}
-
-export interface NumericFieldProps extends FormFieldProps<number> {
-    /**
-     * Specifies the minimum value allowed.
-     * Value will be automatically set to this value if a smaller value is entered.
-     */
-    min?: number;
-    /**
-     * Specifies the maximum value allowed.
-     * Value will be automatically set to this value if a larger value is entered.
-     */
-    max?: number;
-    /**
-     * Specifies that the field value must be a multiple of such number.
-     * If not specified or `0` is supplied, field value can have arbitary decimal places. Negative values will be ignored.
-     */
-    step?: number;
-    /**
-     * Specifies whether the field can be empty.
-     */
-    allowEmpty?: boolean;
-}
-
-export interface NumericFieldState extends FormFieldState<number> {
+export {
+    ChoiceField,
+    MultiChoiceField,
+    NumericField,
+    TextField,
+    ToggleField
 }
