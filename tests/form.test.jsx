@@ -2,11 +2,36 @@ import React, { createRef, useEffect, useRef, useState } from "react";
 import { act as renderAct, render } from "@testing-library/react";
 import { act, renderHook } from '@testing-library/react-hooks'
 import { ViewStateProvider } from "src/viewState";
-import { ChoiceField, combineValidators, Form, FormArray, FormContext, FormContextProvider, FormObject, MultiChoiceField, NumericField, TextField, ToggleField, useFormContext, useFormField, ValidationError } from "src/form";
+import { ChoiceField, combineValidators, DateField, Form, FormArray, FormContext, FormContextProvider, FormObject, MultiChoiceField, NumericField, TextField, ToggleField, useFormContext, useFormField, ValidationError } from "src/form";
 import { body, delay, mockFn, verifyCalls, _ } from "@misonou/test-utils";
 import dom from "zeta-dom/dom";
 import { cancelLock, locked } from "zeta-dom/domLock";
 import { catchAsync, combineFn, setImmediate } from "zeta-dom/util";
+
+function toDateComponent(y, m, d, h = 0, n = 0, s = 0, ms = 0) {
+    if (y instanceof Date) {
+        return {
+            y: y.getFullYear(),
+            m: y.getMonth() + 1,
+            d: y.getDate(),
+            h: y.getHours(),
+            n: y.getMinutes(),
+            s: y.getSeconds(),
+            ms: y.getMilliseconds()
+        };
+    }
+    return { y, m, d, h, n, s, ms };
+}
+
+function fromRelativeDate(y, m, w, d) {
+    var date = new Date();
+    date.setHours(0, 0, 0, 0);
+    date.setFullYear(date.getFullYear() + y);
+    date.setMonth(date.getMonth() + m);
+    date.setDate(date.getDate() + (w * 7));
+    date.setDate(date.getDate() + d);
+    return date;
+}
 
 function createFormContext(initialData, validateOnChange) {
     const { result: { current: form }, unmount } = renderHook(() => useFormContext(initialData, validateOnChange));
@@ -1036,6 +1061,106 @@ describe('useFormField - numeric', () => {
     it('should default value to minimum value if allowEmpty is not set to true', () => {
         const { result } = renderHook(() => useFormField(NumericField, { allowEmpty: false, min: -10 }));
         expect(result.current.value).toEqual(-10);
+    });
+});
+
+describe('useFormField - date', () => {
+    it('should clamp value to minimum value', () => {
+        const { result } = renderHook(() => useFormField(DateField, { min: '2020-01-01' }, '2019-12-31'));
+        expect(result.current.value).toBe('2020-01-01');
+    });
+
+    it('should clamp value to maximum value', () => {
+        const { result } = renderHook(() => useFormField(DateField, { max: '2020-01-01' }, '2020-01-02'));
+        expect(result.current.value).toBe('2020-01-01');
+    });
+
+    it('should normalize min and max', () => {
+        const { result, rerender } = renderHook(({ fmt }) => useFormField(DateField, { max: fmt, min: fmt }), { initialProps: { fmt: '' } });
+        expect(result.current.min).toBe('');
+        expect(result.current.max).toBe('');
+
+        rerender({ fmt: '2020/02/02 12:34:56' });
+        expect(result.current.min).toBe('2020-02-02');
+        expect(result.current.max).toBe('2020-02-02');
+    });
+
+    it('should accept number or Date object for min and max', () => {
+        const ts = new Date(2020, 1, 2, 12, 34, 56);
+        const { result, rerender } = renderHook(({ fmt }) => useFormField(DateField, { max: fmt, min: fmt }), { initialProps: { fmt: ts } });
+        expect(result.current.min).toBe('2020-02-02');
+        expect(result.current.max).toBe('2020-02-02');
+
+        rerender({ fmt: +ts });
+        expect(result.current.min).toBe('2020-02-02');
+        expect(result.current.max).toBe('2020-02-02');
+    });
+
+    it('should accept relative dates for min and max', () => {
+        const { result, rerender } = renderHook(({ fmt }) => useFormField(DateField, { max: fmt, min: fmt }), { initialProps: { fmt: '+1d' } });
+        expect(result.current.max).toBe(DateField.toDateString(fromRelativeDate(0, 0, 0, 1)));
+
+        rerender({ fmt: '+1y1m1w1d' });
+        expect(result.current.min).toBe(DateField.toDateString(fromRelativeDate(1, 1, 1, 1)));
+        expect(result.current.max).toBe(DateField.toDateString(fromRelativeDate(1, 1, 1, 1)));
+
+        rerender({ fmt: '-1y1m1w1d' });
+        expect(result.current.min).toBe(DateField.toDateString(fromRelativeDate(-1, -1, -1, -1)));
+        expect(result.current.max).toBe(DateField.toDateString(fromRelativeDate(-1, -1, -1, -1)));
+
+        rerender({ fmt: '-1y+1m1w+1d' });
+        expect(result.current.min).toBe(DateField.toDateString(fromRelativeDate(-1, 1, -1, 1)));
+        expect(result.current.max).toBe(DateField.toDateString(fromRelativeDate(-1, 1, -1, 1)));
+    });
+
+    it('should return formatted text returned by formatDate', () => {
+        const formatDisplay = mockFn().mockImplementation(v => v.toDateString());
+        const { result } = renderHook(() => useFormField(DateField, { formatDisplay }, '2020-01-02'));
+
+        expect(formatDisplay).toBeCalled();
+        expect(toDateComponent(formatDisplay.mock.calls[0][0])).toEqual(toDateComponent(2020, 1, 2))
+        expect(result.current.displayText).toBe(DateField.toDateObject(result.current.value).toDateString());
+    });
+
+    it('should normalize value to standard format', () => {
+        const { result } = renderHook(() => useFormField(DateField, {}));
+        expect(result.current.value).toBe('');
+
+        act(() => result.current.setValue('2020/02/02 12:34:56'));
+        expect(result.current.value).toBe('2020-02-02');
+    });
+
+    it('should normalize value to empty string for invalid date', () => {
+        const { result } = renderHook(() => useFormField(DateField, {}));
+        expect(result.current.value).toBe('');
+
+        act(() => result.current.setValue(new Date('Invalid')));
+        expect(result.current.value).toBe('');
+
+        act(() => result.current.setValue(NaN));
+        expect(result.current.value).toBe('');
+    });
+});
+
+describe('DateField.toDateObject', () => {
+    it('should return midnight local time', () => {
+        expect(toDateComponent(DateField.toDateObject('2020-02-02'))).toEqual(toDateComponent(2020, 2, 2));
+        expect(toDateComponent(DateField.toDateObject('2020/02/02 12:34:56'))).toEqual(toDateComponent(2020, 2, 2));
+    });
+
+    it('should return null for invalid date', () => {
+        expect(DateField.toDateObject('Invalid')).toBeNull();
+    });
+});
+
+describe('DateField.toDateString', () => {
+    it('should return string in standard format', () => {
+        expect(DateField.toDateString(new Date(2020, 1, 2, 12, 34, 56))).toBe('2020-02-02');
+    });
+
+    it('should return empty string for invalid date', () => {
+        expect(DateField.toDateString(new Date('Invalid'))).toBe('');
+        expect(DateField.toDateString(NaN)).toBe('');
     });
 });
 

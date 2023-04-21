@@ -675,6 +675,7 @@ export function FormObject(props) {
 define(FormObject, { keyFor });
 
 import ChoiceField from "./fields/ChoiceField.js";
+import DateField from "./fields/DateField.js";
 import MultiChoiceField from "./fields/MultiChoiceField.js";
 import NumericField from "./fields/NumericField.js";
 import TextField from "./fields/TextField.js";
@@ -682,6 +683,7 @@ import ToggleField from "./fields/ToggleField.js";
 
 export {
     ChoiceField,
+    DateField,
     MultiChoiceField,
     NumericField,
     TextField,

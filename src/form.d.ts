@@ -540,17 +540,20 @@ declare global {
             θ3: ReactFieldType<typeof ChoiceField, ChoiceFieldState<Props extends ChoiceFieldProps<infer V> ? V : ChoiceItem>>;
             θ4: ReactFieldType<typeof MultiChoiceField, MultiChoiceFieldState<Props extends MultiChoiceFieldProps<infer V> ? V : ChoiceItem>>;
             θ5: ReactFieldType<typeof NumericField, NumericFieldState>;
+            θ6: ReactFieldType<typeof DateField, DateFieldState>;
         }
     }
 }
 
 import ChoiceField, { ChoiceFieldState, ChoiceFieldProps, ChoiceItem } from "./fields/ChoiceField";
+import DateField, { DateFieldState } from "./fields/DateField";
 import MultiChoiceField, { MultiChoiceFieldProps, MultiChoiceFieldState } from "./fields/MultiChoiceField";
 import NumericField, { NumericFieldState } from "./fields/NumericField";
 import TextField, { TextFieldState } from "./fields/TextField";
 import ToggleField, { ToggleFieldState } from "./fields/ToggleField";
 
 export type * from "./fields/ChoiceField";
+export type * from "./fields/DateField";
 export type * from "./fields/MultiChoiceField";
 export type * from "./fields/NumericField";
 export type * from "./fields/TextField";
@@ -558,6 +561,7 @@ export type * from "./fields/ToggleField";
 
 export {
     ChoiceField,
+    DateField,
     MultiChoiceField,
     NumericField,
     TextField,
