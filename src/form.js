@@ -533,6 +533,7 @@ export function useFormContext(persistKey, initialData, options) {
                 (_(form).unlock || noop)();
                 if (form.autoPersist) {
                     form.persist();
+                    form.autoPersist = true;
                 }
             }
         );
