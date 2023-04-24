@@ -4,7 +4,6 @@ import { notifyAsync } from "./include/zeta-dom/domLock.js";
 import { ZetaEventContainer } from "./include/zeta-dom/events.js";
 import { always, any, combineFn, deferrable, delay, extend, is, isArray, isErrorWithCode, isFunction, makeArray, makeAsync, map, pipe, resolve, setAdd, watch } from "./include/zeta-dom/util.js";
 
-const fnWeakMap = new WeakMap();
 const container = new ZetaEventContainer();
 
 export function useUpdateTrigger() {
@@ -15,12 +14,11 @@ export function useUpdateTrigger() {
 }
 
 export function useMemoizedFunction(callback) {
-    const fn = useCallback(function fn() {
-        const cb = fnWeakMap.get(fn);
-        return cb && cb.apply(this, arguments);
+    const ref = useRef();
+    ref.current = isFunction(callback) || noop;
+    return useCallback(function () {
+        return ref.current.apply(this, arguments);
     }, []);
-    fnWeakMap.set(fn, callback);
-    return fn;
 }
 
 export function useObservableProperty(obj, key) {
