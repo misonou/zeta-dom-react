@@ -267,7 +267,7 @@ function createFieldState(initialValue) {
         return isFunction(v) || is(v, ValidationError) ? wrapErrorResult(field, v) : v || '';
     });
     watch(field, 'value', function (v) {
-        if (field.dict) {
+        if (field.key) {
             field.dict[field.name] = v;
         } else if (!field.controlled) {
             field.onChange(v);

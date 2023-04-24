@@ -429,6 +429,16 @@ describe('useFormField', () => {
         expect(formatErrorReal).lastCalledWith(error, 'foo', expect.objectContaining({ formatError }), form);
     });
 
+    it('should not update form.data for unnamed field', async () => {
+        const { form, wrapper } = createFormContext();
+        const { result } = renderHook(() => useFormField({}, ''), { wrapper });
+        act(() => result.current.setValue('a'));
+        expect(form.data).not.toHaveProperty('undefined');
+        expect(form.data).not.toHaveProperty('null');
+        expect(form.data).not.toHaveProperty('false');
+        expect(form.data).not.toHaveProperty('');
+    });
+
     it('should update value when value in form.data changed for named field', async () => {
         const { form, wrapper } = createFormContext();
         const { result } = renderHook(() => useFormField({ name: 'foo' }, ''), { wrapper });
