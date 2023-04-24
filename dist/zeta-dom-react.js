@@ -97,6 +97,7 @@ __webpack_require__.r(src_namespaceObject);
 __webpack_require__.d(src_namespaceObject, {
   "ChoiceField": () => (ChoiceField),
   "DataView": () => (DataView),
+  "DateField": () => (DateField),
   "Form": () => (Form),
   "FormArray": () => (FormArray),
   "FormContext": () => (FormContext),
@@ -139,7 +140,7 @@ var external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_zeta_ = __we
 ;// CONCATENATED MODULE: ./tmp/zeta-dom/util.js
 
 var _zeta$util = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_zeta_.util,
-    noop = _zeta$util.noop,
+    util_noop = _zeta$util.noop,
     pipe = _zeta$util.pipe,
     either = _zeta$util.either,
     is = _zeta$util.is,
@@ -218,8 +219,6 @@ var _zeta$util = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root
     delay = _zeta$util.delay,
     makeAsync = _zeta$util.makeAsync;
 
-;// CONCATENATED MODULE: ./src/include/zeta-dom/util.js
-
 ;// CONCATENATED MODULE: ./tmp/zeta-dom/domUtil.js
 
 var domUtil_zeta$util = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_zeta_.util,
@@ -262,8 +261,6 @@ var domUtil_zeta$util = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_d
     mergeRect = domUtil_zeta$util.mergeRect,
     elementFromPoint = domUtil_zeta$util.elementFromPoint;
 
-;// CONCATENATED MODULE: ./src/include/zeta-dom/domUtil.js
-
 ;// CONCATENATED MODULE: ./tmp/zeta-dom/dom.js
 
 var _defaultExport = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_zeta_.dom;
@@ -297,13 +294,9 @@ var domLock_zeta$dom = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_do
     notifyAsync = domLock_zeta$dom.notifyAsync,
     preventLeave = domLock_zeta$dom.preventLeave;
 
-;// CONCATENATED MODULE: ./src/include/zeta-dom/domLock.js
-
 ;// CONCATENATED MODULE: ./tmp/zeta-dom/events.js
 
 var ZetaEventContainer = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_zeta_.EventContainer;
-
-;// CONCATENATED MODULE: ./src/include/zeta-dom/events.js
 
 ;// CONCATENATED MODULE: ./src/hooks.js
 
@@ -311,7 +304,6 @@ var ZetaEventContainer = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_
 
 
 
-var fnWeakMap = new WeakMap();
 var container = new ZetaEventContainer();
 function useUpdateTrigger() {
   var setState = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)()[1];
@@ -320,12 +312,11 @@ function useUpdateTrigger() {
   }, []);
 }
 function useMemoizedFunction(callback) {
-  var fn = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useCallback)(function fn() {
-    var cb = fnWeakMap.get(fn);
-    return cb && cb.apply(this, arguments);
+  var ref = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useRef)();
+  ref.current = isFunction(callback) || noop;
+  return (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useCallback)(function () {
+    return ref.current.apply(this, arguments);
   }, []);
-  fnWeakMap.set(fn, callback);
-  return fn;
 }
 function useObservableProperty(obj, key) {
   var forceUpdate = useUpdateTrigger();
@@ -475,10 +466,16 @@ function useErrorHandler() {
       "catch": function _catch(filter, callback) {
         var isErrorOf;
 
-        if (callback) {
+        if (!callback) {
+          callback = filter;
+        } else if (!isArray(filter)) {
           isErrorOf = isFunction(filter) ? is : isErrorWithCode;
         } else {
-          callback = filter;
+          isErrorOf = function isErrorOf(error, filter) {
+            return any(filter, function (filter) {
+              return (isFunction(filter) ? is : isErrorWithCode)(error, filter);
+            });
+          };
         }
 
         return container.add(handler, isErrorOf ? 'error' : 'default', function (e) {
@@ -572,8 +569,8 @@ function createBreakpointContext(breakpoints) {
 
 var ViewStateProviderContext = /*#__PURE__*/(0,external_commonjs_react_commonjs2_react_amd_react_root_React_.createContext)(null);
 var noopStorage = Object.freeze({
-  get: noop,
-  set: noop
+  get: util_noop,
+  set: util_noop
 });
 var ViewStateProvider = ViewStateProviderContext.Provider;
 function useViewState(key) {
@@ -747,7 +744,7 @@ function useDataView(persistKey, filters, sortBy, sortOrder, pageSize) {
     return combineFn(dataView.on('viewChange', forceUpdate), viewState.onPopState ? viewState.onPopState(function (newValue) {
       viewState.set(dataView.toJSON());
       extend(dataView, newValue || state.defaults);
-    }) : noop, function () {
+    }) : util_noop, function () {
       viewState.set(dataView.toJSON());
     });
   }, [dataView]);
@@ -811,7 +808,7 @@ function toRefCallback(ref) {
     };
   }
 
-  return ref || noop;
+  return ref || util_noop;
 }
 function withSuspense(factory, fallback) {
   fallback = fallback || external_commonjs_react_commonjs2_react_amd_react_root_React_.Fragment;
@@ -827,9 +824,272 @@ function withSuspense(factory, fallback) {
     }, /*#__PURE__*/(0,external_commonjs_react_commonjs2_react_amd_react_root_React_.createElement)(Component, props));
   };
 }
-;// CONCATENATED MODULE: ./src/form.js
+;// CONCATENATED MODULE: ./src/fields/ChoiceField.js
 function _typeof(obj) { "@babel/helpers - typeof"; return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (obj) { return typeof obj; } : function (obj) { return obj && "function" == typeof Symbol && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }, _typeof(obj); }
 
+
+
+function ChoiceField() {}
+
+function normalizeChoiceItems(items) {
+  return (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useMemo)(function () {
+    return (items || []).map(function (v) {
+      return _typeof(v) === 'object' ? v : {
+        label: String(v),
+        value: v
+      };
+    });
+  }, [items]);
+}
+
+util_define(ChoiceField, {
+  normalizeItems: normalizeChoiceItems
+});
+definePrototype(ChoiceField, {
+  defaultValue: '',
+  postHook: function postHook(state, props) {
+    var items = normalizeChoiceItems(props.items);
+    var selectedIndex = items.findIndex(function (v) {
+      return v.value === state.value;
+    });
+    (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
+      if (selectedIndex < 0) {
+        selectedIndex = props.allowUnselect || !items[0] ? -1 : 0;
+        state.setValue(selectedIndex < 0 ? '' : items[0].value);
+      }
+    });
+    return extend(state, {
+      items: items,
+      selectedIndex: selectedIndex,
+      selectedItem: items[selectedIndex]
+    });
+  }
+});
+;// CONCATENATED MODULE: ./src/fields/DateField.js
+
+
+
+var re = /^-?\d{4,}-\d{2}-\d{2}$/;
+var tz = new Date().getTimezoneOffset() * 60000; // method mapping for relative date units
+
+var units = {
+  y: ['getFullYear', 'setFullYear'],
+  m: ['getMonth', 'setMonth'],
+  d: ['getDate', 'setDate']
+};
+units.w = units.d;
+
+function parseRelativeDate(str) {
+  var date = toDateObject(Date.now());
+  var dir = str[0] === '-' ? -1 : 1;
+  str.toLowerCase().replace(/([+-]?)(\d+)([dwmy])/g, function (v, a, b, c) {
+    date[units[c][1]](date[units[c][0]]() + b * (a === '-' ? -1 : a === '+' ? 1 : dir) * (c === 'w' ? 7 : 1));
+  });
+  return date;
+}
+
+function normalizeDate(date) {
+  if (typeof date === 'string') {
+    if (re.test(date)) {
+      return Date.parse(date + ' 00:00');
+    }
+
+    date = date[0] === '+' || date[0] === '-' ? parseRelativeDate(date) : Date.parse(date);
+  }
+
+  return date - (date - tz) % 86400000;
+}
+
+function clampValue(date, min, max) {
+  var ts = is(date, Date) || normalizeDate(date);
+  return ts < min ? min : ts > max ? max : date;
+}
+
+function toDateObject(str) {
+  var ts = normalizeDate(str);
+  return isNaN(ts) ? null : new Date(ts);
+}
+
+function toDateString(date) {
+  if (!isNaN(date)) {
+    // counter UTC conversion due to toISOString
+    var str = new Date(date - tz).toISOString();
+    return str.slice(0, str.indexOf('T', 10));
+  }
+
+  return '';
+}
+
+function DateField() {}
+util_define(DateField, {
+  toDateString: toDateString,
+  toDateObject: toDateObject
+});
+definePrototype(DateField, {
+  defaultValue: '',
+  normalizeValue: function normalizeValue(value) {
+    return toDateString(normalizeDate(value));
+  },
+  postHook: function postHook(state, props) {
+    var setValue = state.setValue;
+    var value = state.value;
+    var min = normalizeDate(props.min);
+    var max = normalizeDate(props.max);
+    var displayText = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useMemo)(function () {
+      return value && props.formatDisplay ? props.formatDisplay(toDateObject(value)) : value;
+    }, [value]);
+    (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
+      var clamped = value && clampValue(value, min, max);
+
+      if (clamped !== value) {
+        setValue(clamped);
+      }
+    }, [value, min, max]);
+    return extend(state, {
+      min: toDateString(min),
+      max: toDateString(max),
+      displayText: displayText,
+      setValue: useMemoizedFunction(function (v) {
+        v = isFunction(v) ? v(state.value) : v;
+
+        if (!v) {
+          setValue('');
+        } else if (/\d{4}/.test(v) && /[^\s\d]/.test(v)) {
+          v = toDateObject(v);
+
+          if (!isNaN(v)) {
+            setValue(clampValue(v, min, max));
+          }
+        }
+      })
+    });
+  }
+});
+;// CONCATENATED MODULE: ./src/fields/MultiChoiceField.js
+
+
+
+
+function MultiChoiceField() {}
+definePrototype(MultiChoiceField, {
+  /** @type {any} */
+  defaultValue: freeze([]),
+  normalizeValue: function normalizeValue(newValue) {
+    return isArray(newValue) || makeArray(newValue);
+  },
+  postHook: function postHook(state, props) {
+    var allowCustomValues = props.allowCustomValues || !props.items;
+    var items = ChoiceField.normalizeItems(props.items);
+
+    var isUnknown = function isUnknown(value) {
+      return !items.some(function (v) {
+        return v.value === value;
+      });
+    };
+
+    var toggleValue = useMemoizedFunction(function (value, selected) {
+      if (allowCustomValues || !isUnknown(value)) {
+        state.setValue(function (arr) {
+          var index = arr.indexOf(value);
+
+          if (isUndefinedOrNull(selected) || either(index < 0, selected)) {
+            arr = makeArray(arr);
+
+            if (index < 0) {
+              arr.push(value);
+            } else {
+              arr.splice(index, 1);
+            }
+          }
+
+          return arr;
+        });
+      }
+    });
+    (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
+      if (!allowCustomValues) {
+        var cur = makeArray(state.value);
+        var arr = splice(cur, isUnknown);
+
+        if (arr.length) {
+          state.setValue(cur);
+        }
+      }
+    });
+    return extend(state, {
+      items: items,
+      toggleValue: toggleValue
+    });
+  }
+});
+;// CONCATENATED MODULE: ./src/fields/NumericField.js
+
+
+function NumericField() {}
+definePrototype(NumericField, {
+  normalizeValue: function normalizeValue(newValue) {
+    newValue = +newValue;
+    return isNaN(newValue) ? undefined : newValue;
+  },
+  postHook: function postHook(state, props) {
+    var value = state.value;
+    var min = props.min;
+    var max = props.max;
+    var step = props.step;
+    var allowEmpty = props.allowEmpty;
+    (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
+      var rounded = step > 0 ? Math.round(value / step) * step : value;
+
+      if (rounded < min || isNaN(rounded) && !allowEmpty) {
+        rounded = min || 0;
+      } else if (rounded > max) {
+        rounded = max;
+      }
+
+      if (rounded !== value) {
+        state.setValue(rounded);
+      }
+    }, [value, min, max, step, allowEmpty]);
+    return state;
+  }
+});
+;// CONCATENATED MODULE: ./src/fields/TextField.js
+
+function TextField() {}
+definePrototype(TextField, {
+  defaultValue: '',
+  postHook: function postHook(state, props) {
+    var form = state.form;
+    var inputProps = pick(props, ['type', 'disabled', 'autoComplete', 'maxLength', 'inputMode', 'placeholder', 'enterKeyHint']);
+
+    if (props.type === 'password' && !inputProps.autoComplete) {
+      inputProps.autoComplete = 'current-password';
+    }
+
+    inputProps.type = inputProps.type || 'text';
+    inputProps.enterKeyHint = inputProps.enterKeyHint || form && form.enterKeyHint;
+    return extend(state, {
+      inputProps: inputProps
+    });
+  }
+});
+;// CONCATENATED MODULE: ./src/fields/ToggleField.js
+
+function ToggleField() {}
+definePrototype(ToggleField, {
+  defaultValue: false,
+  valueProperty: 'checked',
+  normalizeValue: function normalizeValue(value) {
+    return !!value;
+  },
+  isEmpty: function isEmpty(value) {
+    return !value;
+  },
+  postHook: function postHook(state) {
+    return state;
+  }
+});
+;// CONCATENATED MODULE: ./src/form.js
 
 
 
@@ -1220,7 +1480,7 @@ function validateFields(form, fields) {
     return form_emitter.emit('validate', form, {
       name: name,
       value: value
-    }) || ((field.props || '').onValidate || noop)(value, name, form);
+    }) || ((field.props || '').onValidate || util_noop)(value, name, form);
   };
 
   var promises = fields.map(function (v) {
@@ -1265,7 +1525,7 @@ function wrapErrorResult(field, error) {
     toString: function toString() {
       if (is(error, ValidationError)) {
         return single([field.props, field.form || '', FormContext], function (v) {
-          return (v.formatError || noop).call(v, error, field.path || null, field.props, field.form);
+          return (v.formatError || util_noop).call(v, error, field.path || null, field.props, field.form);
         }) || error.message;
       }
 
@@ -1318,6 +1578,8 @@ function FormContext(initialData, options, viewState) {
   self.data = createDataObject(self, viewState.get() || state.initialData);
 }
 util_define(FormContext, {
+  ERROR_FIELD: 1,
+  EMPTY_FIELD: 2,
   get: function get(element) {
     return single(parentsAndSelf(element), instances.get.bind(instances)) || null;
   }
@@ -1327,7 +1589,16 @@ definePrototype(FormContext, {
     return key ? (getField(this, key) || '').element : form_(this).ref;
   },
   focus: function focus(key) {
-    var element = this.element(key);
+    var element;
+
+    if (typeof key === 'number') {
+      element = map(form_(this).fields, function (v) {
+        return v.error && key & 1 || isEmpty(v.value) && key & 2 ? v.element : null;
+      }).sort(comparePosition)[0];
+    } else {
+      element = this.element(key);
+    }
+
     return !!element && dom_focus(element);
   },
   on: function on(event, handler) {
@@ -1377,7 +1648,7 @@ definePrototype(FormContext, {
       v.error = null;
     });
     state.setValid();
-    (state.unlock || noop)();
+    (state.unlock || util_noop)();
     form_emitter.emit('reset', self);
   },
   getValue: function getValue(key) {
@@ -1433,10 +1704,11 @@ function useFormContext(persistKey, initialData, options) {
   useObservableProperty(form, 'isValid');
   (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
     return combineFn(form.on('dataChange', forceUpdate), form.on('reset', forceUpdate), function () {
-      (form_(form).unlock || noop)();
+      (form_(form).unlock || util_noop)();
 
       if (form.autoPersist) {
         form.persist();
+        form.autoPersist = true;
       }
     });
   }, [form]);
@@ -1526,13 +1798,13 @@ var Form = /*#__PURE__*/(0,external_commonjs_react_commonjs2_react_amd_react_roo
       e.preventDefault();
     }
 
-    (props.onSubmit || noop).call(this, e);
+    (props.onSubmit || util_noop).call(this, e);
   };
 
   var onReset = function onReset(e) {
     e.preventDefault();
     form.reset();
-    (props.onReset || noop).call(this, e);
+    (props.onReset || util_noop).call(this, e);
   };
 
   extend(form, pick(props, ['enterKeyHint', 'preventLeave', 'formatError']));
@@ -1586,8 +1858,8 @@ function FormObject(props) {
     useFormFieldInternal(form, state, field, {}, props, 0, dict, key);
     field.value = value;
   } else {
-    (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(noop, [null]);
-    (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(noop, [null]);
+    (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(util_noop, [null]);
+    (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(util_noop, [null]);
   }
 
   var children = props.children;
@@ -1604,148 +1876,12 @@ util_define(FormObject, {
   keyFor: keyFor
 });
 
-function normalizeChoiceItems(items) {
-  return (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useMemo)(function () {
-    return (items || []).map(function (v) {
-      return _typeof(v) === 'object' ? v : {
-        label: String(v),
-        value: v
-      };
-    });
-  }, [items]);
-}
 
-function TextField() {
-  this.defaultValue = '';
 
-  this.postHook = function (state, props) {
-    var form = state.form;
-    var inputProps = pick(props, ['type', 'autoComplete', 'maxLength', 'inputMode', 'placeholder', 'enterKeyHint']);
 
-    if (props.type === 'password' && !inputProps.autoComplete) {
-      inputProps.autoComplete = 'current-password';
-    }
 
-    inputProps.type = inputProps.type || 'text';
-    inputProps.enterKeyHint = inputProps.enterKeyHint || form && form.enterKeyHint;
-    return extend(state, {
-      inputProps: inputProps
-    });
-  };
-}
-function ChoiceField() {
-  this.defaultValue = '';
 
-  this.postHook = function (state, props) {
-    var items = normalizeChoiceItems(props.items);
-    var selectedIndex = items.findIndex(function (v) {
-      return v.value === state.value;
-    });
-    (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
-      if (selectedIndex < 0) {
-        selectedIndex = props.allowUnselect || !items[0] ? -1 : 0;
-        state.setValue(selectedIndex < 0 ? '' : items[0].value);
-      }
-    });
-    return extend(state, {
-      items: items,
-      selectedIndex: selectedIndex,
-      selectedItem: items[selectedIndex]
-    });
-  };
-}
-function MultiChoiceField() {
-  this.defaultValue = [];
 
-  this.normalizeValue = function (newValue) {
-    return isArray(newValue) || makeArray(newValue);
-  };
-
-  this.postHook = function (state, props) {
-    var allowCustomValues = props.allowCustomValues || !props.items;
-    var items = normalizeChoiceItems(props.items);
-
-    var isUnknown = function isUnknown(value) {
-      return !items.some(function (v) {
-        return v.value === value;
-      });
-    };
-
-    var toggleValue = useMemoizedFunction(function (value, selected) {
-      if (allowCustomValues || !isUnknown(value)) {
-        state.setValue(function (arr) {
-          var index = arr.indexOf(value);
-
-          if (isUndefinedOrNull(selected) || either(index < 0, selected)) {
-            arr = makeArray(arr);
-
-            if (index < 0) {
-              arr.push(value);
-            } else {
-              arr.splice(index, 1);
-            }
-          }
-
-          return arr;
-        });
-      }
-    });
-    (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
-      if (!allowCustomValues) {
-        var cur = makeArray(state.value);
-        var arr = splice(cur, isUnknown);
-
-        if (arr.length) {
-          state.setValue(cur);
-        }
-      }
-    });
-    return extend(state, {
-      items: items,
-      toggleValue: toggleValue
-    });
-  };
-}
-function ToggleField() {
-  this.defaultValue = false;
-  this.valueProperty = 'checked';
-
-  this.normalizeValue = function (value) {
-    return !!value;
-  };
-
-  this.isEmpty = function (value) {
-    return !value;
-  };
-}
-function NumericField() {
-  this.normalizeValue = function (newValue) {
-    newValue = +newValue;
-    return isNaN(newValue) ? undefined : newValue;
-  };
-
-  this.postHook = function (state, props) {
-    var value = state.value;
-    var min = props.min;
-    var max = props.max;
-    var step = props.step;
-    var allowEmpty = props.allowEmpty;
-    (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
-      var rounded = step > 0 ? Math.round(value / step) * step : value;
-
-      if (rounded < min || isNaN(rounded) && !allowEmpty) {
-        rounded = min || 0;
-      } else if (rounded > max) {
-        rounded = max;
-      }
-
-      if (rounded !== value) {
-        state.setValue(rounded);
-      }
-    }, [value, min, max, step, allowEmpty]);
-    return state;
-  };
-}
 ;// CONCATENATED MODULE: ./src/index.js
 
 
