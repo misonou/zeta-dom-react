@@ -1,6 +1,6 @@
 import type { FieldType, FormFieldProps, FormFieldState } from "../form";
 
-export type TextInputAttributes = Pick<React.InputHTMLAttributes<HTMLInputElement>, 'autoComplete' | 'enterKeyHint' | 'inputMode' | 'maxLength' | 'placeholder' | 'type'>;
+export type TextInputAttributes = Pick<React.InputHTMLAttributes<HTMLInputElement>, 'autoComplete' | 'disabled' | 'enterKeyHint' | 'inputMode' | 'maxLength' | 'placeholder' | 'type'>;
 
 export interface TextFieldProps<T = string, V = T> extends FormFieldProps<T, V>, TextInputAttributes {
     /**
