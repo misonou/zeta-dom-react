@@ -134,9 +134,17 @@ function createDataObject(context, initialData) {
     var state = _(context);
     var target = isArray(initialData) ? [] : {};
     var uniqueId = randomId();
-    var onChange = function (p) {
+    var onChange = function (p, field) {
         var path = getPath(context, proxy, p);
         if (path) {
+            if (field) {
+                field.value = target[p];
+                if (field.value !== target[p]) {
+                    setValue(p, field.value);
+                    return;
+                }
+                handleDataChange.d.add(field);
+            }
             // ensure field associated with parent data object got notified
             for (var key = uniqueId; key = state.paths[key]; key = key.slice(0, 8)) {
                 if (state.fields[key]) {
@@ -167,7 +175,6 @@ function createDataObject(context, initialData) {
         set: function (t, p, v) {
             if (typeof p === 'string' && (t[p] !== v || !(p in t))) {
                 handleDataChange(function () {
-                    var field = state.fields[uniqueId + '.' + p];
                     var prev = t[p];
                     if (isArray(t)) {
                         if (p === 'length') {
@@ -196,11 +203,8 @@ function createDataObject(context, initialData) {
                             return true;
                         }
                     }
-                    v = setValue(p, v);
-                    if (onChange(p) && field) {
-                        field.value = v;
-                        handleDataChange.d.add(field);
-                    }
+                    setValue(p, v);
+                    onChange(p, state.fields[uniqueId + '.' + p]);
                 });
             }
             return true;

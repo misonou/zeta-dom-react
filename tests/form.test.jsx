@@ -1263,6 +1263,29 @@ describe('FormContext', () => {
         unmount();
     });
 
+    it('should restore value and not fire dataChange event when field value did not change', async () => {
+        class CustomField {
+            normalizeValue() {
+                return 'foo';
+            }
+            postHook(state) {
+                return state;
+            }
+        }
+        const { form, wrapper, unmount } = createFormContext();
+        const { result } = renderHook(() => useFormField(CustomField, { name: 'foo' }, 'foo'), { wrapper });
+        const cb = mockFn();
+        form.on('dataChange', cb);
+
+        await act(async () => {
+            form.data.foo = 'bar';
+        });
+        expect(result.current.value).toBe('foo');
+        expect(form.data.foo).toBe('foo');
+        expect(cb).not.toBeCalled();
+        unmount();
+    });
+
     it('should be able to create new property with undefined value', async () => {
         const { form, unmount } = createFormContext();
         const cb = mockFn();
