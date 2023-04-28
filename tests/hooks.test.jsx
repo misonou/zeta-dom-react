@@ -23,6 +23,23 @@ describe('useMemoizedFunction', () => {
         rerender({ value: 1 });
         expect(result.current()).toBe(1);
     });
+
+    it('should not throw if argument is not function', () => {
+        const { result, rerender } = renderHook(({ cb }) => useMemoizedFunction(cb), {
+            initialProps: { cb: undefined }
+        });
+        expect(result.current()).toBeUndefined();
+        rerender({ cb: null });
+        expect(result.current()).toBeUndefined();
+        rerender({ cb: true });
+        expect(result.current()).toBeUndefined();
+        rerender({ cb: 'true' });
+        expect(result.current()).toBeUndefined();
+        rerender({ cb: 1 });
+        expect(result.current()).toBeUndefined();
+        rerender({ cb: {} });
+        expect(result.current()).toBeUndefined();
+    });
 });
 
 describe('useObservableProperty', () => {

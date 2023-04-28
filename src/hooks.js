@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dom from "./include/zeta-dom/dom.js";
 import { notifyAsync } from "./include/zeta-dom/domLock.js";
 import { ZetaEventContainer } from "./include/zeta-dom/events.js";
-import { always, any, combineFn, deferrable, delay, extend, is, isArray, isErrorWithCode, isFunction, makeArray, makeAsync, map, pipe, resolve, setAdd, watch } from "./include/zeta-dom/util.js";
+import { always, any, combineFn, deferrable, delay, extend, is, isArray, isErrorWithCode, isFunction, makeArray, makeAsync, map, noop, pipe, resolve, setAdd, watch } from "./include/zeta-dom/util.js";
 
 const container = new ZetaEventContainer();
 
