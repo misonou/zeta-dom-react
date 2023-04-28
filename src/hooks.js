@@ -152,6 +152,9 @@ export function useErrorHandler() {
                 ref.current = element;
                 init(element);
             },
+            emit: function (error) {
+                return catchError(error) || reemitError(error) || resolve();
+            },
             catch: function (filter, callback) {
                 var isErrorOf;
                 if (!callback) {
@@ -193,9 +196,7 @@ export function useErrorHandler() {
     });
     useEffect(function () {
         return combineFn(map(args, function (v) {
-            return v.onError(function (error) {
-                return catchError(error) || reemitError(error) || resolve();
-            });
+            return v.onError(handler.emit);
         }));
     }, args);
     return handler;

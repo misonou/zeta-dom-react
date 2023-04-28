@@ -313,6 +313,28 @@ describe('useDispose', () => {
 });
 
 describe('useErrorHandler', () => {
+    it('should catch error directly emitted from the instance', async () => {
+        const error = new Error();
+        const cb = mockFn();
+        const Component = function () {
+            let errorHandler = useErrorHandler();
+            useEffect(() => {
+                errorHandler.catch(cb);
+            }, [errorHandler]);
+            useEffect(() => {
+                errorHandler.emit(error);
+            });
+            return (
+                <div ref={errorHandler.ref}></div>
+            );
+        };
+        const { unmount } = render(<Component />);
+        verifyCalls(cb, [
+            [expect.sameObject(error)]
+        ]);
+        unmount();
+    });
+
     it('should catch error from child elements', async () => {
         const cb = mockFn();
         const Component = function () {

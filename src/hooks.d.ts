@@ -14,6 +14,14 @@ export interface ErrorSource {
 
 export interface ErrorHandler {
     /**
+     * Emits error to handlers registered by {@link ErrorHandler.catch}.
+     * If the error is not marked as handled, the error will propagate up the DOM tree.
+     * @param error Error to handle.
+     * @returns A promise that resolves to possible output returned from handlers.
+     */
+    emit(error: Error): Promise<any>;
+
+    /**
      * Catches errors from promises registered to descandant elements by {@link dom.lock}.
      * Unfiltered handlers are called after filtered handlers, registered by other overloads, regardless of order.
      *
