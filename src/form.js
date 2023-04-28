@@ -244,10 +244,10 @@ function createFieldState(initialValue) {
         },
         setValue: function (v) {
             v = isFunction(v) ? v(field.value) : v;
-            if (field.controlled) {
-                field.onChange(v);
-            } else {
+            if (!field.controlled) {
                 field.value = v;
+            } else if (v !== field.value) {
+                field.onChange(v);
             }
         },
         setError: function (v) {

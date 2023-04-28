@@ -604,6 +604,13 @@ describe('useFormField', () => {
         unmount();
     });
 
+    it('should not call onChange callback when same value is supplied to setValue for controlled field', () => {
+        const cb = mockFn();
+        const { result } = renderHook(() => useFormField({ value: 'foo', onChange: cb }, ''));
+        result.current.setValue('foo');
+        expect(cb).not.toBeCalled();
+    });
+
     it('should not overwrite changes through data object', async () => {
         const { form, wrapper, unmount } = createFormContext();
         const { result } = renderHook(() => useFormField({ name: 'foo' }, ''), { wrapper });
