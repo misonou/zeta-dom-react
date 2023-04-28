@@ -1,14 +1,136 @@
-import React, { useState } from "react";
-import { render } from "@testing-library/react";
+import React, { forwardRef, useState } from "react";
+import { act as renderAct, screen, render } from "@testing-library/react";
 import { act, renderHook } from "@testing-library/react-hooks";
-import { classNames, innerTextOrHTML, partial, toRefCallback, withSuspense } from "../src/util";
-import { mockFn, verifyCalls } from "@misonou/test-utils";
+import { classNames, combineRef, domEventRef, innerTextOrHTML, partial, toRefCallback, withSuspense } from "../src/util";
+import { _, mockFn, verifyCalls } from "@misonou/test-utils";
+import dom from "zeta-dom/dom";
 
 const partialInitialState = {
     prop1: 'true',
     prop2: 'true',
     prop3: 'true',
 };
+
+describe('domEventRef', () => {
+    it('should attach event listener', async () => {
+        const cb = mockFn();
+        function Component() {
+            return (
+                <div ref={domEventRef('custom', cb)}>foo</div>
+            );
+        }
+        render(<Component />);
+
+        const element = await screen.findByText('foo');
+        dom.emit('custom', element);
+        verifyCalls(cb, [[expect.objectContaining({ type: 'custom' }), _]]);
+    });
+
+    it('should attach event listener exactly once', async () => {
+        const cb = mockFn();
+        function Component({ value }) {
+            return (
+                <div ref={domEventRef({ custom: cb })}>foo</div>
+            );
+        }
+        const { rerender } = render(<Component value={1} />);
+        rerender(<Component value={2} />);
+        rerender(<Component value={3} />);
+
+        const element = await screen.findByText('foo');
+        dom.emit('custom', element);
+        verifyCalls(cb, [[expect.objectContaining({ type: 'custom' }), _]]);
+    });
+
+    it('should attach event listeners of different types', async () => {
+        const cb = mockFn();
+        function Component() {
+            return (
+                <div ref={domEventRef({ custom: cb, custom2: cb })}>foo</div>
+            );
+        }
+        render(<Component />);
+
+        const element = await screen.findByText('foo');
+        dom.emit('custom', element);
+        dom.emit('custom2', element)
+        verifyCalls(cb, [
+            [expect.objectContaining({ type: 'custom' }), _],
+            [expect.objectContaining({ type: 'custom2' }), _],
+        ]);
+    });
+
+    it('should invoke correct event listener after component refresh', async () => {
+        function Component({ value }) {
+            return (
+                <div ref={domEventRef({ custom: () => value })}>foo</div>
+            );
+        }
+        const { rerender } = render(<Component value="foo" />);
+        const element = await screen.findByText('foo');
+        await expect(dom.emit('custom', element)).resolves.toBe('foo');
+
+        rerender(<Component value="bar" />);
+        await expect(dom.emit('custom', element)).resolves.toBe('bar');
+    });
+
+    it('should allow the callback to be forwarded', async () => {
+        const cb = mockFn();
+        function Component() {
+            return (
+                <Inner ref={domEventRef({ custom: cb })} />
+            );
+        }
+        let setState;
+        const Inner = forwardRef((props, ref) => {
+            [, setState] = useState(0);
+            return (
+                <div ref={ref}>foo</div>
+            );
+        });
+        render(<Component />);
+        renderAct(() => setState(1));
+
+        const element = await screen.findByText('foo');
+        dom.emit('custom', element);
+        verifyCalls(cb, [[expect.objectContaining({ type: 'custom' }), _]]);
+    });
+
+    it('should allow multiple callbacks to be passed to same element', async () => {
+        const cb = mockFn();
+        function Component() {
+            return (
+                <Inner ref={domEventRef({ custom: cb })} />
+            );
+        }
+        const Inner = forwardRef((props, ref) => {
+            return (
+                <div ref={combineRef(toRefCallback(ref), domEventRef({ custom: cb }))}>foo</div>
+            );
+        });
+        render(<Component />);
+
+        const element = await screen.findByText('foo');
+        dom.emit('custom', element);
+        verifyCalls(cb, [
+            [expect.objectContaining({ type: 'custom' }), element],
+            [expect.objectContaining({ type: 'custom' }), element],
+        ]);
+    });
+
+    it('should throw when the same callback is passed to multiple elements', async () => {
+        function Component() {
+            const ref = domEventRef({ custom: () => {} })
+            return (
+                <div>
+                    <div ref={ref}>foo</div>
+                    <div ref={ref}>foo</div>
+                </div>
+            );
+        }
+        expect(() => render(<Component />)).toThrow();
+    });
+});
 
 describe('classNames', () => {
     it('should concatenate strings with whitespace', () => {

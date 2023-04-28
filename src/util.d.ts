@@ -25,6 +25,23 @@ export interface SetPartialCallback<T> {
     <P extends keyof T>(key: P, callback: (prevValue: T[P], prevState: T) => T[P]): void;
 }
 
+/**
+ * Registers event handlers to the rendered DOM element.
+ * The callback in the latest component update cycle will be invoked.
+ * @param event Name of the event.
+ * @param handler A callback function to be fired when the specified event is triggered.
+ * @returns A ref callback to be specified to the `ref` prop of a React element.
+ */
+export function domEventRef<E extends Zeta.HintedString<Zeta.ZetaDOMEventName>, T extends Element>(event: E, handler: Zeta.ZetaEventHandler<E, Zeta.ZetaDOMEventMap, T>): React.RefCallback<T>;
+
+/**
+ * Registers event handlers to the rendered DOM element.
+ * The callback in the latest component update cycle will be invoked.
+ * @param handlers An object which each entry represent the handler to be registered on the event.
+ * @returns A ref callback to be specified to the `ref` prop of a React element.
+ */
+export function domEventRef<T extends Element>(handlers: Zeta.ZetaEventHandlers<Zeta.ZetaDOMEventMap, T>): React.RefCallback<T>;
+
 export function classNames(...args: ClassName[]): string;
 
 /**

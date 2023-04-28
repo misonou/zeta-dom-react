@@ -1,5 +1,35 @@
 import { createElement, Fragment, lazy, Suspense } from "react";
-import { combineFn, each, extend, isFunction, isPlainObject, kv, makeArray, noop } from "./include/zeta-dom/util.js";
+import { combineFn, each, extend, isFunction, isPlainObject, kv, makeArray, mapGet, noop, setImmediate, throwNotFunction } from "./include/zeta-dom/util.js";
+import dom from "./include/zeta-dom/dom.js";
+
+const boundEvents = new WeakMap();
+
+export function domEventRef(event, handler) {
+    var arr;
+    handler = isPlainObject(event) || kv(event, handler);
+    return function (element) {
+        if (element) {
+            if (arr) {
+                throw new Error('Callback can only be passed to single React element');
+            }
+            arr = mapGet(boundEvents, element, Array);
+            if (arr.index === undefined) {
+                arr.index = 0;
+            }
+            handler = each(handler, function (i, v) {
+                var index = arr.index++;
+                if (!arr[index]) {
+                    dom.on(element, i, function () {
+                        return arr[index].apply(this, arguments);
+                    });
+                }
+                arr[index] = throwNotFunction(v);
+            });
+        } else {
+            arr.index = 0;
+        }
+    };
+}
 
 export function classNames() {
     var className = [];
