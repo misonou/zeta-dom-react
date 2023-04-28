@@ -140,7 +140,7 @@ var external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_zeta_ = __we
 ;// CONCATENATED MODULE: ./tmp/zeta-dom/util.js
 
 var _zeta$util = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_zeta_.util,
-    util_noop = _zeta$util.noop,
+    noop = _zeta$util.noop,
     pipe = _zeta$util.pipe,
     either = _zeta$util.either,
     is = _zeta$util.is,
@@ -569,8 +569,8 @@ function createBreakpointContext(breakpoints) {
 
 var ViewStateProviderContext = /*#__PURE__*/(0,external_commonjs_react_commonjs2_react_amd_react_root_React_.createContext)(null);
 var noopStorage = Object.freeze({
-  get: util_noop,
-  set: util_noop
+  get: noop,
+  set: noop
 });
 var ViewStateProvider = ViewStateProviderContext.Provider;
 function useViewState(key) {
@@ -744,7 +744,7 @@ function useDataView(persistKey, filters, sortBy, sortOrder, pageSize) {
     return combineFn(dataView.on('viewChange', forceUpdate), viewState.onPopState ? viewState.onPopState(function (newValue) {
       viewState.set(dataView.toJSON());
       extend(dataView, newValue || state.defaults);
-    }) : util_noop, function () {
+    }) : noop, function () {
       viewState.set(dataView.toJSON());
     });
   }, [dataView]);
@@ -808,7 +808,7 @@ function toRefCallback(ref) {
     };
   }
 
-  return ref || util_noop;
+  return ref || noop;
 }
 function withSuspense(factory, fallback) {
   fallback = fallback || external_commonjs_react_commonjs2_react_amd_react_root_React_.Fragment;
@@ -1242,11 +1242,22 @@ function createDataObject(context, initialData) {
   var target = isArray(initialData) ? [] : {};
   var uniqueId = randomId();
 
-  var onChange = function onChange(p) {
+  var onChange = function onChange(p, field) {
     var path = getPath(context, proxy, p);
 
     if (path) {
-      // ensure field associated with parent data object got notified
+      if (field) {
+        field.value = target[p];
+
+        if (field.value !== target[p]) {
+          setValue(p, field.value);
+          return;
+        }
+
+        handleDataChange.d.add(field);
+      } // ensure field associated with parent data object got notified
+
+
       for (var key = uniqueId; key = state.paths[key]; key = key.slice(0, 8)) {
         if (state.fields[key]) {
           handleDataChange.d.add(state.fields[key]);
@@ -1282,7 +1293,6 @@ function createDataObject(context, initialData) {
     set: function set(t, p, v) {
       if (typeof p === 'string' && (t[p] !== v || !(p in t))) {
         handleDataChange(function () {
-          var field = state.fields[uniqueId + '.' + p];
           var prev = t[p];
 
           if (isArray(t)) {
@@ -1317,12 +1327,8 @@ function createDataObject(context, initialData) {
             }
           }
 
-          v = setValue(p, v);
-
-          if (onChange(p) && field) {
-            field.value = v;
-            handleDataChange.d.add(field);
-          }
+          setValue(p, v);
+          onChange(p, state.fields[uniqueId + '.' + p]);
         });
       }
 
@@ -1396,7 +1402,7 @@ function createFieldState(initialValue) {
     return isFunction(v) || is(v, ValidationError) ? wrapErrorResult(field, v) : v || '';
   });
   watch(field, 'value', function (v) {
-    if (field.dict) {
+    if (field.key) {
       field.dict[field.name] = v;
     } else if (!field.controlled) {
       field.onChange(v);
@@ -1480,7 +1486,7 @@ function validateFields(form, fields) {
     return form_emitter.emit('validate', form, {
       name: name,
       value: value
-    }) || ((field.props || '').onValidate || util_noop)(value, name, form);
+    }) || ((field.props || '').onValidate || noop)(value, name, form);
   };
 
   var promises = fields.map(function (v) {
@@ -1525,7 +1531,7 @@ function wrapErrorResult(field, error) {
     toString: function toString() {
       if (is(error, ValidationError)) {
         return single([field.props, field.form || '', FormContext], function (v) {
-          return (v.formatError || util_noop).call(v, error, field.path || null, field.props, field.form);
+          return (v.formatError || noop).call(v, error, field.path || null, field.props, field.form);
         }) || error.message;
       }
 
@@ -1648,7 +1654,7 @@ definePrototype(FormContext, {
       v.error = null;
     });
     state.setValid();
-    (state.unlock || util_noop)();
+    (state.unlock || noop)();
     form_emitter.emit('reset', self);
   },
   getValue: function getValue(key) {
@@ -1704,7 +1710,7 @@ function useFormContext(persistKey, initialData, options) {
   useObservableProperty(form, 'isValid');
   (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
     return combineFn(form.on('dataChange', forceUpdate), form.on('reset', forceUpdate), function () {
-      (form_(form).unlock || util_noop)();
+      (form_(form).unlock || noop)();
 
       if (form.autoPersist) {
         form.persist();
@@ -1798,13 +1804,13 @@ var Form = /*#__PURE__*/(0,external_commonjs_react_commonjs2_react_amd_react_roo
       e.preventDefault();
     }
 
-    (props.onSubmit || util_noop).call(this, e);
+    (props.onSubmit || noop).call(this, e);
   };
 
   var onReset = function onReset(e) {
     e.preventDefault();
     form.reset();
-    (props.onReset || util_noop).call(this, e);
+    (props.onReset || noop).call(this, e);
   };
 
   extend(form, pick(props, ['enterKeyHint', 'preventLeave', 'formatError']));
@@ -1858,8 +1864,8 @@ function FormObject(props) {
     useFormFieldInternal(form, state, field, {}, props, 0, dict, key);
     field.value = value;
   } else {
-    (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(util_noop, [null]);
-    (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(util_noop, [null]);
+    (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(noop, [null]);
+    (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(noop, [null]);
   }
 
   var children = props.children;
