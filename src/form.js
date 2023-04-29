@@ -95,11 +95,9 @@ function emitDataChangeEvent() {
             }
         }
         emitter.emit('dataChange', form, keys(props));
-        if (form.validateOnChange) {
-            validateFields(form, grep(state.fields, function (v) {
-                return props[v.path] && v.props.validateOnChange !== false;
-            }));
-        }
+        validateFields(form, grep(state.fields, function (v) {
+            return props[v.path] && (v.props.validateOnChange + 1 || form.validateOnChange + 1) > 1;
+        }));
         if (form.preventLeave && !state.unlock) {
             var promise = new Promise(function (resolve) {
                 state.unlock = function () {

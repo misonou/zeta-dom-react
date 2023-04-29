@@ -206,6 +206,24 @@ describe('useFormContext', () => {
         unmount();
     });
 
+    it('should trigger validation for updated fields if the field has validateOnChange is set to true', async () => {
+        const cb = mockFn();
+        const { form, wrapper, unmount } = createFormContext({}, false);
+        renderHook(() => [
+            useFormField({ name: 'foo', onValidate: cb, validateOnChange: true }, 'foo'),
+            useFormField({ name: 'baz', onValidate: cb }, 'baz'),
+        ], { wrapper });
+
+        expect(form.validateOnChange).toBe(false);
+        await act(async () => {
+            form.data.foo = 'bar';
+        });
+        verifyCalls(cb, [
+            ['bar', 'foo', form],
+        ]);
+        unmount();
+    });
+
     it('should not trigger validation for updated fields if the field has validateOnChange set to false', async () => {
         const cb = mockFn();
         const { form, wrapper, unmount } = createFormContext();
