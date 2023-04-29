@@ -490,6 +490,14 @@ definePrototype(FormContext, {
             prop.parent[prop.name] = cloneValue(value);
         }
     },
+    getErrors: function () {
+        var errorFields = grep(_(this).fields, function (v) {
+            return v.error;
+        });
+        return errorFields[0] ? Object.fromEntries(errorFields.map(function (v) {
+            return [v.path, String(v.error)];
+        })) : null;
+    },
     getError: function (key) {
         return String((getField(this, key) || '').error || '');
     },

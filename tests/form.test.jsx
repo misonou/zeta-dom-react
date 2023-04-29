@@ -1791,6 +1791,38 @@ describe('FormContext#setValue', () => {
     });
 });
 
+describe('FormContext#getErrors', () => {
+    it('should return null when no errors', () => {
+        const renderForm = createFormComponent(() => (
+            <Field name="foo" />
+        ));
+        const { form, unmount } = renderForm();
+        expect(form.getErrors()).toBeNull();
+        unmount();
+    });
+
+    it('should return object containing field paths and the associated errors', async () => {
+        const renderForm = createFormComponent(() => (<>
+            <Field name="test" />
+            <Field name="foo" onValidate={() => 'error'} />
+            <FormObject name="inner">
+                <Field name="bar" onValidate={() => ({ toString() { return 'error' } })} />
+                <Field name="baz" onValidate={() => (() => 'error')} />
+            </FormObject>
+        </>));
+        const { form, unmount } = renderForm();
+        await renderAct(async () => {
+            await form.validate();
+        });
+        expect(form.getErrors()).toEqual({
+            'foo': 'error',
+            'inner.bar': 'error',
+            'inner.baz': 'error'
+        });
+        unmount();
+    });
+});
+
 describe('FormContext#getError', () => {
     it('should return empty string when no error', () => {
         const renderForm = createFormComponent(() => (

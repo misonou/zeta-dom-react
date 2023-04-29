@@ -435,6 +435,12 @@ export class FormContext<T extends object = Zeta.Dictionary<any>> {
     setValue(path: string | string[], value: any): void;
 
     /**
+     * Gets all validation errors.
+     * @returns An object which each key is the name of an invalid field, and value is the corresponding error; or `null` if there is no error.
+     */
+    getErrors(): Zeta.Dictionary<string> | null;
+
+    /**
      * Gets validation error for a specific field.
      * If there is no error, an empty string is returned.
      * @param path A string containing dot-separated property names or an array containing property names.
