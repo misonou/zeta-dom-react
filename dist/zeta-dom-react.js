@@ -113,6 +113,7 @@ __webpack_require__.d(src_namespaceObject, {
   "combineRef": () => (combineRef),
   "combineValidators": () => (combineValidators),
   "createBreakpointContext": () => (createBreakpointContext),
+  "domEventRef": () => (domEventRef),
   "innerTextOrHTML": () => (innerTextOrHTML),
   "partial": () => (partial),
   "registerFieldType": () => (registerFieldType),
@@ -463,6 +464,9 @@ function useErrorHandler() {
         _ref.current = element;
         init(element);
       },
+      emit: function emit(error) {
+        return catchError(error) || reemitError(error) || resolve();
+      },
       "catch": function _catch(filter, callback) {
         var isErrorOf;
 
@@ -512,9 +516,7 @@ function useErrorHandler() {
   });
   (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
     return combineFn(map(args, function (v) {
-      return v.onError(function (error) {
-        return catchError(error) || reemitError(error) || resolve();
-      });
+      return v.onError(handler.emit);
     }));
   }, args);
   return handler;
@@ -753,6 +755,39 @@ function useDataView(persistKey, filters, sortBy, sortOrder, pageSize) {
 ;// CONCATENATED MODULE: ./src/util.js
 
 
+
+var boundEvents = new WeakMap();
+function domEventRef(event, handler) {
+  var arr;
+  handler = isPlainObject(event) || kv(event, handler);
+  return function (element) {
+    if (element) {
+      if (arr) {
+        throw new Error('Callback can only be passed to single React element');
+      }
+
+      arr = mapGet(boundEvents, element, Array);
+
+      if (arr.index === undefined) {
+        arr.index = 0;
+      }
+
+      handler = each(handler, function (i, v) {
+        var index = arr.index++;
+
+        if (!arr[index]) {
+          zeta_dom_dom.on(element, i, function () {
+            return arr[index].apply(this, arguments);
+          });
+        }
+
+        arr[index] = throwNotFunction(v);
+      });
+    } else {
+      arr.index = 0;
+    }
+  };
+}
 function classNames() {
   var className = [];
 
@@ -1197,12 +1232,9 @@ function emitDataChangeEvent() {
     }
 
     form_emitter.emit('dataChange', form, keys(props));
-
-    if (form.validateOnChange) {
-      validateFields(form, grep(state.fields, function (v) {
-        return props[v.path] && v.props.validateOnChange !== false;
-      }));
-    }
+    validateFields(form, grep(state.fields, function (v) {
+      return props[v.path] && (v.props.validateOnChange + 1 || form.validateOnChange + 1) > 1;
+    }));
 
     if (form.preventLeave && !state.unlock) {
       var promise = new Promise(function (resolve) {
@@ -1373,10 +1405,10 @@ function createFieldState(initialValue) {
     setValue: function setValue(v) {
       v = isFunction(v) ? v(field.value) : v;
 
-      if (field.controlled) {
-        field.onChange(v);
-      } else {
+      if (!field.controlled) {
         field.value = v;
+      } else if (v !== field.value) {
+        field.onChange(v);
       }
     },
     setError: function setError(v) {
@@ -1666,6 +1698,14 @@ definePrototype(FormContext, {
     if (prop.parent) {
       prop.parent[prop.name] = cloneValue(value);
     }
+  },
+  getErrors: function getErrors() {
+    var errorFields = grep(form_(this).fields, function (v) {
+      return v.error;
+    });
+    return errorFields[0] ? Object.fromEntries(errorFields.map(function (v) {
+      return [v.path, String(v.error)];
+    })) : null;
   },
   getError: function getError(key) {
     return String((getField(this, key) || '').error || '');
