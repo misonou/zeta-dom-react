@@ -941,6 +941,23 @@ describe('useFormField - multiChoice', () => {
         expect(result.current.value).toEqual([]);
     });
 
+    it('should toggle existence of value in array with specific state', () => {
+        const { result } = renderHook(() => useFormField(MultiChoiceField, { items: ['foo', 'bar'] }, []));
+        expect(result.current.value).toEqual([]);
+
+        act(() => result.current.toggleValue('foo', false));
+        expect(result.current.value).toEqual([]);
+
+        act(() => result.current.toggleValue('foo', true));
+        expect(result.current.value).toEqual(['foo']);
+
+        act(() => result.current.toggleValue('foo', true));
+        expect(result.current.value).toEqual(['foo']);
+
+        act(() => result.current.toggleValue('foo', false));
+        expect(result.current.value).toEqual([]);
+    });
+
     it('should not touch the previous array', () => {
         const { result } = renderHook(() => useFormField(MultiChoiceField, { items: ['foo', 'bar'] }, []));
         const prevValue = result.current.value;
@@ -991,7 +1008,7 @@ describe('useFormField - multiChoice', () => {
 
     it('should not trigger dataChange when toggleValue has no effect', async () => {
         const { form, wrapper, unmount } = createFormContext();
-        const { result } = renderHook(() => useFormField(MultiChoiceField, { name: 'foo', items: ['foo', 'bar'] }, []), { wrapper });
+        const { result } = renderHook(() => useFormField(MultiChoiceField, { name: 'foo', items: ['foo', 'bar'] }, ['foo']), { wrapper });
         const cb = mockFn();
         form.on('dataChange', cb);
 

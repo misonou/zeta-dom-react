@@ -23,7 +23,7 @@ definePrototype(MultiChoiceField, {
             if (allowCustomValues || !isUnknown(value)) {
                 state.setValue(function (arr) {
                     var index = arr.indexOf(value);
-                    if (isUndefinedOrNull(selected) || either(index < 0, selected)) {
+                    if (isUndefinedOrNull(selected) || either(index >= 0, selected)) {
                         arr = makeArray(arr);
                         if (index < 0) {
                             arr.push(value);
