@@ -458,6 +458,9 @@ definePrototype(FormContext, {
         }
         return !!data;
     },
+    clear: function () {
+        this.reset({});
+    },
     reset: function (data) {
         var self = this;
         var state = _(self);
@@ -572,7 +575,7 @@ export function useFormField(type, props, defaultValue, prop) {
     const controlled = prop in props;
 
     const field = useState(function () {
-        var initialValue = controlled ? props[prop] : (preset.normalizeValue || pipe)(form && name in dict ? dict[name] : defaultValue !== undefined ? defaultValue : preset.defaultValue);
+        var initialValue = controlled ? props[prop] : (preset.normalizeValue || pipe)(defaultValue !== undefined ? defaultValue : preset.defaultValue);
         return createFieldState(initialValue);
     })[0];
     useFormFieldInternal(form, state, field, preset, props, controlled, dict, key);

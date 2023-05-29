@@ -417,6 +417,11 @@ export class FormContext<T extends object = Zeta.Dictionary<any>> {
     restore(): boolean;
 
     /**
+     * Clears all fields and validation errors.
+     */
+    clear(): void;
+
+    /**
      * Resets all fields to initial values and clear all validation errors.
      */
     reset(): void;

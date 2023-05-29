@@ -2183,6 +2183,107 @@ describe('FormContext#validate', () => {
     });
 });
 
+describe('FormContext#clear', () => {
+    it('should reset named field to default value', async () => {
+        const { form, wrapper, unmount } = createFormContext({ foo: 'baz' });
+        const { result, rerender } = renderHook(() => useFormField({ name: 'foo' }, 'foo'), { wrapper });
+
+        await act(async () => {
+            form.data.foo = 'bar';
+        });
+        expect(result.current.value).toBe('bar');
+
+        act(() => form.clear());
+        rerender();
+        expect(result.current.value).toBe('foo');
+        expect(form.data.foo).toBe('foo');
+        unmount();
+    });
+
+    it('should not create property if field is not rendered after reset', async () => {
+        let renderField = true;
+        const renderForm = createFormComponent(() => (
+            renderField && <Field name="foo" />
+        ));
+        const { form, unmount } = renderForm();
+        expect(form.data).toHaveProperty('foo');
+
+        renderField = false;
+        await renderAct(async () => {
+            form.clear();
+        });
+        expect(form.data).not.toHaveProperty('foo');
+        unmount();
+    });
+
+    it('should call onChange callback with initial value for controlled field', () => {
+        let value = 'foo';
+        const onChange = mockFn(v => (value = v));
+        const { form, wrapper, unmount } = createFormContext();
+        const { rerender } = renderHook(() => useFormField({ name: 'foo', value, onChange }, ''), { wrapper });
+
+        value = 'bar';
+        rerender();
+        onChange.mockClear();
+
+        act(() => form.clear());
+        verifyCalls(onChange, [['foo']]);
+        unmount();
+    });
+
+    it('should call onChange callback with initial value for controlled field in nested object', async () => {
+        let value = 'foo';
+        const onChange = mockFn(v => (value = v));
+        const { form, unmount } = createFormContext();
+        const { rerender } = renderHook(() => useFormField({ name: 'foo', value, onChange }, ''), {
+            wrapper: ({ children }) => (
+                <FormContextProvider value={form}>
+                    <FormObject name="obj">{children}</FormObject>
+                </FormContextProvider>
+            )
+        });
+
+        value = 'bar';
+        rerender();
+        onChange.mockClear();
+
+        act(() => form.clear());
+        verifyCalls(onChange, [['foo']]);
+        unmount();
+    });
+
+    it('should call onChange callback with initial value for controlled field if property exists', () => {
+        let value = 'foo';
+        const onChange = mockFn(v => (value = v));
+        const { form, wrapper, unmount } = createFormContext({ foo: 'baz' });
+        const { rerender } = renderHook(() => useFormField({ name: 'foo', value, onChange }, ''), { wrapper });
+
+        value = 'bar';
+        rerender();
+        onChange.mockClear();
+
+        act(() => form.clear());
+        verifyCalls(onChange, [['foo']]);
+        unmount();
+    });
+
+    it('should clear all errors', async () => {
+        const cb = mockFn().mockResolvedValue('error');
+        const { form, wrapper, unmount } = createFormContext();
+        renderHook(() => [
+            useFormField({ name: 'foo', onValidate: cb }, 'foo_value'),
+            useFormField({ name: 'bar', onValidate: cb }, 'bar_value'),
+        ], { wrapper });
+
+        await act(async () => void await form.validate());
+        expect(form.getErrors()).toBeTruthy();
+
+        act(() => form.clear());
+        expect(form.getErrors()).toBeNull();
+        unmount();
+    });
+});
+
 describe('FormContext#reset', () => {
     it('should reset named field to default value', async () => {
         const { form, wrapper, unmount } = createFormContext();
