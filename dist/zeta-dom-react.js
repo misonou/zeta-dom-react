@@ -270,6 +270,7 @@ var _zeta$dom = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_
     textInputAllowed = _zeta$dom.textInputAllowed,
     beginDrag = _zeta$dom.beginDrag,
     beginPinchZoom = _zeta$dom.beginPinchZoom,
+    insertText = _zeta$dom.insertText,
     getShortcut = _zeta$dom.getShortcut,
     setShortcut = _zeta$dom.setShortcut,
     focusable = _zeta$dom.focusable,
@@ -1027,7 +1028,7 @@ definePrototype(MultiChoiceField, {
         state.setValue(function (arr) {
           var index = arr.indexOf(value);
 
-          if (isUndefinedOrNull(selected) || either(index < 0, selected)) {
+          if (isUndefinedOrNull(selected) || either(index >= 0, selected)) {
             arr = makeArray(arr);
 
             if (index < 0) {
@@ -1231,20 +1232,24 @@ function emitDataChangeEvent() {
       }
     }
 
+    var element = state.ref || zeta_dom_dom.root;
+    var updatedFields = grep(state.fields, function (v) {
+      return props[v.path];
+    });
     form_emitter.emit('dataChange', form, keys(props));
-    validateFields(form, grep(state.fields, function (v) {
-      return props[v.path] && (v.props.validateOnChange + 1 || form.validateOnChange + 1) > 1;
+    validateFields(form, grep(updatedFields, function (v) {
+      return (v.props.validateOnChange + 1 || form.validateOnChange + 1) > 1;
     }));
 
-    if (form.preventLeave && !state.unlock) {
+    if (form.preventLeave && !state.unlock && updatedFields[0] && zeta_dom_dom.getEventSource(element) !== 'script') {
       var promise = new Promise(function (resolve) {
         state.unlock = function () {
           state.unlock = null;
           resolve();
         };
       });
-      preventLeave(state.ref || zeta_dom_dom.root, promise, function () {
-        return form_emitter.emit('beforeLeave', form) || reject();
+      preventLeave(element, promise, function () {
+        return form_emitter.emit('beforeLeave', form) || resolve();
       });
     }
   });
@@ -1660,6 +1665,9 @@ definePrototype(FormContext, {
 
     return !!data;
   },
+  clear: function clear() {
+    this.reset({});
+  },
   reset: function reset(data) {
     var self = this;
 
@@ -1784,7 +1792,7 @@ function useFormField(type, props, defaultValue, prop) {
   var key = form && name && keyFor(dict) + '.' + name;
   var controlled = (prop in props);
   var field = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)(function () {
-    var initialValue = controlled ? props[prop] : (preset.normalizeValue || pipe)(form && name in dict ? dict[name] : defaultValue !== undefined ? defaultValue : preset.defaultValue);
+    var initialValue = controlled ? props[prop] : (preset.normalizeValue || pipe)(defaultValue !== undefined ? defaultValue : preset.defaultValue);
     return createFieldState(initialValue);
   })[0];
   useFormFieldInternal(form, state, field, preset, props, controlled, dict, key);
