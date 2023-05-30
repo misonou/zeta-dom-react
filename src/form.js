@@ -1,5 +1,5 @@
 import { createContext, createElement, forwardRef, useContext, useEffect, useRef, useState } from "react";
-import { always, any, combineFn, createPrivateStore, define, defineObservableProperty, definePrototype, each, exclude, extend, grep, hasOwnProperty, is, isArray, isFunction, isPlainObject, isUndefinedOrNull, keys, makeArray, map, mapGet, mapRemove, noop, pick, pipe, randomId, reject, resolve, resolveAll, setImmediateOnce, single, throws, watch } from "./include/zeta-dom/util.js";
+import { always, any, combineFn, createPrivateStore, define, defineObservableProperty, definePrototype, each, exclude, extend, grep, hasOwnProperty, is, isArray, isFunction, isPlainObject, isUndefinedOrNull, keys, makeArray, map, mapGet, mapRemove, noop, pick, pipe, randomId, resolve, resolveAll, setImmediateOnce, single, throws, watch } from "./include/zeta-dom/util.js";
 import { ZetaEventContainer } from "./include/zeta-dom/events.js";
 import dom, { focus } from "./include/zeta-dom/dom.js";
 import { preventLeave } from "./include/zeta-dom/domLock.js";
@@ -94,19 +94,23 @@ function emitDataChangeEvent() {
                 props[i] = true;
             }
         }
+        var element = state.ref || dom.root;
+        var updatedFields = grep(state.fields, function (v) {
+            return props[v.path];
+        });
         emitter.emit('dataChange', form, keys(props));
-        validateFields(form, grep(state.fields, function (v) {
-            return props[v.path] && (v.props.validateOnChange + 1 || form.validateOnChange + 1) > 1;
+        validateFields(form, grep(updatedFields, function (v) {
+            return (v.props.validateOnChange + 1 || form.validateOnChange + 1) > 1;
         }));
-        if (form.preventLeave && !state.unlock) {
+        if (form.preventLeave && !state.unlock && updatedFields[0] && dom.getEventSource(element) !== 'script') {
             var promise = new Promise(function (resolve) {
                 state.unlock = function () {
                     state.unlock = null;
                     resolve();
                 };
             });
-            preventLeave(state.ref || dom.root, promise, function () {
-                return emitter.emit('beforeLeave', form) || reject();
+            preventLeave(element, promise, function () {
+                return emitter.emit('beforeLeave', form) || resolve();
             });
         }
     });

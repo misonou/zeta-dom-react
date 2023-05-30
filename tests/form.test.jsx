@@ -7,6 +7,9 @@ import { body, delay, mockFn, verifyCalls, _ } from "@misonou/test-utils";
 import dom from "zeta-dom/dom";
 import { cancelLock, locked } from "zeta-dom/domLock";
 import { catchAsync, combineFn, setImmediate } from "zeta-dom/util";
+import { jest } from "@jest/globals";
+
+const getEventSource = jest.spyOn(dom, 'getEventSource');
 
 function toDateComponent(y, m, d, h = 0, n = 0, s = 0, ms = 0) {
     if (y instanceof Date) {
@@ -77,6 +80,7 @@ function Field(props) {
 
 beforeEach(() => {
     FormContext.formatError = undefined;
+    getEventSource.mockReset().mockReturnValue('script');
 });
 
 describe('useFormContext', () => {
@@ -1494,8 +1498,11 @@ describe('FormContext', () => {
     });
 
     it('should fire beforeLeave event when unlocking form element', async () => {
-        const renderForm = createFormComponent();
+        const renderForm = createFormComponent(() => (
+            <Field name="foo" />
+        ));
         const { unmount, form, formElement, beforeLeave } = renderForm({}, { preventLeave: true });
+        getEventSource.mockReturnValue('mouse');
 
         await renderAct(async () => {
             form.data.foo = 1;
@@ -1510,9 +1517,12 @@ describe('FormContext', () => {
     });
 
     it('should unlock form element if promise returned beforeLeave is fulfilled', async () => {
-        const renderForm = createFormComponent();
+        const renderForm = createFormComponent(() => (
+            <Field name="foo" />
+        ));
         const { unmount, form, formElement, beforeLeave } = renderForm({}, { preventLeave: true });
         beforeLeave.mockResolvedValue('');
+        getEventSource.mockReturnValue('mouse');
 
         await renderAct(async () => {
             form.data.foo = 1;
@@ -1526,9 +1536,12 @@ describe('FormContext', () => {
     });
 
     it('should not unlock form element if promise returned beforeLeave is rejected', async () => {
-        const renderForm = createFormComponent();
+        const renderForm = createFormComponent(() => (
+            <Field name="foo" />
+        ));
         const { unmount, form, formElement, beforeLeave } = renderForm({}, { preventLeave: true });
         beforeLeave.mockRejectedValue('');
+        getEventSource.mockReturnValue('mouse');
 
         await renderAct(async () => {
             form.data.foo = 1;
@@ -1541,18 +1554,21 @@ describe('FormContext', () => {
         unmount();
     });
 
-    it('should not unlock form element if beforeLeave event is not handled', async () => {
-        const renderForm = createFormComponent();
+    it('should unlock form element if beforeLeave event is not handled', async () => {
+        const renderForm = createFormComponent(() => (
+            <Field name="foo" />
+        ));
         const { unmount, form, formElement, beforeLeave } = renderForm({}, { preventLeave: true });
+        getEventSource.mockReturnValue('mouse');
 
         await renderAct(async () => {
             form.data.foo = 1;
         });
         expect(locked(formElement)).toBe(true);
 
-        await expect(cancelLock()).rejects.toBeErrorWithCode('zeta/cancellation-rejected');
+        await expect(cancelLock()).resolves.toBeUndefined();
         expect(beforeLeave).toBeCalledTimes(1);
-        expect(locked(formElement)).toBe(true);
+        expect(locked(formElement)).toBe(false);
         unmount();
     });
 });
@@ -2466,6 +2482,7 @@ describe('Form component', () => {
             <Field name="foo" />
         ));
         const { unmount, form, formElement } = renderForm({}, { __formAttributes: { preventLeave: true } });
+        getEventSource.mockReturnValue('mouse');
         expect(locked(formElement)).toBe(false);
 
         await renderAct(async () => {
@@ -2485,6 +2502,7 @@ describe('Form component', () => {
             <Field name="foo" />
         ));
         const { unmount, form, formElement } = renderForm({}, { __formAttributes: { preventLeave: true } });
+        getEventSource.mockReturnValue('mouse');
         expect(locked(formElement)).toBe(false);
 
         await renderAct(async () => {
@@ -2498,6 +2516,34 @@ describe('Form component', () => {
     });
 
     it('should not lock form element when preventLeave is false', async () => {
+        const renderForm = createFormComponent(() => (
+            <Field name="foo" />
+        ));
+        const { unmount, form, formElement } = renderForm();
+        getEventSource.mockReturnValue('mouse');
+        expect(locked(formElement)).toBe(false);
+
+        await renderAct(async () => {
+            form.data.foo = 'bar';
+        });
+        expect(locked(formElement)).toBe(false);
+        unmount();
+    });
+
+    it('should not lock form element when no field is associated', async () => {
+        const renderForm = createFormComponent();
+        const { unmount, form, formElement } = renderForm();
+        getEventSource.mockReturnValue('mouse');
+        expect(locked(formElement)).toBe(false);
+
+        await renderAct(async () => {
+            form.data.foo = 'bar';
+        });
+        expect(locked(formElement)).toBe(false);
+        unmount();
+    });
+
+    it('should not lock form element when event source is script', async () => {
         const renderForm = createFormComponent(() => (
             <Field name="foo" />
         ));
