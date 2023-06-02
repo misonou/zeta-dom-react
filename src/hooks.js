@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dom from "./include/zeta-dom/dom.js";
 import { notifyAsync } from "./include/zeta-dom/domLock.js";
 import { ZetaEventContainer } from "./include/zeta-dom/events.js";
-import { always, any, combineFn, deferrable, delay, extend, is, isArray, isErrorWithCode, isFunction, makeArray, makeAsync, map, noop, pipe, resolve, setAdd, watch } from "./include/zeta-dom/util.js";
+import { always, any, combineFn, deferrable, delay, extend, is, isArray, isErrorWithCode, isFunction, makeArray, makeAsync, map, noop, pipe, resolve, setAdd, setImmediateOnce, watch } from "./include/zeta-dom/util.js";
 
 const container = new ZetaEventContainer();
 
@@ -100,7 +100,7 @@ export function useAsync(init, deps, debounce) {
         if (deps[0]) {
             // keep call to refresh in useEffect to avoid double invocation
             // in strict mode in development environment
-            state.refresh();
+            setImmediateOnce(state.refresh);
         }
     }, deps);
     useMemo(function () {
