@@ -182,6 +182,39 @@ export function useRefInitCallback<T extends object, F extends (instance: T) => 
 export function useDispose(): DisposeCallback;
 
 /**
+ * Returns whether the singleton instance returned by {@link useSingleton} has been disposed or not.
+ */
+export function isSingletonDisposed(target: any): boolean;
+
+/**
+ * Makes sure the dispose callback only gets called once when component is unmounted.
+ *
+ * Since React 18 `useEffect` always gets executed twice in development strict mode.
+ * This may cause issues for singleton objects that they are cleaned up before actual component life cycle.
+ * This hook ensures the cleanup callback will only be invoked exactly once after the component has unmounted.
+ *
+ * @param target A singleton object.
+ * @param callback Callback to be invoked when component has unmounted. If unspecified, it will call `dispose` method on the object if there exists usch method.
+ *
+ * @example
+ * ```tsx
+ * const singleton = useState(factory)[0];
+ * useEffect(() => {
+ *     return () => {
+ *         // the `dispose` method will actually be called
+ *         // when component is being first mounted in development strict mode,
+ *         // so the internal state will be invalid when component is rerendered.
+ *         singleton.dispose();
+ *     };
+ * }, [singleton]);
+ *
+ * // instead this will be safe
+ * const singleton = useSingleton(factory);
+ * ```
+ */
+export function useSingleton<T>(factory: () => T, onDispose?: (this: T) => void): T;
+
+/**
  * Returns a ref callback which when given to a React element, error caught from specified sources will be emitted through `error` event and be bubbled up through DOM.
  * @param args A list of error sources. Error source must implement an `onError` method.
  * @deprecated Use {@link useErrorHandler} for richer functionalities.

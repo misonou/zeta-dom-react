@@ -5,6 +5,7 @@ import { ZetaEventContainer } from "./include/zeta-dom/events.js";
 import { always, any, combineFn, deferrable, delay, extend, is, isArray, isErrorWithCode, isFunction, makeArray, makeAsync, map, noop, pipe, resolve, setAdd, setImmediateOnce, watch } from "./include/zeta-dom/util.js";
 
 const container = new ZetaEventContainer();
+const singletons = new WeakSet();
 
 export function useUpdateTrigger() {
     const setState = useState()[1];
@@ -136,6 +137,27 @@ export function useDispose() {
         return dispose;
     }, [dispose]);
     return dispose;
+}
+
+export function isSingletonDisposed(target) {
+    return !singletons.has(target);
+}
+
+export function useSingleton(factory, onDispose) {
+    const target = useState(factory())[0];
+    setAdd(singletons, target);
+    useEffect(function () {
+        setAdd(singletons, target);
+        return function () {
+            singletons.delete(target);
+            setImmediate(function () {
+                if (isSingletonDisposed(target)) {
+                    (onDispose || target.dispose || noop).call(target);
+                }
+            });
+        };
+    }, [target]);
+    return target;
 }
 
 export function useErrorHandlerRef() {
