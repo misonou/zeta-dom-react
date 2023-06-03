@@ -269,6 +269,63 @@ describe('useAsync', () => {
         expect(cb).toBeCalledTimes(1);
         expect(t2 - t1).toBeGreaterThan(500);
     });
+
+    it('should send abort signal and keep current value', async () => {
+        const cb = mockFn()
+            .mockResolvedValueOnce(42)
+            .mockResolvedValueOnce(43)
+        const { result } = renderHook(() => useAsync(cb, []));
+
+        await delay();
+        expect(result.current[0]).toBe(42);
+
+        result.current[1].refresh();
+        const signal1 = cb.mock.calls[1][0];
+
+        result.current[1].abort('reason');
+        expect(signal1.aborted).toBe(true);
+        expect(result.current[1].loading).toBe(false);
+        expect(result.current[1].value).toBe(42);
+        expect(result.current[0]).toBe(42);
+        expect(cb).toBeCalledTimes(2);
+    });
+
+    it('should send abort signal when refresh is called again before previous returned', async () => {
+        const onabort = mockFn();
+        const cb = mockFn((signal) => {
+            signal.onabort = onabort;
+            return delay(500);
+        });
+        const { result } = renderHook(() => useAsync(cb, false));
+
+        result.current[1].refresh();
+        const signal1 = cb.mock.calls[0][0];
+
+        result.current[1].refresh();
+        const signal2 = cb.mock.calls[1][0];
+
+        expect(signal1.aborted).toBe(true);
+        expect(signal2.aborted).toBe(false);
+        expect(onabort).toBeCalledTimes(1);
+    });
+
+    it('should send abort signal when unmount', async () => {
+        const onabort = mockFn();
+        const cb = mockFn((signal) => {
+            signal.onabort = onabort;
+            return delay(500);
+        });
+        const { result, unmount } = renderHook(() => useAsync(cb, false));
+
+        result.current[1].refresh();
+        const signal1 = cb.mock.calls[0][0];
+        unmount();
+
+        await delay();
+        expect(signal1.aborted).toBe(true);
+        expect(cb).toBeCalledTimes(1);
+        expect(onabort).toBeCalledTimes(1);
+    });
 });
 
 describe('useRefInitCallback', () => {

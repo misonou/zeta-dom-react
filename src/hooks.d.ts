@@ -103,6 +103,11 @@ export interface AsyncContentState<T = any> extends Zeta.ZetaEventDispatcher<Asy
      * Registers a handler to handle errors thrown from the data init callback.
      */
     onError(handler: (error: any, this: this) => any): Zeta.UnregisterCallback;
+    /**
+     * Aborts the async operation.
+     * The loading state will be set back to `false`, whereas the {@link AsyncContentState.value} is unchanged.
+     */
+    abort(reason?: any): void;
 }
 
 /**
@@ -136,7 +141,7 @@ export function useObservableProperty<T extends object, P extends keyof T>(obj: 
  * @param debounce Debounce interval in milliseconds.
  * @returns An array containing the data when available, and a state object, see {@link AsyncContentState}.
  */
-export function useAsync<T>(init: () => T | Promise<T>, autoload: boolean = true, debounce?: number): [value: T | undefined, state: AsyncContentState<T>];
+export function useAsync<T>(init: (signal: AbortSignal) => T | Promise<T>, autoload: boolean = true, debounce?: number): [value: T | undefined, state: AsyncContentState<T>];
 
 /**
  * Gets asynchronous data and refreshes the components once data is ready or error has occurred.
@@ -146,7 +151,7 @@ export function useAsync<T>(init: () => T | Promise<T>, autoload: boolean = true
  * @param debounce Debounce interval in milliseconds.
  * @returns An array containing the data when available, and a state object, see {@link AsyncContentState}.
  */
-export function useAsync<T>(init: () => T | Promise<T>, deps: React.DependencyList, debounce?: number): [value: T | undefined, state: AsyncContentState<T>];
+export function useAsync<T>(init: (signal: AbortSignal) => T | Promise<T>, deps: React.DependencyList, debounce?: number): [value: T | undefined, state: AsyncContentState<T>];
 
 /**
  * Creates a React ref callback, that will invoke the supplied callback only once for each a new DOM element created.

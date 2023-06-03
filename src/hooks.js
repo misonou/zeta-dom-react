@@ -2,10 +2,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dom from "./include/zeta-dom/dom.js";
 import { notifyAsync } from "./include/zeta-dom/domLock.js";
 import { ZetaEventContainer } from "./include/zeta-dom/events.js";
-import { always, any, combineFn, deferrable, delay, extend, is, isArray, isErrorWithCode, isFunction, makeArray, makeAsync, map, noop, pipe, resolve, setAdd, setImmediateOnce, watch } from "./include/zeta-dom/util.js";
+import { always, any, combineFn, deferrable, delay, extend, is, isArray, isErrorWithCode, isFunction, makeArray, makeAsync, map, noop, pipe, resolve, setAdd, setImmediate, setImmediateOnce, watch } from "./include/zeta-dom/util.js";
 
 const container = new ZetaEventContainer();
 const singletons = new WeakSet();
+const AbortController = window.AbortController;
 
 export function useUpdateTrigger() {
     const setState = useState()[1];
@@ -40,9 +41,9 @@ export function useObservableProperty(obj, key) {
 }
 
 export function useAsync(init, deps, debounce) {
-    const state = useState(function () {
+    const state = useSingleton(function () {
         var element;
-        var currentPromise;
+        var currentController;
         var nextResult;
         return {
             loading: false,
@@ -68,10 +69,14 @@ export function useAsync(init, deps, debounce) {
                         return state.refresh(true);
                     }));
                 }
+                var controller = AbortController ? new AbortController() : { abort: noop };
+                if (currentController) {
+                    currentController.abort();
+                }
                 extend(state, { loading: true, error: undefined });
-                var result = makeAsync(init)();
+                var result = makeAsync(init)(controller.signal);
                 var promise = always(result, function (resolved, value) {
-                    if (!state.disposed && currentPromise === promise) {
+                    if (currentController === controller) {
                         if (resolved) {
                             extend(state, { loading: false, value: value });
                             container.emit('load', state, { data: value });
@@ -83,20 +88,23 @@ export function useAsync(init, deps, debounce) {
                         }
                     }
                 });
-                currentPromise = promise;
+                currentController = controller;
                 notifyAsync(element || dom.root, promise);
                 return result;
+            },
+            abort: function (reason) {
+                if (currentController) {
+                    currentController.abort(reason);
+                    currentController = null;
+                }
+                state.loading = false;
             }
         };
-    })[0];
+    }, function () {
+        state.abort();
+    });
     deps = [deps !== false].concat(isArray(deps) || []);
     init = useMemoizedFunction(init);
-    useEffect(function () {
-        state.disposed = false;
-        return function () {
-            state.disposed = true;
-        };
-    }, [state]);
     useEffect(function () {
         if (deps[0]) {
             // keep call to refresh in useEffect to avoid double invocation
