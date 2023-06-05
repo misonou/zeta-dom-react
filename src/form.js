@@ -532,6 +532,13 @@ definePrototype(FormContext, {
     }
 });
 
+defineObservableProperty(FormContext.prototype, 'preventLeave', false, function (value) {
+    if (!value) {
+        (_(this).unlock || noop)();
+    }
+    return !!value;
+});
+
 export function useFormContext(persistKey, initialData, options) {
     if (typeof persistKey !== 'string') {
         return useFormContext('', persistKey, initialData);

@@ -1571,6 +1571,26 @@ describe('FormContext', () => {
         expect(locked(formElement)).toBe(false);
         unmount();
     });
+
+    it('should unlock form element if preventLeave is set to false', async () => {
+        const renderForm = createFormComponent(() => (
+            <Field name="foo" />
+        ));
+        const { unmount, form, formElement, beforeLeave } = renderForm({}, { preventLeave: true });
+        getEventSource.mockReturnValue('mouse');
+
+        await renderAct(async () => {
+            form.data.foo = 1;
+        });
+        expect(locked(formElement)).toBe(true);
+
+        await renderAct(async () => {
+            form.preventLeave = false;
+        });
+        expect(beforeLeave).not.toBeCalled();
+        expect(locked(formElement)).toBe(false);
+        unmount();
+    });
 });
 
 describe('FormContext#isValid', () => {
