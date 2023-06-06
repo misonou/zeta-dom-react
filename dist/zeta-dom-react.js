@@ -115,6 +115,7 @@ __webpack_require__.d(src_namespaceObject, {
   "createBreakpointContext": () => (createBreakpointContext),
   "domEventRef": () => (domEventRef),
   "innerTextOrHTML": () => (innerTextOrHTML),
+  "isSingletonDisposed": () => (isSingletonDisposed),
   "partial": () => (partial),
   "registerFieldType": () => (registerFieldType),
   "toRefCallback": () => (toRefCallback),
@@ -129,6 +130,7 @@ __webpack_require__.d(src_namespaceObject, {
   "useMemoizedFunction": () => (useMemoizedFunction),
   "useObservableProperty": () => (useObservableProperty),
   "useRefInitCallback": () => (useRefInitCallback),
+  "useSingleton": () => (useSingleton),
   "useUpdateTrigger": () => (useUpdateTrigger),
   "useViewState": () => (useViewState),
   "withSuspense": () => (withSuspense)
@@ -307,6 +309,8 @@ var ZetaEventContainer = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_
 
 
 var container = new ZetaEventContainer();
+var singletons = new WeakSet();
+var AbortController = window.AbortController;
 function useUpdateTrigger() {
   var setState = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)()[1];
   return (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useCallback)(function () {
@@ -338,9 +342,9 @@ function useObservableProperty(obj, key) {
   return value;
 }
 function useAsync(init, deps, debounce) {
-  var state = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)(function () {
+  var state = useSingleton(function () {
     var element;
-    var currentPromise;
+    var currentController;
     var nextResult;
     return {
       loading: false,
@@ -367,13 +371,21 @@ function useAsync(init, deps, debounce) {
           }));
         }
 
+        var controller = AbortController ? new AbortController() : {
+          abort: noop
+        };
+
+        if (currentController) {
+          currentController.abort();
+        }
+
         extend(state, {
           loading: true,
           error: undefined
         });
-        var result = makeAsync(init)();
+        var result = makeAsync(init)(controller.signal);
         var promise = always(result, function (resolved, value) {
-          if (!state.disposed && currentPromise === promise) {
+          if (currentController === controller) {
             if (resolved) {
               extend(state, {
                 loading: false,
@@ -397,25 +409,29 @@ function useAsync(init, deps, debounce) {
             }
           }
         });
-        currentPromise = promise;
+        currentController = controller;
         notifyAsync(element || zeta_dom_dom.root, promise);
         return result;
+      },
+      abort: function abort(reason) {
+        if (currentController) {
+          currentController.abort(reason);
+          currentController = null;
+        }
+
+        state.loading = false;
       }
     };
-  })[0];
+  }, function () {
+    state.abort();
+  });
   deps = [deps !== false].concat(isArray(deps) || []);
   init = useMemoizedFunction(init);
-  (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
-    state.disposed = false;
-    return function () {
-      state.disposed = true;
-    };
-  }, [state]);
   (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
     if (deps[0]) {
       // keep call to refresh in useEffect to avoid double invocation
       // in strict mode in development environment
-      state.refresh();
+      setImmediateOnce(state.refresh);
     }
   }, deps);
   (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useMemo)(function () {
@@ -449,6 +465,25 @@ function useDispose() {
     return dispose;
   }, [dispose]);
   return dispose;
+}
+function isSingletonDisposed(target) {
+  return !singletons.has(target);
+}
+function useSingleton(factory, onDispose) {
+  var target = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)(factory())[0];
+  setAdd(singletons, target);
+  (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
+    setAdd(singletons, target);
+    return function () {
+      singletons["delete"](target);
+      setImmediate(function () {
+        if (isSingletonDisposed(target)) {
+          (onDispose || target.dispose || noop).call(target);
+        }
+      });
+    };
+  }, [target]);
+  return target;
 }
 function useErrorHandlerRef() {
   return useErrorHandler.apply(this, arguments).ref;
@@ -1744,6 +1779,13 @@ definePrototype(FormContext, {
   toJSON: function toJSON() {
     return extend(true, {}, this.data);
   }
+});
+defineObservableProperty(FormContext.prototype, 'preventLeave', false, function (value) {
+  if (!value) {
+    (form_(this).unlock || noop)();
+  }
+
+  return !!value;
 });
 function useFormContext(persistKey, initialData, options) {
   if (typeof persistKey !== 'string') {
