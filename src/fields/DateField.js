@@ -1,9 +1,8 @@
 import { useMemo, useEffect } from "react";
-import { define, definePrototype, extend, is, isFunction } from "../include/zeta-dom/util.js";
+import { define, definePrototype, extend, isFunction } from "../include/zeta-dom/util.js";
 import { useMemoizedFunction } from "../hooks.js";
 
 const re = /^-?\d{4,}-\d{2}-\d{2}$/;
-const tz = new Date().getTimezoneOffset() * 60000;
 
 // method mapping for relative date units
 const units = {
@@ -14,7 +13,7 @@ const units = {
 units.w = units.d;
 
 function parseRelativeDate(str) {
-    var date = toDateObject(Date.now());
+    var date = new Date();
     var dir = str[0] === '-' ? -1 : 1;
     str.toLowerCase().replace(/([+-]?)(\d+)([dwmy])/g, function (v, a, b, c) {
         date[units[c][1]](date[units[c][0]]() + (b * (a === '-' ? -1 : a === '+' ? 1 : dir) * (c === 'w' ? 7 : 1)));
@@ -29,11 +28,11 @@ function normalizeDate(date) {
         }
         date = date[0] === '+' || date[0] === '-' ? parseRelativeDate(date) : Date.parse(date);
     }
-    return date - (date - tz) % 86400000;
+    return new Date(date).setHours(0, 0, 0, 0);
 }
 
 function clampValue(date, min, max) {
-    var ts = is(date, Date) || normalizeDate(date);
+    var ts = normalizeDate(date);
     return ts < min ? min : ts > max ? max : date;
 }
 
@@ -45,6 +44,7 @@ function toDateObject(str) {
 function toDateString(date) {
     if (!isNaN(date)) {
         // counter UTC conversion due to toISOString
+        var tz = new Date(date).getTimezoneOffset() * 60000;
         var str = new Date(date - tz).toISOString();
         return str.slice(0, str.indexOf('T', 10));
     }
@@ -86,7 +86,7 @@ definePrototype(DateField, {
                 if (!v) {
                     setValue('');
                 } else if (/\d{4}/.test(v) && /[^\s\d]/.test(v)) {
-                    v = toDateObject(v);
+                    v = normalizeDate(v);
                     if (!isNaN(v)) {
                         setValue(clampValue(v, min, max));
                     }
