@@ -136,14 +136,14 @@ export function useDataView(persistKey, filters, sortBy, sortOrder, pageSize) {
     useEffect(function () {
         var state = _(dataView);
         return combineFn(
-            dataView.on('viewChange', forceUpdate),
+            dataView.on('viewChange', function () {
+                viewState.set(dataView.toJSON());
+                forceUpdate();
+            }),
             viewState.onPopState ? viewState.onPopState(function (newValue) {
                 viewState.set(dataView.toJSON());
                 extend(dataView, newValue || state.defaults);
-            }) : noop,
-            function () {
-                viewState.set(dataView.toJSON());
-            }
+            }) : noop
         );
     }, [dataView]);
     return dataView;

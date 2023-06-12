@@ -3,7 +3,7 @@ import { always, any, combineFn, createPrivateStore, define, defineObservablePro
 import { ZetaEventContainer } from "./include/zeta-dom/events.js";
 import dom, { focus } from "./include/zeta-dom/dom.js";
 import { preventLeave } from "./include/zeta-dom/domLock.js";
-import { comparePosition, parentsAndSelf } from "./include/zeta-dom/domUtil.js";
+import { bind, comparePosition, parentsAndSelf } from "./include/zeta-dom/domUtil.js";
 import { useObservableProperty, useUpdateTrigger } from "./hooks.js";
 import { combineRef } from "./util.js";
 import { useViewState } from "./viewState.js";
@@ -398,6 +398,10 @@ function normalizeOptions(options) {
     }, options);
 }
 
+function formPersist(form) {
+    _(form).viewState.set(form.toJSON());
+}
+
 export function FormContext(initialData, options, viewState) {
     var self = this;
     var fields = {};
@@ -450,9 +454,8 @@ definePrototype(FormContext, {
         return emitter.add(this, event, handler);
     },
     persist: function () {
-        var self = this;
-        _(self).viewState.set(self.toJSON());
-        self.autoPersist = false;
+        formPersist(this);
+        this.autoPersist = false;
     },
     restore: function () {
         var self = this;
@@ -553,11 +556,15 @@ export function useFormContext(persistKey, initialData, options) {
         return combineFn(
             form.on('dataChange', forceUpdate),
             form.on('reset', forceUpdate),
+            bind(window, 'pagehide', function () {
+                if (form.autoPersist) {
+                    formPersist(form);
+                }
+            }),
             function () {
                 (_(form).unlock || noop)();
                 if (form.autoPersist) {
-                    form.persist();
-                    form.autoPersist = true;
+                    formPersist(form);
                 }
             }
         );
