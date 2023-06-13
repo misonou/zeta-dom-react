@@ -248,6 +248,7 @@ var domUtil_zeta$util = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_d
     removeNode = domUtil_zeta$util.removeNode,
     getClass = domUtil_zeta$util.getClass,
     setClass = domUtil_zeta$util.setClass,
+    getSafeAreaInset = domUtil_zeta$util.getSafeAreaInset,
     getScrollOffset = domUtil_zeta$util.getScrollOffset,
     getScrollParent = domUtil_zeta$util.getScrollParent,
     getContentRect = domUtil_zeta$util.getContentRect,
@@ -779,12 +780,13 @@ function useDataView(persistKey, filters, sortBy, sortOrder, pageSize) {
   (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
     var state = _(dataView);
 
-    return combineFn(dataView.on('viewChange', forceUpdate), viewState.onPopState ? viewState.onPopState(function (newValue) {
+    return combineFn(dataView.on('viewChange', function () {
+      viewState.set(dataView.toJSON());
+      forceUpdate();
+    }), viewState.onPopState ? viewState.onPopState(function (newValue) {
       viewState.set(dataView.toJSON());
       extend(dataView, newValue || state.defaults);
-    }) : noop, function () {
-      viewState.set(dataView.toJSON());
-    });
+    }) : noop);
   }, [dataView]);
   return dataView;
 }
@@ -940,8 +942,7 @@ definePrototype(ChoiceField, {
 
 
 
-var re = /^-?\d{4,}-\d{2}-\d{2}$/;
-var tz = new Date().getTimezoneOffset() * 60000; // method mapping for relative date units
+var re = /^-?\d{4,}-\d{2}-\d{2}$/; // method mapping for relative date units
 
 var units = {
   y: ['getFullYear', 'setFullYear'],
@@ -951,7 +952,7 @@ var units = {
 units.w = units.d;
 
 function parseRelativeDate(str) {
-  var date = toDateObject(Date.now());
+  var date = new Date();
   var dir = str[0] === '-' ? -1 : 1;
   str.toLowerCase().replace(/([+-]?)(\d+)([dwmy])/g, function (v, a, b, c) {
     date[units[c][1]](date[units[c][0]]() + b * (a === '-' ? -1 : a === '+' ? 1 : dir) * (c === 'w' ? 7 : 1));
@@ -968,11 +969,11 @@ function normalizeDate(date) {
     date = date[0] === '+' || date[0] === '-' ? parseRelativeDate(date) : Date.parse(date);
   }
 
-  return date - (date - tz) % 86400000;
+  return new Date(date).setHours(0, 0, 0, 0);
 }
 
 function clampValue(date, min, max) {
-  var ts = is(date, Date) || normalizeDate(date);
+  var ts = normalizeDate(date);
   return ts < min ? min : ts > max ? max : date;
 }
 
@@ -984,6 +985,7 @@ function toDateObject(str) {
 function toDateString(date) {
   if (!isNaN(date)) {
     // counter UTC conversion due to toISOString
+    var tz = new Date(date).getTimezoneOffset() * 60000;
     var str = new Date(date - tz).toISOString();
     return str.slice(0, str.indexOf('T', 10));
   }
@@ -1026,7 +1028,7 @@ definePrototype(DateField, {
         if (!v) {
           setValue('');
         } else if (/\d{4}/.test(v) && /[^\s\d]/.test(v)) {
-          v = toDateObject(v);
+          v = normalizeDate(v);
 
           if (!isNaN(v)) {
             setValue(clampValue(v, min, max));
@@ -1626,6 +1628,10 @@ function normalizeOptions(options) {
   }, options);
 }
 
+function formPersist(form) {
+  form_(form).viewState.set(form.toJSON());
+}
+
 function FormContext(initialData, options, viewState) {
   var self = this;
   var fields = {};
@@ -1683,11 +1689,8 @@ definePrototype(FormContext, {
     return form_emitter.add(this, event, handler);
   },
   persist: function persist() {
-    var self = this;
-
-    form_(self).viewState.set(self.toJSON());
-
-    self.autoPersist = false;
+    formPersist(this);
+    this.autoPersist = false;
   },
   restore: function restore() {
     var self = this;
@@ -1799,12 +1802,15 @@ function useFormContext(persistKey, initialData, options) {
   var forceUpdate = useUpdateTrigger();
   useObservableProperty(form, 'isValid');
   (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
-    return combineFn(form.on('dataChange', forceUpdate), form.on('reset', forceUpdate), function () {
+    return combineFn(form.on('dataChange', forceUpdate), form.on('reset', forceUpdate), bind(window, 'pagehide', function () {
+      if (form.autoPersist) {
+        formPersist(form);
+      }
+    }), function () {
       (form_(form).unlock || noop)();
 
       if (form.autoPersist) {
-        form.persist();
-        form.autoPersist = true;
+        formPersist(form);
       }
     });
   }, [form]);
