@@ -84,6 +84,14 @@ beforeEach(() => {
 });
 
 describe('useFormContext', () => {
+    it('should accept callback to generate initial form data', async () => {
+        const cb = mockFn().mockReturnValue({ foo: 1 });
+        const { form, unmount } = createFormContext(cb);
+        expect(cb).toBeCalledTimes(1);
+        expect(form.data).toEqual({ foo: 1 });
+        unmount();
+    });
+
     it('should cause re-render when data has changed', async () => {
         const renderForm = createFormComponent((form) => (
             <div>{form.data.foo}</div>

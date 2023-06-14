@@ -403,6 +403,9 @@ function formPersist(form) {
 }
 
 export function FormContext(initialData, options, viewState) {
+    if (isFunction(initialData)) {
+        initialData = initialData();
+    }
     var self = this;
     var fields = {};
     var state = _(self, {
