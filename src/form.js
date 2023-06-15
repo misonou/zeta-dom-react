@@ -13,6 +13,7 @@ const emitter = new ZetaEventContainer();
 const presets = new WeakMap();
 const instances = new WeakMap();
 const changedProps = new Map();
+const rootForm = new FormContext({}, {}, { get: noop });
 const fieldTypes = {
     text: TextField,
     toggle: ToggleField,
@@ -153,8 +154,10 @@ function createDataObject(context, initialData) {
                     handleDataChange.d.add(state.fields[key]);
                 }
             }
-            mapGet(changedProps, context, Object)[path] = true;
-            setImmediateOnce(emitDataChangeEvent);
+            if (context !== rootForm) {
+                mapGet(changedProps, context, Object)[path] = true;
+                setImmediateOnce(emitDataChangeEvent);
+            }
             return true;
         }
     };
@@ -316,7 +319,7 @@ function useFormFieldInternal(form, state, field, preset, props, controlled, dic
         return function () {
             if (state && state.fields[key] === field) {
                 delete state.fields[key];
-                if (field.props.clearWhenUnmount) {
+                if (field.props.clearWhenUnmount || field.form === rootForm) {
                     _(dict).delete(key.slice(9));
                 }
                 state.setValid();
@@ -674,17 +677,19 @@ export function FormArray(props) {
 }
 
 export function FormObject(props) {
+    var uniqueId = useState(randomId)[0];
+    var name = props.name;
     var dict = useContext(FormObjectContext);
-    if (!_(dict)) {
-        throws('Missing form context');
+    if (!dict) {
+        dict = rootForm.data;
+        name = uniqueId;
     }
     var fieldRef = useRef();
     var form = _(dict).context;
     var state = _(form);
-    var name = props.name;
     var value = props.value;
     if (name) {
-        value = isPlainObject(dict[name]) || isArray(dict[name]) || props.defaultValue || {};
+        value = 'value' in props ? value : isPlainObject(dict[name]) || isArray(dict[name]) || props.defaultValue || {};
         value = _(dict).set(name, value);
     } else if (!(_(value) || '').context) {
         throws('Value must be a data object or array');
