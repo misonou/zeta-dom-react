@@ -2030,6 +2030,16 @@ describe('FormContext#validate', () => {
         unmount();
     });
 
+    it('should set error if required field is empty', async () => {
+        const formatError = mockFn();
+        const { form, wrapper, unmount } = createFormContext();
+        renderHook(() => useFormField({ name: 'foo', required: true, isEmpty: () => true, formatError }, ''), { wrapper });
+        await form.validate();
+        expect(form.getError('foo')).toBeTruthy();
+        expect(formatError).toHaveBeenLastCalledWith(expect.objectContaining({ kind: 'required' }), 'foo', _, _);
+        unmount();
+    });
+
     it('should accept string-coercible object as failed result', async () => {
         const obj = { message: 'error1' };
         const cb = mockFn().mockReturnValue({

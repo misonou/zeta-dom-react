@@ -335,11 +335,14 @@ function useFormFieldInternal(form, state, field, preset, props, controlled, dic
 
 function validateFields(form, fields) {
     var state = _(form);
-    var imlicitErrors = map(fields, hasImplicitError);
     var validate = function (field) {
         var name = field.path;
         var value = field.value;
-        return emitter.emit('validate', form, { name, value }) || ((field.props || '').onValidate || noop)(value, name, form);
+        var result = emitter.emit('validate', form, { name, value });
+        if (result || !field.props) {
+            return result;
+        }
+        return (field.props.onValidate || noop)(value, name, form) || (hasImplicitError(field) && new ValidationError('required', 'Required'));
     };
     var promises = fields.map(function (v) {
         var locks = v.locks || (v.locks = []);
@@ -368,7 +371,6 @@ function validateFields(form, fields) {
                 v.locks.shift();
                 v.error = result[i];
             }
-            result[i] = result[i] || imlicitErrors[i];
         });
         state.setValid();
         return !any(result);
