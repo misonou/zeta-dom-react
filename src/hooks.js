@@ -1,12 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dom from "./include/zeta-dom/dom.js";
 import { notifyAsync } from "./include/zeta-dom/domLock.js";
+import { bind } from "./include/zeta-dom/domUtil.js";
 import { ZetaEventContainer } from "./include/zeta-dom/events.js";
 import { always, any, combineFn, deferrable, delay, extend, is, isArray, isErrorWithCode, isFunction, makeArray, makeAsync, map, noop, pipe, resolve, setAdd, setImmediate, setImmediateOnce, watch } from "./include/zeta-dom/util.js";
 
 const container = new ZetaEventContainer();
 const singletons = new WeakSet();
 const AbortController = window.AbortController;
+
+var unloadCallbacks;
 
 export function useUpdateTrigger() {
     const setState = useState()[1];
@@ -230,4 +233,21 @@ export function useErrorHandler() {
         }));
     }, args);
     return handler;
+}
+
+export function useUnloadEffect(callback) {
+    if (!unloadCallbacks) {
+        unloadCallbacks = new Set();
+        bind(window, 'pagehide', function (e) {
+            combineFn(makeArray(unloadCallbacks).reverse())(e.persisted);
+        });
+    }
+    callback = useMemoizedFunction(callback);
+    useEffect(function () {
+        unloadCallbacks.add(callback);
+        return function () {
+            unloadCallbacks.delete(callback);
+            callback(false);
+        };
+    }, []);
 }

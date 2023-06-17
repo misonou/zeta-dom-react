@@ -237,3 +237,9 @@ export function useErrorHandlerRef<T extends Element = HTMLElement>(...args: Err
  * @param args A list of error sources. Error source must implement an `onError` method.
  */
 export function useErrorHandler<T extends Element = HTMLElement>(...args: ErrorSource[]): ErrorHandlerWithRef<T>;
+
+/**
+ * Registers a cleanup callback to be invoked when the component is being unmounted, or the document is being unloaded.
+ * @param callback Callback to be invoked, receiving a boolean indicating if the page is still cached. The flag is always `false` if the component is being unmounted.
+ */
+export function useUnloadEffect(callback: (persisted: boolean) => void): void;

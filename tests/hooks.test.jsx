@@ -4,7 +4,7 @@ import { act, renderHook } from '@testing-library/react-hooks'
 import { catchAsync, errorWithCode, watch } from "src/include/zeta-dom/util";
 import dom from "src/include/zeta-dom/dom";
 import { combineRef } from "src/util";
-import { useAsync, useDispose, useErrorHandler, useMemoizedFunction, useObservableProperty, useRefInitCallback } from "src/hooks";
+import { useAsync, useDispose, useErrorHandler, useMemoizedFunction, useObservableProperty, useRefInitCallback, useUnloadEffect } from "src/hooks";
 import { delay, mockFn, verifyCalls, _ } from "@misonou/test-utils";
 
 describe('useMemoizedFunction', () => {
@@ -593,5 +593,89 @@ describe('useErrorHandler', () => {
         expect(cb).toBeCalledTimes(1);
         unmount();
         unbind();
+    });
+});
+
+describe('useUnloadEffect', () => {
+    it('should invoke callback with false when component is being unmounted', () => {
+        const cb = mockFn();
+        const Outer = function () {
+            useEffect(() => cb('outer'), []);
+            useUnloadEffect(v => cb('outer unload', v));
+            return <Inner />;
+        };
+        const Inner = function () {
+            useEffect(() => cb('inner'), []);
+            useUnloadEffect(v => cb('inner unload', v));
+            return <></>;
+        };
+        const { unmount } = render(<Outer />);
+
+        unmount();
+        verifyCalls(cb, [
+            ['inner'],
+            ['outer'],
+            ['outer unload', false],
+            ['inner unload', false],
+        ]);
+    });
+
+    it('should invoke callback with persisted flag on pagehide event', () => {
+        const cb = mockFn();
+        const Outer = function () {
+            useUnloadEffect(v => cb('outer unload', v));
+            return <Inner />;
+        };
+        const Inner = function () {
+            useUnloadEffect(v => cb('inner unload', v));
+            return <></>;
+        };
+        const { unmount } = render(<Outer />);
+
+        window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted: false }));
+        verifyCalls(cb, [
+            ['outer unload', false],
+            ['inner unload', false],
+        ]);
+
+        cb.mockClear();
+        window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted: true }));
+        verifyCalls(cb, [
+            ['outer unload', true],
+            ['inner unload', true],
+        ]);
+        unmount();
+    });
+
+    it('should not invoke callback registered in unmounted component on pagehide event', () => {
+        const cb = mockFn();
+        const Outer = function ({ inner }) {
+            useUnloadEffect(v => cb('outer unload', v));
+            return inner ? <Inner /> : null;
+        };
+        const Inner = function () {
+            useUnloadEffect(v => cb('inner unload', v));
+            return <></>;
+        };
+        const { rerender, unmount } = render(<Outer inner={true} />);
+        rerender(<Outer inner={false} />);
+        verifyCalls(cb, [['inner unload', false]]);
+
+        cb.mockClear();
+        window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted: true }));
+        verifyCalls(cb, [['outer unload', true]]);
+        unmount();
+    });
+
+    it('should register as multiple instances for the same callback', () => {
+        const cb = mockFn();
+        const Outer = function () {
+            useUnloadEffect(cb);
+            return null;
+        };
+        const { unmount } = render(<><Outer /><Outer /></>);
+        window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted: true }));
+        expect(cb).toBeCalledTimes(2);
+        unmount();
     });
 });

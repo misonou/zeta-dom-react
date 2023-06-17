@@ -1,10 +1,10 @@
 import { createContext, createElement, forwardRef, useContext, useEffect, useRef, useState } from "react";
-import { always, any, combineFn, createPrivateStore, define, defineObservableProperty, definePrototype, each, exclude, extend, grep, hasOwnProperty, is, isArray, isFunction, isPlainObject, isUndefinedOrNull, keys, makeArray, map, mapGet, mapRemove, noop, pick, pipe, randomId, resolve, resolveAll, setImmediateOnce, single, throws, watch } from "./include/zeta-dom/util.js";
+import { always, any, createPrivateStore, define, defineObservableProperty, definePrototype, each, exclude, extend, grep, hasOwnProperty, is, isArray, isFunction, isPlainObject, isUndefinedOrNull, keys, makeArray, map, mapGet, mapRemove, noop, pick, pipe, randomId, resolve, resolveAll, setImmediateOnce, single, throws, watch } from "./include/zeta-dom/util.js";
 import { ZetaEventContainer } from "./include/zeta-dom/events.js";
 import dom, { focus } from "./include/zeta-dom/dom.js";
 import { preventLeave } from "./include/zeta-dom/domLock.js";
-import { bind, comparePosition, parentsAndSelf } from "./include/zeta-dom/domUtil.js";
-import { useObservableProperty, useUpdateTrigger } from "./hooks.js";
+import { comparePosition, parentsAndSelf } from "./include/zeta-dom/domUtil.js";
+import { useObservableProperty, useUnloadEffect, useUpdateTrigger } from "./hooks.js";
 import { combineRef } from "./util.js";
 import { useViewState } from "./viewState.js";
 
@@ -560,22 +560,17 @@ export function useFormContext(persistKey, initialData, options) {
     })[0];
     const forceUpdate = useUpdateTrigger();
     useObservableProperty(form, 'isValid');
+    useUnloadEffect(function () {
+        (_(form).unlock || noop)();
+        if (form.autoPersist) {
+            formPersist(form);
+        }
+    });
     useEffect(function () {
-        return combineFn(
-            form.on('dataChange', forceUpdate),
-            form.on('reset', forceUpdate),
-            bind(window, 'pagehide', function () {
-                if (form.autoPersist) {
-                    formPersist(form);
-                }
-            }),
-            function () {
-                (_(form).unlock || noop)();
-                if (form.autoPersist) {
-                    formPersist(form);
-                }
-            }
-        );
+        return form.on({
+            dataChange: forceUpdate,
+            reset: forceUpdate
+        });
     }, [form]);
     return form;
 }
