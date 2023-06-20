@@ -131,6 +131,7 @@ __webpack_require__.d(src_namespaceObject, {
   "useObservableProperty": () => (useObservableProperty),
   "useRefInitCallback": () => (useRefInitCallback),
   "useSingleton": () => (useSingleton),
+  "useUnloadEffect": () => (useUnloadEffect),
   "useUpdateTrigger": () => (useUpdateTrigger),
   "useViewState": () => (useViewState),
   "withSuspense": () => (withSuspense)
@@ -309,9 +310,11 @@ var ZetaEventContainer = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_
 
 
 
+
 var container = new ZetaEventContainer();
 var singletons = new WeakSet();
 var AbortController = window.AbortController;
+var unloadCallbacks;
 function useUpdateTrigger() {
   var setState = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)()[1];
   return (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useCallback)(function () {
@@ -557,6 +560,23 @@ function useErrorHandler() {
     }));
   }, args);
   return handler;
+}
+function useUnloadEffect(callback) {
+  if (!unloadCallbacks) {
+    unloadCallbacks = new Set();
+    bind(window, 'pagehide', function (e) {
+      combineFn(makeArray(unloadCallbacks).reverse())(e.persisted);
+    });
+  }
+
+  callback = useMemoizedFunction(callback);
+  (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
+    unloadCallbacks.add(callback);
+    return function () {
+      unloadCallbacks["delete"](callback);
+      callback(false);
+    };
+  }, []);
 }
 ;// CONCATENATED MODULE: ./src/css.js
 
@@ -1179,6 +1199,9 @@ var form_emitter = new ZetaEventContainer();
 var presets = new WeakMap();
 var instances = new WeakMap();
 var changedProps = new Map();
+var rootForm = new FormContext({}, {}, {
+  get: noop
+});
 var fieldTypes = {
   text: TextField,
   toggle: ToggleField,
@@ -1338,8 +1361,11 @@ function createDataObject(context, initialData) {
         }
       }
 
-      mapGet(changedProps, context, Object)[path] = true;
-      setImmediateOnce(emitDataChangeEvent);
+      if (context !== rootForm) {
+        mapGet(changedProps, context, Object)[path] = true;
+        setImmediateOnce(emitDataChangeEvent);
+      }
+
       return true;
     }
   };
@@ -1534,7 +1560,7 @@ function useFormFieldInternal(form, state, field, preset, props, controlled, dic
       if (state && state.fields[key] === field) {
         delete state.fields[key];
 
-        if (field.props.clearWhenUnmount) {
+        if (field.props.clearWhenUnmount || field.form === rootForm) {
           form_(dict)["delete"](key.slice(9));
         }
 
@@ -1552,15 +1578,19 @@ function useFormFieldInternal(form, state, field, preset, props, controlled, dic
 function validateFields(form, fields) {
   var state = form_(form);
 
-  var imlicitErrors = map(fields, hasImplicitError);
-
   var validate = function validate(field) {
     var name = field.path;
     var value = field.value;
-    return form_emitter.emit('validate', form, {
+    var result = form_emitter.emit('validate', form, {
       name: name,
       value: value
-    }) || ((field.props || '').onValidate || noop)(value, name, form);
+    });
+
+    if (result || !field.props) {
+      return result;
+    }
+
+    return (field.props.onValidate || noop)(value, name, form) || hasImplicitError(field) && new ValidationError('required', 'Required');
   };
 
   var promises = fields.map(function (v) {
@@ -1592,8 +1622,6 @@ function validateFields(form, fields) {
         v.locks.shift();
         v.error = result[i];
       }
-
-      result[i] = result[i] || imlicitErrors[i];
     });
     state.setValid();
     return !any(result);
@@ -1633,6 +1661,10 @@ function formPersist(form) {
 }
 
 function FormContext(initialData, options, viewState) {
+  if (isFunction(initialData)) {
+    initialData = initialData();
+  }
+
   var self = this;
   var fields = {};
 
@@ -1801,17 +1833,17 @@ function useFormContext(persistKey, initialData, options) {
   })[0];
   var forceUpdate = useUpdateTrigger();
   useObservableProperty(form, 'isValid');
-  (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
-    return combineFn(form.on('dataChange', forceUpdate), form.on('reset', forceUpdate), bind(window, 'pagehide', function () {
-      if (form.autoPersist) {
-        formPersist(form);
-      }
-    }), function () {
-      (form_(form).unlock || noop)();
+  useUnloadEffect(function () {
+    (form_(form).unlock || noop)();
 
-      if (form.autoPersist) {
-        formPersist(form);
-      }
+    if (form.autoPersist) {
+      formPersist(form);
+    }
+  });
+  (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
+    return form.on({
+      dataChange: forceUpdate,
+      reset: forceUpdate
     });
   }, [form]);
   return form;
@@ -1929,10 +1961,13 @@ function FormArray(props) {
   }));
 }
 function FormObject(props) {
+  var uniqueId = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)(randomId)[0];
+  var name = props.name;
   var dict = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useContext)(FormObjectContext);
 
-  if (!form_(dict)) {
-    _throws('Missing form context');
+  if (!dict) {
+    dict = rootForm.data;
+    name = uniqueId;
   }
 
   var fieldRef = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useRef)();
@@ -1941,11 +1976,10 @@ function FormObject(props) {
 
   var state = form_(form);
 
-  var name = props.name;
   var value = props.value;
 
   if (name) {
-    value = isPlainObject(dict[name]) || isArray(dict[name]) || props.defaultValue || {};
+    value = 'value' in props ? value : isPlainObject(dict[name]) || isArray(dict[name]) || props.defaultValue || {};
     value = form_(dict).set(name, value);
   } else if (!(form_(value) || '').context) {
     _throws('Value must be a data object or array');
