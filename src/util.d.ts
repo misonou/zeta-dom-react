@@ -32,7 +32,7 @@ export interface SetPartialCallback<T> {
  * @param handler A callback function to be fired when the specified event is triggered.
  * @returns A ref callback to be specified to the `ref` prop of a React element.
  */
-export function domEventRef<E extends Zeta.HintedString<Zeta.ZetaDOMEventName>, T extends Element>(event: E, handler: Zeta.ZetaEventHandler<E, Zeta.ZetaDOMEventMap, T>): React.RefCallback<T>;
+export function domEventRef<E extends Zeta.HintedString<Zeta.ZetaDOMEventName>, T extends Element>(event: E, handler: Zeta.ZetaDOMEventHandler<E, T>): React.RefCallback<T>;
 
 /**
  * Registers event handlers to the rendered DOM element.
@@ -40,7 +40,7 @@ export function domEventRef<E extends Zeta.HintedString<Zeta.ZetaDOMEventName>, 
  * @param handlers An object which each entry represent the handler to be registered on the event.
  * @returns A ref callback to be specified to the `ref` prop of a React element.
  */
-export function domEventRef<T extends Element>(handlers: Zeta.ZetaEventHandlers<Zeta.ZetaDOMEventMap, T>): React.RefCallback<T>;
+export function domEventRef<T extends Element>(handlers: Zeta.ZetaDOMEventHandlers<T>): React.RefCallback<T>;
 
 export function classNames(...args: ClassName[]): string;
 
