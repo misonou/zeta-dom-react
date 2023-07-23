@@ -16,15 +16,15 @@ export function domEventRef(event, handler) {
             if (arr.index === undefined) {
                 arr.index = 0;
             }
+            var index = arr.index++;
+            var state = arr[index] || (arr[index] = { keys: {} });
             each(handler, function (i, v) {
-                var index = arr.index++;
-                if (!arr[index]) {
-                    dom.on(element, i, function () {
-                        return arr[index].apply(this, arguments);
-                    });
-                }
-                arr[index] = throwNotFunction(v);
+                throwNotFunction(v);
+                state.keys[i] = state.keys[i] || dom.on(element, i, function () {
+                    return (state.handler[i] || noop).apply(this, arguments);
+                });
             });
+            state.handler = handler;
         } else {
             arr.index = 0;
         }

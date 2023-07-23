@@ -104,6 +104,21 @@ describe('domEventRef', () => {
         verifyCalls(cb2, [[expect.objectContaining({ type: 'custom' }), element]]);
     });
 
+    it('should invoke correct event listener after different event name is supplied', async () => {
+        function Component({ eventName }) {
+            return (
+                <div ref={domEventRef({ [eventName]: () => 'foo' })}>foo</div>
+            );
+        }
+        const { rerender } = render(<Component eventName="custom" />);
+        const element = await screen.findByText('foo');
+        await expect(dom.emit('custom', element)).resolves.toBe('foo');
+
+        rerender(<Component eventName="custom2" />);
+        expect(dom.emit('custom', element)).toBeUndefined();
+        await expect(dom.emit('custom2', element)).resolves.toBe('foo');
+    });
+
     it('should allow the callback to be forwarded', async () => {
         const cb = mockFn();
         function Component() {
