@@ -9,14 +9,14 @@ export function domEventRef(event, handler) {
     handler = isPlainObject(event) || kv(event, handler);
     return function (element) {
         if (element) {
-            if (arr) {
+            if (arr && arr.ref) {
                 throw new Error('Callback can only be passed to single React element');
             }
             arr = mapGet(boundEvents, element, Array);
             if (arr.index === undefined) {
                 arr.index = 0;
             }
-            handler = each(handler, function (i, v) {
+            each(handler, function (i, v) {
                 var index = arr.index++;
                 if (!arr[index]) {
                     dom.on(element, i, function () {
@@ -28,6 +28,7 @@ export function domEventRef(event, handler) {
         } else {
             arr.index = 0;
         }
+        arr.ref = element;
     };
 }
 

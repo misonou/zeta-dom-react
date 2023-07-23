@@ -74,6 +74,36 @@ describe('domEventRef', () => {
         await expect(dom.emit('custom', element)).resolves.toBe('bar');
     });
 
+    it('should invoke correct event listener after child component refresh', async () => {
+        const cb1 = mockFn();
+        const cb2 = mockFn();
+        function Component() {
+            return (
+                <Inner ref={domEventRef({ custom: cb1 })} />
+            );
+        }
+        let setState;
+        const Inner = forwardRef((props, ref) => {
+            [, setState] = useState(0);
+            return (
+                <div ref={combineRef(toRefCallback(ref), domEventRef({ custom: cb2 }))}>foo</div>
+            );
+        });
+        render(<Component />);
+
+        const element = await screen.findByText('foo');
+        dom.emit('custom', element);
+        verifyCalls(cb1, [[expect.objectContaining({ type: 'custom' }), element]]);
+        verifyCalls(cb2, [[expect.objectContaining({ type: 'custom' }), element]]);
+
+        renderAct(() => setState(1));
+        cb1.mockClear();
+        cb2.mockClear();
+        dom.emit('custom', element);
+        verifyCalls(cb1, [[expect.objectContaining({ type: 'custom' }), element]]);
+        verifyCalls(cb2, [[expect.objectContaining({ type: 'custom' }), element]]);
+    });
+
     it('should allow the callback to be forwarded', async () => {
         const cb = mockFn();
         function Component() {
@@ -129,6 +159,26 @@ describe('domEventRef', () => {
             );
         }
         expect(() => render(<Component />)).toThrow();
+    });
+
+    it('should not throw when child component re-renders', async () => {
+        const cb = mockFn();
+        function Component() {
+            return (
+                <Inner ref={domEventRef({ custom: cb })} />
+            );
+        }
+        let setState;
+        const Inner = forwardRef((props, ref) => {
+            [, setState] = useState(0);
+            return (
+                <div ref={combineRef(() => { }, ref)}>foo</div>
+            );
+        });
+        render(<Component />);
+        expect(() => {
+            renderAct(() => setState(1));
+        }).not.toThrow();
     });
 });
 
