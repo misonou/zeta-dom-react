@@ -279,12 +279,14 @@ var _zeta$dom = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_
     setShortcut = _zeta$dom.setShortcut,
     focusable = _zeta$dom.focusable,
     focused = _zeta$dom.focused,
+    setTabRoot = _zeta$dom.setTabRoot,
     setModal = _zeta$dom.setModal,
     releaseModal = _zeta$dom.releaseModal,
     retainFocus = _zeta$dom.retainFocus,
     releaseFocus = _zeta$dom.releaseFocus,
     iterateFocusPath = _zeta$dom.iterateFocusPath,
-    dom_focus = _zeta$dom.focus;
+    dom_focus = _zeta$dom.focus,
+    dom_blur = _zeta$dom.blur;
 
 ;// CONCATENATED MODULE: ./src/include/zeta-dom/dom.js
 
@@ -820,7 +822,7 @@ function domEventRef(event, handler) {
   handler = isPlainObject(event) || kv(event, handler);
   return function (element) {
     if (element) {
-      if (arr) {
+      if (arr && arr.ref) {
         throw new Error('Callback can only be passed to single React element');
       }
 
@@ -830,20 +832,22 @@ function domEventRef(event, handler) {
         arr.index = 0;
       }
 
-      handler = each(handler, function (i, v) {
-        var index = arr.index++;
-
-        if (!arr[index]) {
-          zeta_dom_dom.on(element, i, function () {
-            return arr[index].apply(this, arguments);
-          });
-        }
-
-        arr[index] = throwNotFunction(v);
+      var index = arr.index++;
+      var state = arr[index] || (arr[index] = {
+        keys: {}
       });
+      each(handler, function (i, v) {
+        throwNotFunction(v);
+        state.keys[i] = state.keys[i] || zeta_dom_dom.on(element, i, function () {
+          return (state.handler[i] || noop).apply(this, arguments);
+        });
+      });
+      state.handler = handler;
     } else {
       arr.index = 0;
     }
+
+    arr.ref = element;
   };
 }
 function classNames() {
