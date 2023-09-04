@@ -280,6 +280,7 @@ var _zeta$dom = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_
     focusable = _zeta$dom.focusable,
     focused = _zeta$dom.focused,
     setTabRoot = _zeta$dom.setTabRoot,
+    unsetTabRoot = _zeta$dom.unsetTabRoot,
     setModal = _zeta$dom.setModal,
     releaseModal = _zeta$dom.releaseModal,
     retainFocus = _zeta$dom.retainFocus,
@@ -693,6 +694,10 @@ function DataView(filters, sortBy, sortOrder, pageSize) {
     items: []
   });
 
+  var emitViewChange = function emitViewChange() {
+    emitter.emit('viewChange', self);
+  };
+
   var onUpdated = function onUpdated() {
     state.sorted = state.items.length ? undefined : [];
 
@@ -700,7 +705,7 @@ function DataView(filters, sortBy, sortOrder, pageSize) {
       state.filtered = state.sorted;
     }
 
-    emitter.emitAsync('viewChange', self);
+    setImmediateOnce(emitViewChange);
   };
 
   extend(this, defaults);
