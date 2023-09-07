@@ -24,7 +24,7 @@ function parseRelativeDate(str) {
 function normalizeDate(date) {
     if (typeof date === 'string') {
         if (re.test(date)) {
-            return Date.parse(date + ' 00:00');
+            return Date.parse(date + 'T00:00');
         }
         date = date[0] === '+' || date[0] === '-' ? parseRelativeDate(date) : Date.parse(date);
     }
