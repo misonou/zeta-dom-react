@@ -211,6 +211,7 @@ var _zeta$util = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root
     lcfirst = _zeta$util.lcfirst,
     trim = _zeta$util.trim,
     matchWord = _zeta$util.matchWord,
+    matchWordMulti = _zeta$util.matchWordMulti,
     htmlDecode = _zeta$util.htmlDecode,
     resolve = _zeta$util.resolve,
     reject = _zeta$util.reject,
@@ -992,7 +993,7 @@ function parseRelativeDate(str) {
 function normalizeDate(date) {
   if (typeof date === 'string') {
     if (re.test(date)) {
-      return Date.parse(date + ' 00:00');
+      return Date.parse(date + 'T00:00');
     }
 
     date = date[0] === '+' || date[0] === '-' ? parseRelativeDate(date) : Date.parse(date);
