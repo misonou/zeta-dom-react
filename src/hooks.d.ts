@@ -163,7 +163,7 @@ export function useAsync<T>(init: (signal: AbortSignal) => T | Promise<T>, deps:
  * @param init A callback that is invoked for new DOM elements or objects.
  * @param args Extra arguments to be passed to the init callback.
  */
-export function useRefInitCallback<T extends object, F extends (instance: T) => void>(init: F, ...args: F extends (instance: T, ...args: infer P) => void ? P : never): React.RefCallback<T>;
+export function useRefInitCallback<T = any, F extends (instance: T) => void = (instance: T) => void>(init: F, ...args: F extends (instance: T, ...args: infer P) => void ? P : never): React.RefCallback<T>;
 
 /**
  * Creates a cleanup callback collector.
