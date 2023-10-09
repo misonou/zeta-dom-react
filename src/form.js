@@ -266,7 +266,7 @@ function createFieldState(initialValue) {
     watch(field, true);
     defineObservableProperty(field, 'value', initialValue, function (newValue, oldValue) {
         newValue = (field.preset.normalizeValue || pipe)(newValue, field.props);
-        if (newValue !== oldValue && _(oldValue)) {
+        if (newValue !== oldValue && _(oldValue) && newValue !== field.dict[field.name]) {
             field.dict[field.name] = newValue;
             return oldValue;
         }

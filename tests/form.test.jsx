@@ -2932,6 +2932,54 @@ describe('FormArray component', () => {
         expect(onChange).not.toBeCalled();
         unmount();
     });
+
+    it('should handle array update correctly having FormObject as children', async () => {
+        const renderForm = createFormComponent(() => (
+            <FormArray name="foo">
+                {items => items.map(v => (
+                    <FormObject key={FormObject.keyFor(v)} value={v}>
+                        <Field name="title" />
+                    </FormObject>
+                ))}
+            </FormArray>
+        ));
+        const { unmount, form, dataChange } = renderForm({ foo: [{ title: '1' }, { title: '2' }] });
+        await act(async () => {
+            form.data.foo.splice(0, 1);
+        });
+        expect(form.data.foo).toEqual([{ title: '2' }]);
+        verifyCalls(dataChange, [
+            [expect.objectContaining({ data: ['foo.0', 'foo.1', 'foo'] }), _]
+        ]);
+        unmount();
+    });
+
+    it('should handle array update correctly having custom field component as children', async () => {
+        const CustomField = (props) => {
+            const { value } = useFormField(props, {});
+            return (
+                <FormObject value={value}>
+                    <Field name="title" />
+                </FormObject>
+            );
+        };
+        const renderForm = createFormComponent(() => (
+            <FormArray name="foo">
+                {items => items.map((v, i) => (
+                    <CustomField key={FormObject.keyFor(v)} name={String(i)} />
+                ))}
+            </FormArray>
+        ));
+        const { unmount, form, dataChange } = renderForm({ foo: [{ title: '1' }, { title: '2' }] });
+        await act(async () => {
+            form.data.foo.splice(0, 1);
+        });
+        expect(form.data.foo).toEqual([{ title: '2' }]);
+        verifyCalls(dataChange, [
+            [expect.objectContaining({ data: ['foo.0', 'foo.1', 'foo'] }), _]
+        ]);
+        unmount();
+    });
 });
 
 describe('combineValidators', () => {
