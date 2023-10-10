@@ -834,6 +834,7 @@ describe('useFormField - text', () => {
             maxLength: 10,
             placeholder: 'foo',
             disabled: true,
+            readOnly: true,
             type: 'email'
         };
         const { result } = renderHook(() => useFormField('text', { ...inputProps }, ''));

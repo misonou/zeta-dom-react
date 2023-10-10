@@ -6,7 +6,7 @@ definePrototype(TextField, {
     defaultValue: '',
     postHook: function (state, props) {
         var form = state.form;
-        var inputProps = pick(props, ['type', 'disabled', 'autoComplete', 'maxLength', 'inputMode', 'placeholder', 'enterKeyHint']);
+        var inputProps = pick(props, ['type', 'disabled', 'autoComplete', 'maxLength', 'inputMode', 'placeholder', 'enterKeyHint', 'readOnly']);
         if (props.type === 'password' && !inputProps.autoComplete) {
             inputProps.autoComplete = 'current-password';
         }
