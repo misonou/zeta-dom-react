@@ -933,6 +933,17 @@ describe('useFormField - toggle', () => {
         const { result } = renderHook(() => useFormField(ToggleField, {}));
         expect(result.current.value).toBe(false);
     });
+
+    it('should toggle value', () => {
+        const { result } = renderHook(() => useFormField(ToggleField, {}, false));
+        expect(result.current.value).toEqual(false);
+
+        act(() => result.current.toggleValue());
+        expect(result.current.value).toEqual(true);
+
+        act(() => result.current.toggleValue());
+        expect(result.current.value).toEqual(false);
+    });
 });
 
 describe('useFormField - multiChoice', () => {

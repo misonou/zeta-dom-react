@@ -8,6 +8,10 @@ export interface ToggleFieldProps<T = string> extends FormFieldProps<T, boolean>
 }
 
 export interface ToggleFieldState extends FormFieldState<boolean> {
+    /**
+     * Toggles the checked state.
+     */
+    toggleValue(): void;
 }
 
 export default class ToggleField implements FieldType<ToggleFieldProps, ToggleFieldState> {

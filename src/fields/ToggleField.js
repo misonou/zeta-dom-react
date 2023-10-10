@@ -1,4 +1,5 @@
-import { definePrototype } from "../include/zeta-dom/util.js";
+import { useCallback } from "react";
+import { definePrototype, extend } from "../include/zeta-dom/util.js";
 
 export default function ToggleField() { }
 
@@ -12,6 +13,13 @@ definePrototype(ToggleField, {
         return !value;
     },
     postHook: function (state) {
-        return state;
+        const toggleValue = useCallback(function () {
+            state.setValue(function (v) {
+                return !v;
+            });
+        }, []);
+        return extend(state, {
+            toggleValue: toggleValue
+        });
     }
 });
