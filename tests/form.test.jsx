@@ -635,10 +635,15 @@ describe('useFormField', () => {
     });
 
     it('should not call onChange callback when same value is supplied to setValue for controlled field', () => {
-        const cb = mockFn();
-        const { result } = renderHook(() => useFormField({ value: 'foo', onChange: cb }, ''));
-        result.current.setValue('foo');
-        expect(cb).not.toBeCalled();
+        for (let v of ['foo', NaN, 0, true, false]) {
+            const cb = mockFn();
+            const { result } = renderHook(() => useFormField({ value: v, onChange: cb }, ''));
+            if (v === 0) {
+                v = -0;
+            }
+            result.current.setValue(v);
+            expect(cb).not.toBeCalled();
+        }
     });
 
     it('should not overwrite changes through data object', async () => {
@@ -1343,6 +1348,33 @@ describe('FormContext', () => {
             form.data.foo = 'bar';
         });
         expect(cb).toBeCalledTimes(1);
+        unmount();
+    });
+
+    it('should not fire dataChange event when property is set with same value', async () => {
+        const initialData = {
+            null: null,
+            undefined: undefined,
+            NaN: NaN,
+            true: true,
+            false: false,
+            num: 0,
+            str: 'foo'
+        };
+        const dataChange = mockFn();
+        const { form, unmount } = createFormContext(initialData);
+        form.on('dataChange', dataChange);
+
+        await act(async () => {
+            for (let i in initialData) {
+                if (initialData[i] === 0) {
+                    form.data[i] = -0;
+                } else {
+                    form.data[i] = initialData[i];
+                }
+            }
+        });
+        expect(dataChange).not.toBeCalled();
         unmount();
     });
 

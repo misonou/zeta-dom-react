@@ -1,5 +1,5 @@
 import { createContext, createElement, forwardRef, useContext, useEffect, useRef, useState } from "react";
-import { always, any, createPrivateStore, define, defineObservableProperty, definePrototype, each, exclude, extend, grep, hasOwnProperty, is, isArray, isFunction, isPlainObject, isUndefinedOrNull, keys, makeArray, map, mapGet, mapRemove, noop, pick, pipe, randomId, resolve, resolveAll, setImmediateOnce, single, throws, watch } from "./include/zeta-dom/util.js";
+import { always, any, createPrivateStore, define, defineObservableProperty, definePrototype, each, exclude, extend, grep, hasOwnProperty, is, isArray, isFunction, isPlainObject, isUndefinedOrNull, keys, makeArray, map, mapGet, mapRemove, noop, pick, pipe, randomId, resolve, resolveAll, sameValueZero, setImmediateOnce, single, throws, watch } from "./include/zeta-dom/util.js";
 import { ZetaEventContainer } from "./include/zeta-dom/events.js";
 import dom, { focus } from "./include/zeta-dom/dom.js";
 import { preventLeave } from "./include/zeta-dom/domLock.js";
@@ -142,7 +142,7 @@ function createDataObject(context, initialData) {
         if (path) {
             if (field) {
                 field.value = target[p];
-                if (field.value !== target[p]) {
+                if (!sameValueZero(field.value, target[p])) {
                     setValue(p, field.value);
                     return;
                 }
@@ -178,7 +178,7 @@ function createDataObject(context, initialData) {
     };
     var proxy = new Proxy(target, {
         set: function (t, p, v) {
-            if (typeof p === 'string' && (t[p] !== v || !(p in t))) {
+            if (typeof p === 'string' && (!sameValueZero(t[p], v) || !(p in t))) {
                 handleDataChange(function () {
                     var prev = t[p];
                     if (isArray(t)) {
@@ -251,7 +251,7 @@ function createFieldState(initialValue) {
             v = isFunction(v) ? v(field.value) : v;
             if (!field.controlled) {
                 field.value = v;
-            } else if (v !== field.value) {
+            } else if (!sameValueZero(v, field.value)) {
                 field.onChange(v);
             }
         },
