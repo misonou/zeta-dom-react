@@ -853,6 +853,23 @@ describe('useFormField - text', () => {
         expect(result.current.inputProps.autoComplete).toBe('current-password');
     });
 
+    it('should normalize value as string', () => {
+        const { result } = renderHook(() => useFormField(TextField, {}, ''));
+        expect(result.current.value).toEqual('');
+
+        act(() => result.current.setValue(null));
+        expect(result.current.value).toEqual('');
+
+        act(() => result.current.setValue(undefined));
+        expect(result.current.value).toEqual('');
+
+        act(() => result.current.setValue(1));
+        expect(result.current.value).toEqual('1');
+
+        act(() => result.current.setValue({ toString() { return '42' } }));
+        expect(result.current.value).toEqual('42');
+    });
+
     it('should default value to empty string if not supplied', () => {
         const { result } = renderHook(() => useFormField(TextField, {}));
         expect(result.current.value).toBe('');

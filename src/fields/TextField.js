@@ -1,9 +1,12 @@
-import { definePrototype, extend, pick } from "../include/zeta-dom/util.js";
+import { definePrototype, extend, isUndefinedOrNull, pick } from "../include/zeta-dom/util.js";
 
 export default function TextField() { }
 
 definePrototype(TextField, {
     defaultValue: '',
+    normalizeValue: function (value) {
+        return isUndefinedOrNull(value) ? '' : String(value);
+    },
     postHook: function (state, props) {
         var form = state.form;
         var inputProps = pick(props, ['type', 'disabled', 'autoComplete', 'maxLength', 'inputMode', 'placeholder', 'enterKeyHint', 'readOnly']);
