@@ -202,12 +202,13 @@ describe('classNames', () => {
         expect(classNames('foo', 'bar', 'baz')).toBe('foo bar baz');
     });
 
-    it('should concatenate with keys of object where values is truthy', () => {
+    it('should concatenate with keys of object where values is truthy or zero', () => {
         expect(classNames({
             foo: true,
             bar: '',
-            baz: 'baz'
-        })).toBe('foo baz-baz');
+            baz: 'baz',
+            num: 0,
+        })).toBe('foo baz-baz num-0');
     });
 
     it('should call getClassNames method and process recursively', () => {

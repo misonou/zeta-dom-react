@@ -44,7 +44,7 @@ export function classNames() {
                 } else {
                     for (var i in v) {
                         var value = v[i];
-                        if (value) {
+                        if (value || value === 0) {
                             className.push(value === true ? i : i + '-' + value);
                         }
                     }
