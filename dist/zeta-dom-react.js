@@ -147,6 +147,7 @@ var _zeta$util = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root
     noop = _zeta$util.noop,
     pipe = _zeta$util.pipe,
     either = _zeta$util.either,
+    sameValueZero = _zeta$util.sameValueZero,
     is = _zeta$util.is,
     isUndefinedOrNull = _zeta$util.isUndefinedOrNull,
     isArray = _zeta$util.isArray,
@@ -870,7 +871,7 @@ function classNames() {
           for (var i in v) {
             var value = v[i];
 
-            if (value) {
+            if (value || value === 0) {
               className.push(value === true ? i : i + '-' + value);
             }
           }
@@ -1161,9 +1162,12 @@ definePrototype(NumericField, {
 function TextField() {}
 definePrototype(TextField, {
   defaultValue: '',
+  normalizeValue: function normalizeValue(value) {
+    return isUndefinedOrNull(value) ? '' : String(value);
+  },
   postHook: function postHook(state, props) {
     var form = state.form;
-    var inputProps = pick(props, ['type', 'disabled', 'autoComplete', 'maxLength', 'inputMode', 'placeholder', 'enterKeyHint']);
+    var inputProps = pick(props, ['type', 'disabled', 'autoComplete', 'maxLength', 'inputMode', 'placeholder', 'enterKeyHint', 'readOnly']);
 
     if (props.type === 'password' && !inputProps.autoComplete) {
       inputProps.autoComplete = 'current-password';
@@ -1178,6 +1182,7 @@ definePrototype(TextField, {
 });
 ;// CONCATENATED MODULE: ./src/fields/ToggleField.js
 
+
 function ToggleField() {}
 definePrototype(ToggleField, {
   defaultValue: false,
@@ -1189,7 +1194,14 @@ definePrototype(ToggleField, {
     return !value;
   },
   postHook: function postHook(state) {
-    return state;
+    var toggleValue = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useCallback)(function () {
+      state.setValue(function (v) {
+        return !v;
+      });
+    }, []);
+    return extend(state, {
+      toggleValue: toggleValue
+    });
   }
 });
 ;// CONCATENATED MODULE: ./src/form.js
@@ -1356,7 +1368,7 @@ function createDataObject(context, initialData) {
       if (field) {
         field.value = target[p];
 
-        if (field.value !== target[p]) {
+        if (!sameValueZero(field.value, target[p])) {
           setValue(p, field.value);
           return;
         }
@@ -1401,7 +1413,7 @@ function createDataObject(context, initialData) {
 
   var proxy = new Proxy(target, {
     set: function set(t, p, v) {
-      if (typeof p === 'string' && (t[p] !== v || !(p in t))) {
+      if (typeof p === 'string' && (!sameValueZero(t[p], v) || !(p in t))) {
         handleDataChange(function () {
           var prev = t[p];
 
@@ -1485,7 +1497,7 @@ function createFieldState(initialValue) {
 
       if (!field.controlled) {
         field.value = v;
-      } else if (v !== field.value) {
+      } else if (!sameValueZero(v, field.value)) {
         field.onChange(v);
       }
     },
@@ -1501,7 +1513,7 @@ function createFieldState(initialValue) {
   defineObservableProperty(field, 'value', initialValue, function (newValue, oldValue) {
     newValue = (field.preset.normalizeValue || pipe)(newValue, field.props);
 
-    if (newValue !== oldValue && form_(oldValue)) {
+    if (newValue !== oldValue && form_(oldValue) && newValue !== field.dict[field.name]) {
       field.dict[field.name] = newValue;
       return oldValue;
     }
