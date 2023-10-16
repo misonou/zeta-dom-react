@@ -203,17 +203,21 @@ describe('useFormContext', () => {
     it('should trigger validation for updated fields if validateOnChange is set to true', async () => {
         const cb = mockFn();
         const { form, wrapper, unmount } = createFormContext();
-        renderHook(() => [
+        let barValue = 'bar';
+        const { result } = renderHook(() => [
             useFormField({ name: 'foo', onValidate: cb }, 'foo'),
             useFormField({ name: 'baz', onValidate: cb }, 'baz'),
+            useFormField({ name: 'bar', onValidate: cb, value: barValue, onChange: v => barValue = v }, 'bar'),
         ], { wrapper });
 
         expect(form.validateOnChange).toBe(true);
         await act(async () => {
-            form.data.foo = 'bar';
+            form.data.foo = 'foo_new';
+            result.current[2].setValue('bar_new');
         });
         verifyCalls(cb, [
-            ['bar', 'foo', form],
+            ['foo_new', 'foo', form],
+            ['bar_new', 'bar', form],
         ]);
         unmount();
     });
@@ -825,6 +829,19 @@ describe('useFormField', () => {
         rerender();
         expect(result.current.key).toBe(key);
         expect(result.current.path).toBe('foo.1.id');
+        unmount();
+    });
+
+    it('should trigger component update when data change occurs in data object', async () => {
+        const { wrapper, unmount } = createFormContext({ foo: [1] });
+        const { result } = renderHook(() => useFormField({ name: 'foo' }, []), { wrapper });
+
+        const foo = result.current.value;
+        expect(result.all.length).toBe(1);
+
+        act(() => result.current.setValue([1, 2]));
+        expect(result.current.value).toBe(foo);
+        expect(result.all.length).toBe(2);
         unmount();
     });
 });

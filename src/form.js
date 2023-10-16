@@ -238,11 +238,15 @@ function createDataObject(context, initialData) {
 
 function createFieldState(initialValue) {
     var field = {
+        version: 0,
         initialValue: initialValue,
         value: initialValue,
         error: '',
         preset: {},
         onChange: function (v) {
+            if (!field.controlled) {
+                field.version++;
+            }
             if (field.props.onChange) {
                 field.props.onChange(cloneValue(v));
             }
@@ -276,6 +280,7 @@ function createFieldState(initialValue) {
         return isFunction(v) || is(v, ValidationError) ? wrapErrorResult(field, v) : v || '';
     });
     watch(field, 'value', function (v) {
+        field.version++;
         if (field.key) {
             field.dict[field.name] = v;
         } else if (!field.controlled) {
@@ -283,6 +288,7 @@ function createFieldState(initialValue) {
         }
     });
     watch(field, 'error', function (v) {
+        field.version++;
         if (field.key) {
             emitter.emit('validationChange', field.form, {
                 name: field.path,
@@ -620,8 +626,9 @@ export function useFormField(type, props, defaultValue, prop) {
         setError: field.setError,
         elementRef: field.elementRef
     }, props);
-    state1.value = useObservableProperty(field, 'value');
-    state1.error = String(useObservableProperty(field, 'error'));
+    state1.value = field.value;
+    state1.error = String(field.error);
+    useObservableProperty(field, 'version');
     return state1;
 }
 
