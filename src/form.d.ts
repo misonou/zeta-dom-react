@@ -8,7 +8,7 @@ export type FormatErrorCallback = (err: ValidationError, name: string | null, pr
 type WithFallback<T, U> = [T] extends [never] ? U : T;
 type FieldValueType<T> = T extends FormFieldProps<any, infer V> ? V extends any[] ? V : Partial<V> : any;
 type FieldStateType<K, T> = WithFallback<{
-    [P in keyof Zeta.ReactFieldTypeMap]: Zeta.ReactFieldTypeMap[P] extends Zeta.ReactFieldType<K, T> ? ReturnType<Zeta.ReactFieldTypeMap<T>[P]> : never;
+    [P in keyof Zeta.ReactFieldTypeMap]: Zeta.ReactFieldTypeMap[P] extends Zeta.ReactFieldType<K, any> ? ReturnType<Zeta.ReactFieldTypeMap<T>[P]> : never;
 }[keyof Zeta.ReactFieldTypeMap],
     ReturnType<InstanceType<K>['postHook']>>;
 /** @deprecated */

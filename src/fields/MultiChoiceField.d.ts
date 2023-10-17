@@ -1,4 +1,4 @@
-import type { ChoiceItemValueType, FieldType, FormFieldProps, FormFieldState } from "../form";
+import type { ChoiceItem, ChoiceItemValueType, FieldType, FormFieldProps, FormFieldState } from "../form";
 
 export interface MultiChoiceFieldProps<T extends ChoiceItem = ChoiceItem> extends FormFieldProps<ChoiceItemValueType<T>[]> {
     /**
