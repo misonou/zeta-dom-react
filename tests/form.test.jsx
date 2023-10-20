@@ -1835,7 +1835,7 @@ describe('FormContext#focus', () => {
         const renderForm = createFormComponent(() => (
             <div>
                 <Field name="foo" value="foo" />
-                <Field name="bar" />
+                <Field name="bar" value="bar" isEmpty={() => true} />
                 <Field name="baz" />
             </div>
         ));

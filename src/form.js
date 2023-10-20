@@ -30,12 +30,13 @@ export function ValidationError(kind, message, args) {
     this.message = message;
 }
 
-function isEmpty(value) {
-    return isUndefinedOrNull(value) || value === '' || (isArray(value) && !value.length);
+function isEmpty(field, value) {
+    var fn = field.props.isEmpty || field.preset.isEmpty;
+    return fn ? fn(value) : isUndefinedOrNull(value) || value === '' || (isArray(value) && !value.length);
 }
 
 function hasImplicitError(field) {
-    return field.props.required && (field.props.isEmpty || field.preset.isEmpty || isEmpty)(field.value);
+    return field.props.required && isEmpty(field, field.value);
 }
 
 function cloneValue(value) {
@@ -457,7 +458,7 @@ definePrototype(FormContext, {
         var element;
         if (typeof key === 'number') {
             element = map(_(this).fields, function (v) {
-                return (v.error && (key & 1)) || (isEmpty(v.value) && (key & 2)) ? v.element : null;
+                return (v.error && (key & 1)) || (isEmpty(v, v.value) && (key & 2)) ? v.element : null;
             }).sort(comparePosition)[0];
         } else {
             element = this.element(key);
