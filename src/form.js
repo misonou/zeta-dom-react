@@ -737,6 +737,11 @@ export function FormObject(props) {
     return createElement(FormObjectProvider, { value }, children);
 }
 
+export function HiddenField(props) {
+    useFormField(props, props.value);
+    return null;
+}
+
 define(FormObject, { keyFor });
 
 import ChoiceField from "./fields/ChoiceField.js";

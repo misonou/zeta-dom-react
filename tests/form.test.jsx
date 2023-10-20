@@ -2,7 +2,7 @@ import React, { createRef, useEffect, useRef, useState } from "react";
 import { act as renderAct, render } from "@testing-library/react";
 import { act, renderHook } from '@testing-library/react-hooks'
 import { ViewStateProvider } from "src/viewState";
-import { ChoiceField, combineValidators, DateField, Form, FormArray, FormContext, FormContextProvider, FormObject, MultiChoiceField, NumericField, TextField, ToggleField, useFormContext, useFormField, ValidationError } from "src/form";
+import { ChoiceField, combineValidators, DateField, Form, FormArray, FormContext, FormContextProvider, FormObject, HiddenField, MultiChoiceField, NumericField, TextField, ToggleField, useFormContext, useFormField, ValidationError } from "src/form";
 import { body, delay, mockFn, verifyCalls, _ } from "@misonou/test-utils";
 import dom from "zeta-dom/dom";
 import { cancelLock, locked } from "zeta-dom/domLock";
@@ -3183,6 +3183,15 @@ describe('FormArray component', () => {
         verifyCalls(dataChange, [
             [expect.objectContaining({ data: ['foo.0', 'foo.1', 'foo'] }), _]
         ]);
+        unmount();
+    });
+});
+
+describe('HiddenField component', () => {
+    it('should set value on data object', () => {
+        const renderForm = createFormComponent(() => (<HiddenField name="foo" value="foo" />));
+        const { unmount, form } = renderForm();
+        expect(form.data.foo).toBe('foo');
         unmount();
     });
 });

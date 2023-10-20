@@ -93,6 +93,23 @@ export const FormObject: React.FC<FormObjectProps<any>> & FormObjectHelper;
  */
 export const FormArray: React.FC<FormObjectProps<any[]>>;
 
+export interface HiddenFieldProps extends FormFieldProps<any> {
+    /**
+     * Specifies field name.
+     */
+    name: string;
+    /**
+     * Specifies field value to be reflected on {@link FormContext.data},
+     * or current data object if the component is under {@link FormObject} or {@link FormArray} element.
+     */
+    value: any;
+}
+
+/**
+ * Sets value on data object without rendering DOM element.
+ */
+export const HiddenField: React.FC<HiddenFieldProps>;
+
 /**
  * Represent internal working of a custom field type.
  * @deprecated Custom field type is now implemented by writing a class implementing the {@link FieldType} inferface and pass it as the first argument to {@link useFormField} instead.
