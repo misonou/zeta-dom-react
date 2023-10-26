@@ -1,5 +1,5 @@
 import { createContext, createElement, forwardRef, useContext, useEffect, useRef, useState } from "react";
-import { always, any, createPrivateStore, define, defineObservableProperty, definePrototype, each, exclude, extend, grep, hasOwnProperty, is, isArray, isFunction, isPlainObject, isUndefinedOrNull, keys, makeArray, map, mapGet, mapRemove, noop, pick, pipe, randomId, resolve, resolveAll, sameValueZero, setImmediateOnce, single, throws, watch } from "./include/zeta-dom/util.js";
+import { always, any, createPrivateStore, define, defineObservableProperty, definePrototype, each, exclude, extend, grep, hasOwnProperty, is, isArray, isFunction, isPlainObject, isUndefinedOrNull, keys, makeArray, map, mapGet, mapRemove, noop, pick, pipe, randomId, resolve, resolveAll, sameValueZero, setImmediate, setImmediateOnce, single, throws, watch } from "./include/zeta-dom/util.js";
 import { ZetaEventContainer } from "./include/zeta-dom/events.js";
 import dom, { focus } from "./include/zeta-dom/dom.js";
 import { preventLeave } from "./include/zeta-dom/domLock.js";
@@ -327,7 +327,11 @@ function useFormFieldInternal(form, state, field, preset, props, controlled, dic
             if (state && state.fields[key] === field) {
                 delete state.fields[key];
                 if (field.props.clearWhenUnmount || field.form === rootForm) {
-                    _(dict).delete(key.slice(9));
+                    setImmediate(function () {
+                        if (!state.fields[key]) {
+                            _(dict).delete(key.slice(9));
+                        }
+                    });
                 }
                 state.setValid();
             }

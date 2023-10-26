@@ -793,7 +793,7 @@ describe('useFormField', () => {
         const { unmount: unmountField } = renderHook(() => useFormField({ name: 'foo', clearWhenUnmount: true }, 'bar'), { wrapper });
         expect(form.data).toEqual({ foo: 'bar' });
 
-        unmountField();
+        await act(() => unmountField());
         expect(form.data).toEqual({});
         unmount();
     });
@@ -2808,7 +2808,8 @@ describe('FormObject component', () => {
         ));
         const { unmount, form } = renderForm();
         expect(form.data).toEqual({ foo: {} });
-        unmount();
+
+        await act(() => unmount());
         expect(form.data).toEqual({});
     });
 
@@ -2979,7 +2980,8 @@ describe('FormArray component', () => {
         ));
         const { unmount, form } = renderForm();
         expect(form.data).toEqual({ foo: [] });
-        unmount();
+
+        await act(() => unmount());
         expect(form.data).toEqual({});
     });
 
