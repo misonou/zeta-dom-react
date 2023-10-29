@@ -264,6 +264,9 @@ function createFieldState(initialValue) {
             field.error = isFunction(v) ? v(field.error) : v;
             (field.form || {}).isValid = null;
         },
+        validate: function () {
+            return validateFields(field.key ? field.form : null, [field]);
+        },
         elementRef: function (v) {
             field.element = v;
         }
@@ -315,6 +318,8 @@ function useFormFieldInternal(form, state, field, preset, props, controlled, dic
             }
         }
         state.fields[key] = field;
+    } else {
+        field.path = '';
     }
     if (hasErrorProp) {
         field.error = props.error;
@@ -345,7 +350,6 @@ function useFormFieldInternal(form, state, field, preset, props, controlled, dic
 }
 
 function validateFields(form, fields) {
-    var state = _(form);
     var validate = function (field) {
         var name = field.path;
         var value = field.value;
@@ -383,7 +387,10 @@ function validateFields(form, fields) {
                 v.error = result[i];
             }
         });
-        state.setValid();
+        var state = _(form);
+        if (state) {
+            state.setValid();
+        }
         return !any(result);
     });
 }
@@ -637,6 +644,7 @@ export function useFormField(type, props, defaultValue, prop) {
         error: String(field.error),
         setValue: field.setValue,
         setError: field.setError,
+        validate: field.validate,
         elementRef: field.elementRef
     }, props);
     state1.value = field.value;

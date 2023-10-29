@@ -441,6 +441,33 @@ describe('useFormField', () => {
         expect(result.current.error).toBe('foo');
     });
 
+    it('should trigger validation by validate', async () => {
+        const onValidate = mockFn().mockReturnValue('error');
+        const { result } = renderHook(() => useFormField({ onValidate }, ''));
+        expect(result.current.error).toBe('');
+        await act(async () => {
+            await expect(result.current.validate()).resolves.toBe(false);
+        });
+        expect(result.current.error).toBe('error');
+        verifyCalls(onValidate, [
+            ['', '', null]
+        ]);
+    });
+
+    it('should trigger validation by validate for named field with form context', async () => {
+        const onValidate = mockFn().mockReturnValue('error');
+        const { form, wrapper } = createFormContext();
+        const { result } = renderHook(() => useFormField({ name: 'foo', onValidate }, ''), { wrapper });
+        expect(result.current.error).toBe('');
+        await act(async () => {
+            await expect(result.current.validate()).resolves.toBe(false);
+        });
+        expect(result.current.error).toBe('error');
+        verifyCalls(onValidate, [
+            ['', 'foo', form]
+        ]);
+    });
+
     it('should update error with error message from ValidationError object by default', () => {
         const { result } = renderHook(() => useFormField({}, ''));
         expect(result.current.error).toBe('');

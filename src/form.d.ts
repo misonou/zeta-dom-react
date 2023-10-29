@@ -254,6 +254,11 @@ export interface FormFieldState<T = any> {
      * The element can be retrieved by {@link FormContext.element}.
      */
     readonly elementRef: React.RefCallback<HTMLElement>;
+    /**
+     * A callback to trigger validation of the field.
+     * @returns A promise that resolves to `true if validation is passed and `false` otherwise.
+     */
+    readonly validate: () => Promise<boolean>;
 }
 
 export interface FormProps<T = any> extends React.ComponentPropsWithRef<'form'>, Pick<FormContextOptions, 'enterKeyHint' | 'preventLeave' | 'formatError'> {
