@@ -1239,12 +1239,13 @@ function ValidationError(kind, message, args) {
   this.message = message;
 }
 
-function isEmpty(value) {
-  return isUndefinedOrNull(value) || value === '' || isArray(value) && !value.length;
+function isEmpty(field, value) {
+  var fn = field.props.isEmpty || field.preset.isEmpty;
+  return fn ? fn(value) : isUndefinedOrNull(value) || value === '' || isArray(value) && !value.length;
 }
 
 function hasImplicitError(field) {
-  return field.props.required && (field.props.isEmpty || field.preset.isEmpty || isEmpty)(field.value);
+  return field.props.required && isEmpty(field, field.value);
 }
 
 function cloneValue(value) {
@@ -1320,7 +1321,7 @@ function emitDataChangeEvent() {
     });
     form_emitter.emit('dataChange', form, keys(props));
     validateFields(form, grep(updatedFields, function (v) {
-      return (v.props.validateOnChange + 1 || form.validateOnChange + 1) > 1;
+      return v.version && (v.props.validateOnChange + 1 || form.validateOnChange + 1) > 1;
     }));
 
     if (form.preventLeave && !state.unlock && updatedFields[0] && zeta_dom_dom.getEventSource(element) !== 'script') {
@@ -1483,11 +1484,16 @@ function createDataObject(context, initialData) {
 
 function createFieldState(initialValue) {
   var field = {
+    version: 0,
     initialValue: initialValue,
     value: initialValue,
     error: '',
     preset: {},
     onChange: function onChange(v) {
+      if (!field.controlled) {
+        field.version++;
+      }
+
       if (field.props.onChange) {
         field.props.onChange(cloneValue(v));
       }
@@ -1524,6 +1530,8 @@ function createFieldState(initialValue) {
     return isFunction(v) || is(v, ValidationError) ? wrapErrorResult(field, v) : v || '';
   });
   watch(field, 'value', function (v) {
+    field.version++;
+
     if (field.key) {
       field.dict[field.name] = v;
     } else if (!field.controlled) {
@@ -1531,6 +1539,8 @@ function createFieldState(initialValue) {
     }
   });
   watch(field, 'error', function (v) {
+    field.version++;
+
     if (field.key) {
       form_emitter.emit('validationChange', field.form, {
         name: field.path,
@@ -1583,7 +1593,11 @@ function useFormFieldInternal(form, state, field, preset, props, controlled, dic
         delete state.fields[key];
 
         if (field.props.clearWhenUnmount || field.form === rootForm) {
-          form_(dict)["delete"](key.slice(9));
+          setImmediate(function () {
+            if (!state.fields[key]) {
+              delete dict[key.slice(9)];
+            }
+          });
         }
 
         state.setValid();
@@ -1731,7 +1745,7 @@ definePrototype(FormContext, {
 
     if (typeof key === 'number') {
       element = map(form_(this).fields, function (v) {
-        return v.error && key & 1 || isEmpty(v.value) && key & 2 ? v.element : null;
+        return v.error && key & 1 || isEmpty(v, v.value) && key & 2 ? v.element : null;
       }).sort(comparePosition)[0];
     } else {
       element = this.element(key);
@@ -1863,6 +1877,10 @@ function useFormContext(persistKey, initialData, options) {
     }
   });
   (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
+    if (mapRemove(changedProps, form)) {
+      forceUpdate();
+    }
+
     return form.on({
       dataChange: forceUpdate,
       reset: forceUpdate
@@ -1905,7 +1923,13 @@ function useFormField(type, props, defaultValue, prop) {
 
   if (form && key) {
     if (!(name in dict)) {
-      field.value = form_(dict).set(name, field.initialValue);
+      if (isEmpty(field, field.initialValue)) {
+        field.value = form_(dict).set(name, field.initialValue);
+      } else {
+        dict[name] = field.initialValue;
+      }
+
+      field.version = 0;
     } else if (!controlled) {
       field.value = dict[name];
     }
@@ -1921,8 +1945,9 @@ function useFormField(type, props, defaultValue, prop) {
     setError: field.setError,
     elementRef: field.elementRef
   }, props);
-  state1.value = useObservableProperty(field, 'value');
-  state1.error = String(useObservableProperty(field, 'error'));
+  state1.value = field.value;
+  state1.error = String(field.error);
+  useObservableProperty(field, 'version');
   return state1;
 }
 function combineValidators() {
