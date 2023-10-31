@@ -102,7 +102,7 @@ function emitDataChangeEvent() {
         });
         emitter.emit('dataChange', form, keys(props));
         validateFields(form, grep(updatedFields, function (v) {
-            return (v.props.validateOnChange + 1 || form.validateOnChange + 1) > 1;
+            return v.version && (v.props.validateOnChange + 1 || form.validateOnChange + 1) > 1;
         }));
         if (form.preventLeave && !state.unlock && updatedFields[0] && dom.getEventSource(element) !== 'script') {
             var promise = new Promise(function (resolve) {
@@ -329,7 +329,7 @@ function useFormFieldInternal(form, state, field, preset, props, controlled, dic
                 if (field.props.clearWhenUnmount || field.form === rootForm) {
                     setImmediate(function () {
                         if (!state.fields[key]) {
-                            _(dict).delete(key.slice(9));
+                            delete dict[key.slice(9)];
                         }
                     });
                 }
@@ -578,6 +578,9 @@ export function useFormContext(persistKey, initialData, options) {
         }
     });
     useEffect(function () {
+        if (mapRemove(changedProps, form)) {
+            forceUpdate();
+        }
         return form.on({
             dataChange: forceUpdate,
             reset: forceUpdate
@@ -616,7 +619,12 @@ export function useFormField(type, props, defaultValue, prop) {
     }
     if (form && key) {
         if (!(name in dict)) {
-            field.value = _(dict).set(name, field.initialValue);
+            if (isEmpty(field, field.initialValue)) {
+                field.value = _(dict).set(name, field.initialValue);
+            } else {
+                dict[name] = field.initialValue;
+            }
+            field.version = 0;
         } else if (!controlled) {
             field.value = dict[name];
         }

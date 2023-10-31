@@ -37,10 +37,13 @@ function fromRelativeDate(y, m, w, d) {
 }
 
 function createFormContext(initialData, validateOnChange) {
+    const dataChange = mockFn();
     const { result: { current: form }, unmount } = renderHook(() => useFormContext(initialData, validateOnChange));
+    form.on('dataChange', dataChange);
     return {
         form,
         unmount,
+        dataChange,
         wrapper: ({ children }) => (
             <FormContextProvider value={form}>{children}</FormContextProvider>
         )
@@ -62,14 +65,23 @@ function createFormComponent(children) {
         }, []);
         return (
             <Form ref={ref} context={form} {...options.__formAttributes}>
-                {children && children(form)}
+                {children && children(form, options)}
             </Form>
         );
     });
     return function (initialData, options) {
         const ref = React.createRef();
         const result = render(<Component ref={ref} initialData={initialData} options={options || {}} />);
-        return { ...result, form, dataChange, beforeLeave, formElement: ref.current };
+        return {
+            ...result,
+            form,
+            dataChange,
+            beforeLeave,
+            formElement: ref.current,
+            rerender(options) {
+                result.rerender(<Component ref={ref} initialData={initialData} options={options || {}} />);
+            }
+        };
     };
 }
 
@@ -198,6 +210,45 @@ describe('useFormContext', () => {
 
         renderAct(() => form.reset());
         await findByText('bar');
+    });
+
+    it('should cause re-render when field is automatically created', async () => {
+        const cb = mockFn();
+        const renderForm = createFormComponent((form) => {
+            cb(form.toJSON());
+            return (<>
+                <Field name="foo" value="foo" />
+                <Field name="bar" value="bar" />
+            </>);
+        });
+        const { unmount } = renderForm();
+        verifyCalls(cb, [
+            [{}],
+            [{ foo: 'foo', bar: 'bar' }],
+        ]);
+        unmount();
+    });
+
+    it('should cause re-render when field is automatically deleted', async () => {
+        const cb = mockFn();
+        const renderForm = createFormComponent((form, options) => {
+            cb(form.toJSON());
+            return options.__hideChild !== true && (<>
+                <Field name="foo" clearWhenUnmount />
+                <Field name="bar" clearWhenUnmount />
+            </>);
+        });
+        const { rerender, unmount } = renderForm();
+        cb.mockClear();
+        rerender({ __hideChild: true });
+
+        await delay();
+        await delay();
+        verifyCalls(cb, [
+            [{ foo: '', bar: '' }],
+            [{}],
+        ]);
+        unmount();
     });
 
     it('should trigger validation for updated fields if validateOnChange is set to true', async () => {
@@ -1070,8 +1121,8 @@ describe('useFormField - multiChoice', () => {
     });
 
     it('should not trigger dataChange when toggleValue has no effect', async () => {
-        const { form, wrapper, unmount } = createFormContext();
-        const { result } = renderHook(() => useFormField(MultiChoiceField, { name: 'foo', items: ['foo', 'bar'] }, ['foo']), { wrapper });
+        const { form, wrapper, unmount } = createFormContext({ foo: ['foo'] });
+        const { result } = renderHook(() => useFormField(MultiChoiceField, { name: 'foo', items: ['foo', 'bar'] }), { wrapper });
         const cb = mockFn();
         form.on('dataChange', cb);
 
@@ -1283,7 +1334,7 @@ describe('DateField.toDateString', () => {
 describe('FormContext', () => {
     it('should fire dataChange event when property is added manually', async () => {
         const { form, wrapper, unmount } = createFormContext({});
-        const { result } = renderHook(() => useFormField({ name: 'foo' }, 'foo'), { wrapper });
+        const { result } = renderHook(() => useFormField({ name: 'foo' }, ''), { wrapper });
         const cb = mockFn();
         form.on('dataChange', cb);
         await act(async () => {
@@ -1296,7 +1347,7 @@ describe('FormContext', () => {
 
     it('should fire dataChange event when property is updated manually', async () => {
         const { form, wrapper, unmount } = createFormContext({ bar: '' });
-        const { result } = renderHook(() => useFormField({ name: 'foo' }, 'foo'), { wrapper });
+        const { result } = renderHook(() => useFormField({ name: 'foo' }, ''), { wrapper });
         const cb = mockFn();
         form.on('dataChange', cb);
         await act(async () => {
@@ -1310,7 +1361,7 @@ describe('FormContext', () => {
 
     it('should fire dataChange event when property is deleted manually', async () => {
         const { form, wrapper, unmount } = createFormContext();
-        const { result } = renderHook(() => useFormField({ name: 'foo' }, 'foo'), { wrapper });
+        const { result } = renderHook(() => useFormField({ name: 'foo' }, ''), { wrapper });
         const cb = mockFn();
         form.on('dataChange', cb);
         await act(async () => {
@@ -1343,7 +1394,7 @@ describe('FormContext', () => {
 
     it('should fire dataChange event with unique field keys', async () => {
         const { form, wrapper, unmount } = createFormContext();
-        const { result } = renderHook(() => useFormField({ name: 'foo' }, 'foo'), { wrapper });
+        const { result } = renderHook(() => useFormField({ name: 'foo' }, ''), { wrapper });
         const cb = mockFn();
         form.on('dataChange', cb);
         await act(async () => {
@@ -1357,7 +1408,7 @@ describe('FormContext', () => {
 
     it('should fire dataChange event after reset for field not declared in initial data', async () => {
         const { form, wrapper, unmount } = createFormContext();
-        const { result } = renderHook(() => useFormField({ name: 'foo' }, 'foo'), { wrapper });
+        const { result } = renderHook(() => useFormField({ name: 'foo' }, ''), { wrapper });
         const cb = mockFn();
         form.on('dataChange', cb);
         await act(async () => {
@@ -1365,6 +1416,53 @@ describe('FormContext', () => {
             form.data.foo = 'bar';
         });
         expect(cb).toBeCalledTimes(1);
+        unmount();
+    });
+
+    it('should fire dataChange event when property is automatically created with non-empty value', async () => {
+        const { wrapper, unmount, dataChange } = createFormContext();
+        renderHook(() => [
+            useFormField({ name: 'foo' }, 'foo'),
+            useFormField({ name: 'bar' }, 0),
+        ], { wrapper });
+
+        await delay();
+        expect(dataChange).toBeCalledTimes(1);
+        expect(dataChange.mock.calls[0][0].data).toEqual(['foo', 'bar']);
+        unmount();
+    });
+
+    it('should not fire dataChange event when property is automatically created with empty value', async () => {
+        const { wrapper, unmount, dataChange } = createFormContext();
+        renderHook(() => [
+            useFormField({ name: 'foo' }, ''),
+            useFormField({ name: 'bar' }, []),
+            useFormField({ name: 'baz', isEmpty() { return true } }, 'baz'),
+        ], { wrapper });
+
+        await delay();
+        expect(dataChange).not.toBeCalled();
+        unmount();
+    });
+
+    it('should not fire dataChange event when property is automatically created on first render', async () => {
+        const renderForm = createFormComponent(() => {
+            return <Field name="foo" value="foo" />
+        });
+        const { unmount, dataChange } = renderForm();
+
+        await delay();
+        expect(dataChange).not.toBeCalled();
+        unmount();
+    });
+
+    it('should fire dataChange event when property is automatically deleted', async () => {
+        const { form, dataChange, wrapper, unmount } = createFormContext();
+        const { unmount: unmountField } = renderHook(() => useFormField({ name: 'foo', clearWhenUnmount: true }, ''), { wrapper });
+
+        await act(() => unmountField());
+        expect(dataChange).toBeCalledTimes(1);
+        expect(dataChange.mock.calls[0][0].data).toEqual(['foo']);
         unmount();
     });
 
@@ -1404,7 +1502,7 @@ describe('FormContext', () => {
                 return state;
             }
         }
-        const { form, wrapper, unmount } = createFormContext();
+        const { form, wrapper, unmount } = createFormContext({ foo: 'foo' });
         const { result } = renderHook(() => useFormField(CustomField, { name: 'foo' }, 'foo'), { wrapper });
         const cb = mockFn();
         form.on('dataChange', cb);
