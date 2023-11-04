@@ -6,8 +6,9 @@ export interface ViewState<T = any> {
     /**
      * Persists the value in view state.
      * @param data Any serializable data.
+     * @param snapshot Whether to create a snapshot for current value, so that it can be restored by navigating through history.
      */
-    set(data: T): void;
+    set(data: T, snapshot?: boolean): void;
     /**
      * Allows a consumer to react to swapping of view states.
      * @param callback A callback that receives the new state that is going to be restored; and may persist existing state.
