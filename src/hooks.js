@@ -155,7 +155,7 @@ export function isSingletonDisposed(target) {
 }
 
 export function useSingleton(factory, onDispose) {
-    const target = useState(factory())[0];
+    const target = isFunction(factory) ? useMemo(factory, []) : useMemo(pipe.bind(0, factory), [factory]);
     setAdd(singletons, target);
     useEffect(function () {
         setAdd(singletons, target);

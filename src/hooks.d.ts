@@ -198,7 +198,7 @@ export function isSingletonDisposed(target: any): boolean;
  * This may cause issues for singleton objects that they are cleaned up before actual component life cycle.
  * This hook ensures the cleanup callback will only be invoked exactly once after the component has unmounted.
  *
- * @param target A singleton object.
+ * @param factory A singleton object, or a callback that return a singleton object.
  * @param callback Callback to be invoked when component has unmounted. If unspecified, it will call `dispose` method on the object if there exists usch method.
  *
  * @example
@@ -217,7 +217,7 @@ export function isSingletonDisposed(target: any): boolean;
  * const singleton = useSingleton(factory);
  * ```
  */
-export function useSingleton<T>(factory: () => T, onDispose?: (this: T) => void): T;
+export function useSingleton<T>(factory: T | (() => T), onDispose?: (this: T) => void): T;
 
 /**
  * Returns a ref callback which when given to a React element, error caught from specified sources will be emitted through `error` event and be bubbled up through DOM.
