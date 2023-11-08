@@ -1,5 +1,6 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useState } from "react";
 import { noop, randomId } from "./include/zeta-dom/util.js";
+import { useSingleton } from "./hooks.js";
 
 /** @type {React.Context<import("./viewState").ViewStateProvider | null>} */
 // @ts-ignore: type inference issue
@@ -14,9 +15,5 @@ export const ViewStateProvider = ViewStateProviderContext.Provider;
 export function useViewState(key) {
     var uniqueId = useState(randomId)[0];
     var provider = useContext(ViewStateProviderContext);
-    var state = (provider && key && provider.getState(uniqueId, key)) || noopStorage;
-    useEffect(function () {
-        return state.dispose && state.dispose.bind(state);
-    }, [state]);
-    return state;
+    return useSingleton((provider && key && provider.getState(uniqueId, key)) || noopStorage);
 }
