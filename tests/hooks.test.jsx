@@ -4,8 +4,8 @@ import { act, renderHook } from '@testing-library/react-hooks'
 import { catchAsync, errorWithCode, watch } from "src/include/zeta-dom/util";
 import dom from "src/include/zeta-dom/dom";
 import { combineRef } from "src/util";
-import { useAsync, useDispose, useErrorHandler, useMemoizedFunction, useObservableProperty, useRefInitCallback, useUnloadEffect } from "src/hooks";
-import { delay, mockFn, verifyCalls, _ } from "@misonou/test-utils";
+import { isSingletonDisposed, useAsync, useDispose, useErrorHandler, useMemoizedFunction, useObservableProperty, useRefInitCallback, useSingleton, useUnloadEffect } from "src/hooks";
+import { delay, mockFn, verifyCalls, _, after } from "@misonou/test-utils";
 
 describe('useMemoizedFunction', () => {
     it('should return the same callback every cycle', () => {
@@ -366,6 +366,53 @@ describe('useDispose', () => {
         result.current();
         result.current();
         expect(cb).toBeCalledTimes(1);
+    });
+});
+
+describe('useSingleton', () => {
+    it('should dispose object exactly once in non-strict mode', async () => {
+        const dispose = mockFn();
+        const getSingleton = mockFn(() => ({ dispose }));
+        const Component = () => {
+            useSingleton(getSingleton);
+            return null;
+        };
+        const { unmount } = render(<Component />);
+        unmount();
+        expect(getSingleton).toBeCalledTimes(1);
+        await delay();
+        expect(dispose).toBeCalledTimes(1);
+    });
+
+    it('should dispose object exactly once in strict mode', async () => {
+        const dispose = mockFn();
+        const getSingleton = mockFn(() => ({ dispose }));
+        const Component = () => {
+            useSingleton(getSingleton);
+            return null;
+        };
+        const { unmount } = render(<Component />, { wrapper: React.StrictMode });
+        const times = process.env.NODE_ENV === 'production' ? 1 : 2;
+        unmount();
+        expect(getSingleton).toBeCalledTimes(times);
+        await delay();
+        expect(dispose).toBeCalledTimes(times);
+    });
+});
+
+describe('isSingletonDisposed', () => {
+    it('should return true if the component is unmounted', async () => {
+        const obj = {};
+        const Component = () => {
+            useSingleton(obj);
+            return null;
+        };
+        const { unmount } = render(<Component />, { wrapper: React.StrictMode });
+        expect(isSingletonDisposed(obj)).toBe(false);
+        await delay();
+        expect(isSingletonDisposed(obj)).toBe(false);
+        await after(async () => unmount());
+        expect(isSingletonDisposed(obj)).toBe(true);
     });
 });
 

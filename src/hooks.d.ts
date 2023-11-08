@@ -198,11 +198,16 @@ export function isSingletonDisposed(target: any): boolean;
  * This may cause issues for singleton objects that they are cleaned up before actual component life cycle.
  * This hook ensures the cleanup callback will only be invoked exactly once after the component has unmounted.
  *
+ * In addition, singleton objects discarded in the first execution of factory callback in development strict mode
+ * will also get properly disposed.
+ *
  * @param factory A singleton object, or a callback that return a singleton object.
- * @param callback Callback to be invoked when component has unmounted. If unspecified, it will call `dispose` method on the object if there exists usch method.
+ * @param callback Callback to be invoked when component has unmounted. If unspecified, it will call `dispose` method on the object if there exists such method.
  *
  * @example
  * ```tsx
+ * // factory will be called twice in development strict mode
+ * // where the first singleton instance returned is discarded after second execution
  * const singleton = useState(factory)[0];
  * useEffect(() => {
  *     return () => {

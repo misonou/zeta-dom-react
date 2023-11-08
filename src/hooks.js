@@ -3,13 +3,21 @@ import dom from "./include/zeta-dom/dom.js";
 import { notifyAsync } from "./include/zeta-dom/domLock.js";
 import { bind } from "./include/zeta-dom/domUtil.js";
 import { ZetaEventContainer } from "./include/zeta-dom/events.js";
-import { always, any, combineFn, deferrable, delay, extend, is, isArray, isErrorWithCode, isFunction, makeArray, makeAsync, map, noop, pipe, resolve, setAdd, setImmediate, setImmediateOnce, watch } from "./include/zeta-dom/util.js";
+import { always, any, combineFn, deferrable, delay, each, extend, is, isArray, isErrorWithCode, isFunction, makeArray, makeAsync, map, mapRemove, noop, pipe, resolve, setAdd, setImmediate, setImmediateOnce, setTimeoutOnce, watch } from "./include/zeta-dom/util.js";
 
 const container = new ZetaEventContainer();
 const singletons = new WeakSet();
+const unusedSingletons = new Map();
 const AbortController = window.AbortController;
 
 var unloadCallbacks;
+
+function clearUnusedSingletons() {
+    each(unusedSingletons, function (i) {
+        singletons.delete(i);
+        mapRemove(unusedSingletons, i)();
+    });
+}
 
 export function useUpdateTrigger() {
     const setState = useState()[1];
@@ -156,16 +164,18 @@ export function isSingletonDisposed(target) {
 
 export function useSingleton(factory, onDispose) {
     const target = isFunction(factory) ? useMemo(factory, []) : useMemo(pipe.bind(0, factory), [factory]);
-    setAdd(singletons, target);
+    const dispose = function () {
+        (onDispose || target.dispose || noop).call(target);
+    };
+    if (setAdd(singletons, target)) {
+        unusedSingletons.set(target, dispose);
+    }
     useEffect(function () {
-        setAdd(singletons, target);
+        unusedSingletons.delete(target);
+        setTimeoutOnce(clearUnusedSingletons, 1);
         return function () {
-            singletons.delete(target);
-            setImmediate(function () {
-                if (isSingletonDisposed(target)) {
-                    (onDispose || target.dispose || noop).call(target);
-                }
-            });
+            unusedSingletons.set(target, dispose);
+            setImmediateOnce(clearUnusedSingletons);
         };
     }, [target]);
     return target;
