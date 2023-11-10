@@ -188,6 +188,7 @@ export function useDispose(): DisposeCallback;
 
 /**
  * Returns whether the singleton instance returned by {@link useSingleton} has been disposed or not.
+ * @deprecated
  */
 export function isSingletonDisposed(target: any): boolean;
 

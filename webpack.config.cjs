@@ -144,7 +144,8 @@ module.exports = {
     },
     resolve: {
         alias: {
-            'zeta-dom': zetaDOMPath
+            'zeta-dom': zetaDOMPath,
+            [path.resolve('src/env.js')]: path.resolve('src/env.umd.js')
         }
     },
     externals: {
@@ -153,6 +154,12 @@ module.exports = {
             commonjs2: 'react',
             amd: 'react',
             root: 'React'
+        },
+        'react-dom': {
+            commonjs: 'react-dom',
+            commonjs2: 'react-dom',
+            amd: 'react-dom',
+            root: 'ReactDOM'
         },
         'zeta-dom': {
             commonjs: 'zeta-dom',

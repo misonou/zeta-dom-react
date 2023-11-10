@@ -3,12 +3,14 @@ import dom from "./include/zeta-dom/dom.js";
 import { notifyAsync } from "./include/zeta-dom/domLock.js";
 import { bind } from "./include/zeta-dom/domUtil.js";
 import { ZetaEventContainer } from "./include/zeta-dom/events.js";
-import { always, any, combineFn, deferrable, delay, each, extend, is, isArray, isErrorWithCode, isFunction, makeArray, makeAsync, map, mapRemove, noop, pipe, resolve, setAdd, setImmediate, setImmediateOnce, setTimeoutOnce, watch } from "./include/zeta-dom/util.js";
+import { always, any, combineFn, deferrable, delay, each, either, extend, is, isArray, isErrorWithCode, isFunction, makeArray, makeAsync, map, mapRemove, noop, pipe, resolve, setAdd, setImmediate, setImmediateOnce, setTimeoutOnce, watch } from "./include/zeta-dom/util.js";
+import { IS_DEV } from "./env.js";
 
 const container = new ZetaEventContainer();
 const singletons = new WeakSet();
 const unusedSingletons = new Map();
 const AbortController = window.AbortController;
+const useSingletonEffect = IS_DEV ? useSingletonEffectImplDev : useSingletonEffectImpl;
 
 var unloadCallbacks;
 
@@ -17,6 +19,29 @@ function clearUnusedSingletons() {
         singletons.delete(i);
         mapRemove(unusedSingletons, i)();
     });
+}
+
+function useSingletonEffectImpl(target, dispose) {
+    useEffect(function () {
+        return function () {
+            singletons.add(target);
+            dispose();
+        };
+    }, [target]);
+}
+
+function useSingletonEffectImplDev(target, dispose) {
+    if (setAdd(singletons, target)) {
+        unusedSingletons.set(target, dispose);
+    }
+    useEffect(function () {
+        unusedSingletons.delete(target);
+        setTimeoutOnce(clearUnusedSingletons, 1);
+        return function () {
+            unusedSingletons.set(target, dispose);
+            setImmediateOnce(clearUnusedSingletons);
+        };
+    }, [target]);
 }
 
 export function useUpdateTrigger() {
@@ -159,25 +184,14 @@ export function useDispose() {
 }
 
 export function isSingletonDisposed(target) {
-    return !singletons.has(target);
+    return either(useSingletonEffect !== useSingletonEffectImpl, singletons.has(target));
 }
 
 export function useSingleton(factory, onDispose) {
     const target = isFunction(factory) ? useMemo(factory, []) : useMemo(pipe.bind(0, factory), [factory]);
-    const dispose = function () {
+    useSingletonEffect(target, function () {
         (onDispose || target.dispose || noop).call(target);
-    };
-    if (setAdd(singletons, target)) {
-        unusedSingletons.set(target, dispose);
-    }
-    useEffect(function () {
-        unusedSingletons.delete(target);
-        setTimeoutOnce(clearUnusedSingletons, 1);
-        return function () {
-            unusedSingletons.set(target, dispose);
-            setImmediateOnce(clearUnusedSingletons);
-        };
-    }, [target]);
+    });
     return target;
 }
 
