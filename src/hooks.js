@@ -3,7 +3,7 @@ import dom from "./include/zeta-dom/dom.js";
 import { notifyAsync } from "./include/zeta-dom/domLock.js";
 import { bind } from "./include/zeta-dom/domUtil.js";
 import { ZetaEventContainer } from "./include/zeta-dom/events.js";
-import { always, any, combineFn, deferrable, delay, each, either, extend, is, isArray, isErrorWithCode, isFunction, makeArray, makeAsync, map, mapRemove, noop, pipe, resolve, setAdd, setImmediate, setImmediateOnce, setTimeoutOnce, watch } from "./include/zeta-dom/util.js";
+import { always, any, clearImmediateOnce, combineFn, deferrable, delay, each, either, extend, is, isArray, isErrorWithCode, isFunction, makeArray, makeAsync, map, mapRemove, noop, pipe, resolve, setAdd, setImmediateOnce, watch } from "./include/zeta-dom/util.js";
 import { IS_DEV } from "./env.js";
 
 const container = new ZetaEventContainer();
@@ -33,10 +33,11 @@ function useSingletonEffectImpl(target, dispose) {
 function useSingletonEffectImplDev(target, dispose) {
     if (setAdd(singletons, target)) {
         unusedSingletons.set(target, dispose);
+        clearImmediateOnce(clearUnusedSingletons);
     }
     useEffect(function () {
         unusedSingletons.delete(target);
-        setTimeoutOnce(clearUnusedSingletons, 1);
+        setImmediateOnce(clearUnusedSingletons);
         return function () {
             unusedSingletons.set(target, dispose);
             setImmediateOnce(clearUnusedSingletons);
