@@ -1,6 +1,6 @@
 {
   "name": "zeta-dom-react",
-  "version": "0.4.13",
+  "version": "0.4.14",
   "description": "",
   "type": "module",
   "main": "src/index.js",
@@ -19,7 +19,7 @@
   },
   "author": "misonou",
   "license": "ISC",
-  "homepage": "https://hackmd.io/@misonou/zeta-dom-react",
+  "homepage": "https://misonou.github.io",
   "repository": "github:misonou/zeta-dom-react",
   "dependencies": {
     "zeta-dom": ">=0.4.11"

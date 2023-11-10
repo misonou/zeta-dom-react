@@ -1,13 +1,14 @@
+/*! zeta-dom-react v0.4.14 | (c) misonou | https://hackmd.io/@misonou/zeta-dom-react */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
-		module.exports = factory(require("react"), require("zeta-dom"));
+		module.exports = factory(require("react"), require("zeta-dom"), require("react-dom"));
 	else if(typeof define === 'function' && define.amd)
-		define("zeta-dom-react", ["react", "zeta-dom"], factory);
+		define("zeta-dom-react", ["react", "zeta-dom", "react-dom"], factory);
 	else if(typeof exports === 'object')
-		exports["zeta-dom-react"] = factory(require("react"), require("zeta-dom"));
+		exports["zeta-dom-react"] = factory(require("react"), require("zeta-dom"), require("react-dom"));
 	else
-		root["zeta-dom-react"] = factory(root["React"], root["zeta"]);
-})(self, function(__WEBPACK_EXTERNAL_MODULE__359__, __WEBPACK_EXTERNAL_MODULE__654__) {
+		root["zeta-dom-react"] = factory(root["React"], root["zeta"], root["ReactDOM"]);
+})(self, function(__WEBPACK_EXTERNAL_MODULE__359__, __WEBPACK_EXTERNAL_MODULE__654__, __WEBPACK_EXTERNAL_MODULE__318__) {
 return /******/ (() => { // webpackBootstrap
 /******/ 	"use strict";
 /******/ 	var __webpack_modules__ = ({
@@ -16,6 +17,13 @@ return /******/ (() => { // webpackBootstrap
 /***/ ((module) => {
 
 module.exports = __WEBPACK_EXTERNAL_MODULE__359__;
+
+/***/ }),
+
+/***/ 318:
+/***/ ((module) => {
+
+module.exports = __WEBPACK_EXTERNAL_MODULE__318__;
 
 /***/ }),
 
@@ -309,7 +317,30 @@ var domLock_zeta$dom = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_do
 
 var ZetaEventContainer = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_zeta_.EventContainer;
 
+// EXTERNAL MODULE: external {"commonjs":"react-dom","commonjs2":"react-dom","amd":"react-dom","root":"ReactDOM"}
+var external_commonjs_react_dom_commonjs2_react_dom_amd_react_dom_root_ReactDOM_ = __webpack_require__(318);
+;// CONCATENATED MODULE: ./src/env.umd.js
+
+
+var extraRender = true;
+external_commonjs_react_dom_commonjs2_react_dom_amd_react_dom_root_ReactDOM_.flushSync(function () {
+  function TestComponent() {
+    extraRender = !extraRender;
+    return null;
+  }
+
+  var container = document.createElement('div');
+  var element = /*#__PURE__*/(0,external_commonjs_react_commonjs2_react_amd_react_root_React_.createElement)(external_commonjs_react_commonjs2_react_amd_react_root_React_.StrictMode, null, /*#__PURE__*/(0,external_commonjs_react_commonjs2_react_amd_react_root_React_.createElement)(TestComponent));
+
+  if (external_commonjs_react_dom_commonjs2_react_dom_amd_react_dom_root_ReactDOM_.createRoot) {
+    external_commonjs_react_dom_commonjs2_react_dom_amd_react_dom_root_ReactDOM_.createRoot(container).render(element);
+  } else {
+    external_commonjs_react_dom_commonjs2_react_dom_amd_react_dom_root_ReactDOM_.render(element, container);
+  }
+});
+var IS_DEV = extraRender;
 ;// CONCATENATED MODULE: ./src/hooks.js
+
 
 
 
@@ -318,8 +349,42 @@ var ZetaEventContainer = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_
 
 var container = new ZetaEventContainer();
 var singletons = new WeakSet();
+var unusedSingletons = new Map();
 var AbortController = window.AbortController;
+var useSingletonEffect = IS_DEV ? useSingletonEffectImplDev : useSingletonEffectImpl;
 var unloadCallbacks;
+
+function clearUnusedSingletons() {
+  each(unusedSingletons, function (i) {
+    singletons["delete"](i);
+    mapRemove(unusedSingletons, i)();
+  });
+}
+
+function useSingletonEffectImpl(target, dispose) {
+  (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
+    return function () {
+      singletons.add(target);
+      dispose();
+    };
+  }, [target]);
+}
+
+function useSingletonEffectImplDev(target, dispose) {
+  if (setAdd(singletons, target)) {
+    unusedSingletons.set(target, dispose);
+  }
+
+  (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
+    unusedSingletons["delete"](target);
+    setTimeoutOnce(clearUnusedSingletons, 1);
+    return function () {
+      unusedSingletons.set(target, dispose);
+      setImmediateOnce(clearUnusedSingletons);
+    };
+  }, [target]);
+}
+
 function useUpdateTrigger() {
   var setState = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)()[1];
   return (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useCallback)(function () {
@@ -476,22 +541,13 @@ function useDispose() {
   return dispose;
 }
 function isSingletonDisposed(target) {
-  return !singletons.has(target);
+  return either(useSingletonEffect !== useSingletonEffectImpl, singletons.has(target));
 }
 function useSingleton(factory, onDispose) {
-  var target = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)(factory())[0];
-  setAdd(singletons, target);
-  (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
-    setAdd(singletons, target);
-    return function () {
-      singletons["delete"](target);
-      setImmediate(function () {
-        if (isSingletonDisposed(target)) {
-          (onDispose || target.dispose || noop).call(target);
-        }
-      });
-    };
-  }, [target]);
+  var target = isFunction(factory) ? (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useMemo)(factory, []) : (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useMemo)(pipe.bind(0, factory), [factory]);
+  useSingletonEffect(target, function () {
+    (onDispose || target.dispose || noop).call(target);
+  });
   return target;
 }
 function useErrorHandlerRef() {
@@ -628,6 +684,7 @@ function createBreakpointContext(breakpoints) {
 ;// CONCATENATED MODULE: ./src/viewState.js
 
 
+
 /** @type {React.Context<import("./viewState").ViewStateProvider | null>} */
 // @ts-ignore: type inference issue
 
@@ -640,11 +697,7 @@ var ViewStateProvider = ViewStateProviderContext.Provider;
 function useViewState(key) {
   var uniqueId = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)(randomId)[0];
   var provider = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useContext)(ViewStateProviderContext);
-  var state = provider && key && provider.getState(uniqueId, key) || noopStorage;
-  (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
-    return state.dispose && state.dispose.bind(state);
-  }, [state]);
-  return state;
+  return useSingleton(provider && key && provider.getState(uniqueId, key) || noopStorage);
 }
 ;// CONCATENATED MODULE: ./src/dataView.js
 
