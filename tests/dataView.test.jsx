@@ -438,6 +438,34 @@ describe('DataView#sort', () => {
     });
 });
 
+describe('DataView#toggleSort', () => {
+    it('should switch sortOrder between ascending and descending', () => {
+        const { result, unmount } = renderHook(() => useDataView({ foo: 1 }, 'foo', 'asc'));
+        expect(result.current.sortOrder).toBe('asc');
+
+        result.current.toggleSort('foo');
+        expect(result.current.sortOrder).toBe('desc');
+
+        result.current.toggleSort('foo');
+        expect(result.current.sortOrder).toBe('asc');
+        unmount();
+    });
+
+    it('should set sortBy to specified field with initial order', () => {
+        const { result, unmount } = renderHook(() => useDataView({ foo: 1 }, 'foo', 'asc'));
+        expect(result.current.sortOrder).toBe('asc');
+
+        result.current.toggleSort('bar');
+        expect(result.current.sortBy).toBe('bar');
+        expect(result.current.sortOrder).toBe('asc');
+
+        result.current.toggleSort('baz', 'desc');
+        expect(result.current.sortBy).toBe('baz');
+        expect(result.current.sortOrder).toBe('desc');
+        unmount();
+    });
+});
+
 describe('DataView#reset', () => {
     it('should reset properties to default values', () => {
         const { result, unmount } = renderHook(() => useDataView({ foo: 1 }, 'foo', 'asc'));

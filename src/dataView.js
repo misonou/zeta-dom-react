@@ -107,6 +107,15 @@ definePrototype(DataView, {
             }) : compare(x, y));
         });
     },
+    toggleSort: function (sortBy, sortOrder) {
+        var self = this;
+        if (self.sortBy === sortBy) {
+            self.sortOrder = self.sortOrder === 'asc' ? 'desc' : 'asc';
+        } else {
+            self.sortBy = sortBy;
+            self.sortOrder = sortOrder || 'asc';
+        }
+    },
     toJSON: function () {
         var self = this;
         return extend(pick(self, keys(_(self).defaults)), {

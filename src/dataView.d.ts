@@ -108,6 +108,14 @@ export class DataView<P extends object> {
     sort<T>(items: T[], callback: (item: T) => any): T[];
 
     /**
+     * Toggles sort direction between ascending or descending.
+     * If the supplied sorting field is not currently active, it will be sorted according to `sortOrder` parameter or 'asc' by default.
+     * @param sortBy Specifies sorting field.
+     * @param sortOrder Specifies sorting direction.
+     */
+    toggleSort(sortBy: string, sortOrder?: 'asc' | 'desc'): void;
+
+    /**
      * Gets the data view properties as a plain object for persisting states.
      */
     toJSON(): DataViewProps<P>
