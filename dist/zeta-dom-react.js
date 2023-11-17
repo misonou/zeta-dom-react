@@ -1,4 +1,4 @@
-/*! zeta-dom-react v0.4.14 | (c) misonou | https://hackmd.io/@misonou/zeta-dom-react */
+/*! zeta-dom-react v0.4.15 | (c) misonou | https://misonou.github.io */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory(require("react"), require("zeta-dom"), require("react-dom"));
@@ -111,6 +111,7 @@ __webpack_require__.d(src_namespaceObject, {
   "FormContext": () => (FormContext),
   "FormContextProvider": () => (FormContextProvider),
   "FormObject": () => (FormObject),
+  "HiddenField": () => (HiddenField),
   "MultiChoiceField": () => (MultiChoiceField),
   "NumericField": () => (NumericField),
   "TextField": () => (TextField),
@@ -190,6 +191,7 @@ var _zeta$util = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root
     setIntervalSafe = _zeta$util.setIntervalSafe,
     setImmediate = _zeta$util.setImmediate,
     setImmediateOnce = _zeta$util.setImmediateOnce,
+    clearImmediateOnce = _zeta$util.clearImmediateOnce,
     _throws = _zeta$util["throws"],
     throwNotFunction = _zeta$util.throwNotFunction,
     errorWithCode = _zeta$util.errorWithCode,
@@ -373,11 +375,12 @@ function useSingletonEffectImpl(target, dispose) {
 function useSingletonEffectImplDev(target, dispose) {
   if (setAdd(singletons, target)) {
     unusedSingletons.set(target, dispose);
+    clearImmediateOnce(clearUnusedSingletons);
   }
 
   (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
     unusedSingletons["delete"](target);
-    setTimeoutOnce(clearUnusedSingletons, 1);
+    setImmediateOnce(clearUnusedSingletons);
     return function () {
       unusedSingletons.set(target, dispose);
       setImmediateOnce(clearUnusedSingletons);
@@ -830,6 +833,16 @@ definePrototype(DataView, {
         return compare(v, y[i]);
       }) : compare(x, y));
     });
+  },
+  toggleSort: function toggleSort(sortBy, sortOrder) {
+    var self = this;
+
+    if (self.sortBy === sortBy) {
+      self.sortOrder = self.sortOrder === 'asc' ? 'desc' : 'asc';
+    } else {
+      self.sortBy = sortBy;
+      self.sortOrder = sortOrder || 'asc';
+    }
   },
   toJSON: function toJSON() {
     var self = this;
@@ -1564,6 +1577,9 @@ function createFieldState(initialValue) {
       field.error = isFunction(v) ? v(field.error) : v;
       (field.form || {}).isValid = null;
     },
+    validate: function validate() {
+      return validateFields(field.key ? field.form : null, [field]);
+    },
     elementRef: function elementRef(v) {
       field.element = v;
     }
@@ -1630,6 +1646,8 @@ function useFormFieldInternal(form, state, field, preset, props, controlled, dic
     }
 
     state.fields[key] = field;
+  } else {
+    field.path = '';
   }
 
   if (hasErrorProp) {
@@ -1665,8 +1683,6 @@ function useFormFieldInternal(form, state, field, preset, props, controlled, dic
 }
 
 function validateFields(form, fields) {
-  var state = form_(form);
-
   var validate = function validate(field) {
     var name = field.path;
     var value = field.value;
@@ -1712,7 +1728,13 @@ function validateFields(form, fields) {
         v.error = result[i];
       }
     });
-    state.setValid();
+
+    var state = form_(form);
+
+    if (state) {
+      state.setValid();
+    }
+
     return !any(result);
   });
 }
@@ -1996,6 +2018,7 @@ function useFormField(type, props, defaultValue, prop) {
     error: String(field.error),
     setValue: field.setValue,
     setError: field.setError,
+    validate: field.validate,
     elementRef: field.elementRef
   }, props);
   state1.value = field.value;
@@ -2107,6 +2130,10 @@ function FormObject(props) {
   return /*#__PURE__*/(0,external_commonjs_react_commonjs2_react_amd_react_root_React_.createElement)(FormObjectProvider, {
     value: value
   }, children);
+}
+function HiddenField(props) {
+  useFormField(props, props.value);
+  return null;
 }
 util_define(FormObject, {
   keyFor: keyFor
