@@ -1,5 +1,5 @@
 export const FormContextProvider: React.Provider<FormContext>;
-export const Form: <T>(props: FormProps<T>) => JSX.Element;
+export const Form: <T extends object>(props: FormProps<T>) => JSX.Element;
 
 export type ValidateResult = null | undefined | string | Stringifiable | ValidationError | ((props: FormFieldProps<any>) => string);
 export type ValidateCallback<T = any> = (value: T, name: string, form: FormContext) => ValidateResult | Promise<ValidateResult>;
@@ -7,7 +7,7 @@ export type FormatErrorCallback = (err: ValidationError, name: string | null, pr
 
 type WithFallback<T, U> = [T] extends [never] ? U : T;
 type FieldValueType<T> = T extends FormFieldProps<any, infer V> ? V extends any[] ? V : Partial<V> : any;
-type FieldStateType<K, T> = WithFallback<{
+type FieldStateType<K extends FieldTypeConstructor<any, any>, T> = WithFallback<{
     [P in keyof Zeta.ReactFieldTypeMap]: Zeta.ReactFieldTypeMap[P] extends Zeta.ReactFieldType<K, any> ? ReturnType<Zeta.ReactFieldTypeMap<T>[P]> : never;
 }[keyof Zeta.ReactFieldTypeMap],
     ReturnType<InstanceType<K>['postHook']>>;
@@ -278,7 +278,7 @@ export interface FormFieldState<T = any> {
     readonly validate: () => Promise<boolean>;
 }
 
-export interface FormProps<T = any> extends React.ComponentPropsWithRef<'form'>, Pick<FormContextOptions, 'enterKeyHint' | 'preventLeave' | 'formatError'> {
+export interface FormProps<T extends object = any> extends React.ComponentPropsWithRef<'form'>, Pick<FormContextOptions, 'enterKeyHint' | 'preventLeave' | 'formatError'> {
     context: FormContext<T>;
 }
 
@@ -485,13 +485,13 @@ export class FormContext<T extends object = Zeta.Dictionary<any>> {
     /**
      * Validates all fields.
      */
-    async validate(): Promise<boolean>;
+    validate(): Promise<boolean>;
 
     /**
      * Validates specific fields.
      * @param props Fields to be validated.
      */
-    async validate(...props: string[]): Promise<boolean>;
+    validate(...props: string[]): Promise<boolean>;
 
     /**
      * Returns a raw value object.
@@ -504,7 +504,7 @@ export class FormContext<T extends object = Zeta.Dictionary<any>> {
  * @param initialData Initial form data, or a callback that returns initial form data.
  * @param options If boolean is given, it sets the {@link FormContextOptions.validateOnChange} flag. Default is `true`.
  */
-export function useFormContext<T extends object = Zeta.Dictionary<any>>(initialData: Partial<T> | (() => Partial<T>) = {}, options: boolean | FormContextOptions = true): FormContext<T>;
+export function useFormContext<T extends object = Zeta.Dictionary<any>>(initialData?: Partial<T> | (() => Partial<T>), options?: boolean | FormContextOptions): FormContext<T>;
 
 /**
  * Creates a memoized {@link FormContext} object.
@@ -512,7 +512,7 @@ export function useFormContext<T extends object = Zeta.Dictionary<any>>(initialD
  * @param initialData Initial form data, or a callback that returns initial form data.
  * @param options If boolean is given, it sets the {@link FormContextOptions.validateOnChange} flag. Default is `true`.
  */
-export function useFormContext<T extends object = Zeta.Dictionary<any>>(persistKey: string, initialData: Partial<T> | (() => Partial<T>) = {}, options: boolean | FormContextOptions = true): FormContext<T>;
+export function useFormContext<T extends object = Zeta.Dictionary<any>>(persistKey: string, initialData?: Partial<T> | (() => Partial<T>), options?: boolean | FormContextOptions): FormContext<T>;
 
 /**
  * @deprecated Use overload where first argument is the field type constructor instead.
@@ -521,7 +521,7 @@ export function useFormField<K extends keyof Zeta.ReactFieldTypes, T extends Par
 
 export function useFormField<K extends FieldTypeConstructor<any, any>, T extends (K extends FieldTypeConstructor<infer T, any> ? T : any)>(type: K, props: T, defaultValue?: FieldValueType<T>): FieldStateType<K, T>;
 
-export function useFormField<T extends FormFieldProps>(props: T, defaultValue: FieldValueType<T>, prop: keyof T = 'value'): FormFieldState<FieldValueType<T>>;
+export function useFormField<T extends FormFieldProps>(props: T, defaultValue: FieldValueType<T>, prop?: keyof T): FormFieldState<FieldValueType<T>>;
 
 /**
  * Combines one or more validator callbacks.
@@ -582,8 +582,8 @@ import ChoiceField, { ChoiceFieldState, ChoiceFieldProps, ChoiceItem } from "./f
 import DateField, { DateFieldState } from "./fields/DateField";
 import MultiChoiceField, { MultiChoiceFieldProps, MultiChoiceFieldState } from "./fields/MultiChoiceField";
 import NumericField, { NumericFieldState } from "./fields/NumericField";
-import TextField, { TextFieldState } from "./fields/TextField";
-import ToggleField, { ToggleFieldState } from "./fields/ToggleField";
+import TextField, { TextFieldProps, TextFieldState } from "./fields/TextField";
+import ToggleField, { ToggleFieldProps, ToggleFieldState } from "./fields/ToggleField";
 
 export type * from "./fields/ChoiceField";
 export type * from "./fields/DateField";
