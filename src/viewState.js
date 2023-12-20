@@ -3,7 +3,6 @@ import { noop, randomId } from "./include/zeta-dom/util.js";
 import { useSingleton } from "./hooks.js";
 
 /** @type {React.Context<import("./viewState").ViewStateProvider | null>} */
-// @ts-ignore: type inference issue
 const ViewStateProviderContext = createContext(null);
 const noopStorage = Object.freeze({
     get: noop,
