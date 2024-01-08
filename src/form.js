@@ -530,9 +530,10 @@ definePrototype(FormContext, {
         var errorFields = grep(_(this).fields, function (v) {
             return v.error;
         });
-        return errorFields[0] ? Object.fromEntries(errorFields.map(function (v) {
-            return [v.path, String(v.error)];
-        })) : null;
+        return errorFields[0] ? errorFields.reduce(function (v, a) {
+            v[a.path] = String(a.error);
+            return v;
+        }, {}) : null;
     },
     getError: function (key) {
         return String((getField(this, key) || '').error || '');
