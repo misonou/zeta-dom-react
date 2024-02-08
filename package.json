@@ -22,7 +22,7 @@
   "homepage": "https://misonou.github.io",
   "repository": "github:misonou/zeta-dom-react",
   "dependencies": {
-    "zeta-dom": ">=0.4.12"
+    "zeta-dom": ">=0.5.1"
   },
   "peerDependencies": {
     "react": ">=16.8.0"

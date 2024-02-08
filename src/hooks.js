@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import dom from "./include/zeta-dom/dom.js";
+import dom, { reportError } from "./include/zeta-dom/dom.js";
 import { notifyAsync } from "./include/zeta-dom/domLock.js";
 import { bind } from "./include/zeta-dom/domUtil.js";
 import { ZetaEventContainer } from "./include/zeta-dom/events.js";
@@ -239,7 +239,7 @@ export function useErrorHandler() {
     const reemitError = useCallback(function (error) {
         try {
             reemitting.current = true;
-            return dom.emit('error', ref.current || dom.root, { error }, true);
+            return reportError(error, ref.current);
         } finally {
             reemitting.current = false;
         }
