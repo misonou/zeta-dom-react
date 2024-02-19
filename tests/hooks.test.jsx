@@ -326,6 +326,16 @@ describe('useAsync', () => {
         expect(cb).toBeCalledTimes(1);
         expect(onabort).toBeCalledTimes(1);
     });
+
+    it('should not cause unhandledrejection event when error is handled', async () => {
+        const cb = mockFn(() => Promise.reject(new Error()));
+        const { result, rerender } = renderHook(({ deps }) => useAsync(cb, deps, 100), {
+            initialProps: { deps: [1] }
+        });
+        result.current[1].on('error', e => e.handled());
+        rerender({ deps: [2] });
+        await delay(200);
+    });
 });
 
 describe('useRefInitCallback', () => {
