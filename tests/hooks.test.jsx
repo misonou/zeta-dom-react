@@ -161,6 +161,16 @@ describe('useAsync', () => {
         expect(result.current[0]).toBe('bar');
     });
 
+    it('should invoke callback only once after consecutive re-render', async () => {
+        const cb = mockFn();
+        const { rerender } = renderHook(({ value }) => useAsync(() => cb(value), [value]), {
+            initialProps: { value: 1 }
+        });
+        rerender({ value: 2 });
+        await 0;
+        verifyCalls(cb, [[2]]);
+    });
+
     it('should return result from latest call', async () => {
         const promise1 = delay(100).then(() => 'foo');
         const promise2 = delay(500).then(() => 'bar');

@@ -14,6 +14,11 @@ const useSingletonEffect = IS_DEV ? useSingletonEffectImplDev : useSingletonEffe
 
 var unloadCallbacks;
 
+function muteRejection(promise) {
+    catchAsync(promise);
+    return promise;
+}
+
 function clearUnusedSingletons() {
     each(unusedSingletons, function (i) {
         singletons.delete(i);
@@ -101,10 +106,10 @@ export function useAsync(init, deps, debounce) {
                 if (debounce && !force) {
                     nextResult = nextResult || deferrable();
                     nextResult.waitFor(delay(debounce));
-                    return nextResult.d || (nextResult.d = nextResult.then(function () {
+                    return nextResult.d || (nextResult.d = muteRejection(nextResult.then(function () {
                         nextResult = null;
                         return state.refresh(true);
-                    }));
+                    })));
                 }
                 var controller = AbortController ? new AbortController() : { abort: noop };
                 if (currentController) {
@@ -146,9 +151,7 @@ export function useAsync(init, deps, debounce) {
         if (deps[0]) {
             // keep call to refresh in useEffect to avoid double invocation
             // in strict mode in development environment
-            setImmediateOnce(function () {
-                catchAsync(state.refresh());
-            });
+            setImmediateOnce(state.refresh);
         }
     }, deps);
     useMemo(function () {
