@@ -1,4 +1,4 @@
-/*! zeta-dom-react v0.4.15 | (c) misonou | https://misonou.github.io */
+/*! zeta-dom-react v0.5.0 | (c) misonou | https://misonou.github.io */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory(require("react"), require("zeta-dom"), require("react-dom"));
@@ -8,29 +8,29 @@
 		exports["zeta-dom-react"] = factory(require("react"), require("zeta-dom"), require("react-dom"));
 	else
 		root["zeta-dom-react"] = factory(root["React"], root["zeta"], root["ReactDOM"]);
-})(self, function(__WEBPACK_EXTERNAL_MODULE__359__, __WEBPACK_EXTERNAL_MODULE__654__, __WEBPACK_EXTERNAL_MODULE__318__) {
+})(self, (__WEBPACK_EXTERNAL_MODULE__12__, __WEBPACK_EXTERNAL_MODULE__231__, __WEBPACK_EXTERNAL_MODULE__33__) => {
 return /******/ (() => { // webpackBootstrap
 /******/ 	"use strict";
 /******/ 	var __webpack_modules__ = ({
 
-/***/ 359:
+/***/ 12:
 /***/ ((module) => {
 
-module.exports = __WEBPACK_EXTERNAL_MODULE__359__;
+module.exports = __WEBPACK_EXTERNAL_MODULE__12__;
 
 /***/ }),
 
-/***/ 318:
+/***/ 33:
 /***/ ((module) => {
 
-module.exports = __WEBPACK_EXTERNAL_MODULE__318__;
+module.exports = __WEBPACK_EXTERNAL_MODULE__33__;
 
 /***/ }),
 
-/***/ 654:
+/***/ 231:
 /***/ ((module) => {
 
-module.exports = __WEBPACK_EXTERNAL_MODULE__654__;
+module.exports = __WEBPACK_EXTERNAL_MODULE__231__;
 
 /***/ })
 
@@ -103,53 +103,53 @@ __webpack_require__.d(__webpack_exports__, {
 var src_namespaceObject = {};
 __webpack_require__.r(src_namespaceObject);
 __webpack_require__.d(src_namespaceObject, {
-  "ChoiceField": () => (ChoiceField),
-  "DataView": () => (DataView),
-  "DateField": () => (DateField),
-  "Form": () => (Form),
-  "FormArray": () => (FormArray),
-  "FormContext": () => (FormContext),
-  "FormContextProvider": () => (FormContextProvider),
-  "FormObject": () => (FormObject),
-  "HiddenField": () => (HiddenField),
-  "MultiChoiceField": () => (MultiChoiceField),
-  "NumericField": () => (NumericField),
-  "TextField": () => (TextField),
-  "ToggleField": () => (ToggleField),
-  "ValidationError": () => (ValidationError),
-  "ViewStateProvider": () => (ViewStateProvider),
-  "classNames": () => (classNames),
-  "combineRef": () => (combineRef),
-  "combineValidators": () => (combineValidators),
-  "createBreakpointContext": () => (createBreakpointContext),
-  "domEventRef": () => (domEventRef),
-  "innerTextOrHTML": () => (innerTextOrHTML),
-  "isSingletonDisposed": () => (isSingletonDisposed),
-  "partial": () => (partial),
-  "registerFieldType": () => (registerFieldType),
-  "toRefCallback": () => (toRefCallback),
-  "useAsync": () => (useAsync),
-  "useDataView": () => (useDataView),
-  "useDispose": () => (useDispose),
-  "useErrorHandler": () => (useErrorHandler),
-  "useErrorHandlerRef": () => (useErrorHandlerRef),
-  "useFormContext": () => (useFormContext),
-  "useFormField": () => (useFormField),
-  "useMediaQuery": () => (useMediaQuery),
-  "useMemoizedFunction": () => (useMemoizedFunction),
-  "useObservableProperty": () => (useObservableProperty),
-  "useRefInitCallback": () => (useRefInitCallback),
-  "useSingleton": () => (useSingleton),
-  "useUnloadEffect": () => (useUnloadEffect),
-  "useUpdateTrigger": () => (useUpdateTrigger),
-  "useViewState": () => (useViewState),
-  "withSuspense": () => (withSuspense)
+  ChoiceField: () => (ChoiceField),
+  DataView: () => (DataView),
+  DateField: () => (DateField),
+  Form: () => (Form),
+  FormArray: () => (FormArray),
+  FormContext: () => (FormContext),
+  FormContextProvider: () => (FormContextProvider),
+  FormObject: () => (FormObject),
+  HiddenField: () => (HiddenField),
+  MultiChoiceField: () => (MultiChoiceField),
+  NumericField: () => (NumericField),
+  TextField: () => (TextField),
+  ToggleField: () => (ToggleField),
+  ValidationError: () => (ValidationError),
+  ViewStateProvider: () => (ViewStateProvider),
+  classNames: () => (classNames),
+  combineRef: () => (combineRef),
+  combineValidators: () => (combineValidators),
+  createBreakpointContext: () => (createBreakpointContext),
+  domEventRef: () => (domEventRef),
+  innerTextOrHTML: () => (innerTextOrHTML),
+  isSingletonDisposed: () => (isSingletonDisposed),
+  partial: () => (partial),
+  registerFieldType: () => (registerFieldType),
+  toRefCallback: () => (toRefCallback),
+  useAsync: () => (useAsync),
+  useDataView: () => (useDataView),
+  useDispose: () => (useDispose),
+  useErrorHandler: () => (useErrorHandler),
+  useErrorHandlerRef: () => (useErrorHandlerRef),
+  useFormContext: () => (useFormContext),
+  useFormField: () => (useFormField),
+  useMediaQuery: () => (useMediaQuery),
+  useMemoizedFunction: () => (useMemoizedFunction),
+  useObservableProperty: () => (useObservableProperty),
+  useRefInitCallback: () => (useRefInitCallback),
+  useSingleton: () => (useSingleton),
+  useUnloadEffect: () => (useUnloadEffect),
+  useUpdateTrigger: () => (useUpdateTrigger),
+  useViewState: () => (useViewState),
+  withSuspense: () => (withSuspense)
 });
 
 // EXTERNAL MODULE: external {"commonjs":"react","commonjs2":"react","amd":"react","root":"React"}
-var external_commonjs_react_commonjs2_react_amd_react_root_React_ = __webpack_require__(359);
+var external_commonjs_react_commonjs2_react_amd_react_root_React_ = __webpack_require__(12);
 // EXTERNAL MODULE: external {"commonjs":"zeta-dom","commonjs2":"zeta-dom","amd":"zeta-dom","root":"zeta"}
-var external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_zeta_ = __webpack_require__(654);
+var external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_zeta_ = __webpack_require__(231);
 ;// CONCATENATED MODULE: ./tmp/zeta-dom/util.js
 
 var _zeta$util = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_zeta_.util,
@@ -256,6 +256,7 @@ var domUtil_zeta$util = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_d
     createNodeIterator = domUtil_zeta$util.createNodeIterator,
     createTreeWalker = domUtil_zeta$util.createTreeWalker,
     bind = domUtil_zeta$util.bind,
+    bindOnce = domUtil_zeta$util.bindOnce,
     bindUntil = domUtil_zeta$util.bindUntil,
     dispatchDOMMouseEvent = domUtil_zeta$util.dispatchDOMMouseEvent,
     removeNode = domUtil_zeta$util.removeNode,
@@ -283,6 +284,7 @@ var domUtil_zeta$util = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_d
 var _defaultExport = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_zeta_.dom;
 /* harmony default export */ const dom = (_defaultExport);
 var _zeta$dom = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_zeta_.dom,
+    reportError = _zeta$dom.reportError,
     textInputAllowed = _zeta$dom.textInputAllowed,
     beginDrag = _zeta$dom.beginDrag,
     beginPinchZoom = _zeta$dom.beginPinchZoom,
@@ -313,6 +315,7 @@ var domLock_zeta$dom = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_do
     cancelLock = domLock_zeta$dom.cancelLock,
     subscribeAsync = domLock_zeta$dom.subscribeAsync,
     notifyAsync = domLock_zeta$dom.notifyAsync,
+    runAsync = domLock_zeta$dom.runAsync,
     preventLeave = domLock_zeta$dom.preventLeave;
 
 ;// CONCATENATED MODULE: ./tmp/zeta-dom/events.js
@@ -320,7 +323,7 @@ var domLock_zeta$dom = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_do
 var ZetaEventContainer = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_zeta_.EventContainer;
 
 // EXTERNAL MODULE: external {"commonjs":"react-dom","commonjs2":"react-dom","amd":"react-dom","root":"ReactDOM"}
-var external_commonjs_react_dom_commonjs2_react_dom_amd_react_dom_root_ReactDOM_ = __webpack_require__(318);
+var external_commonjs_react_dom_commonjs2_react_dom_amd_react_dom_root_ReactDOM_ = __webpack_require__(33);
 ;// CONCATENATED MODULE: ./src/env.umd.js
 
 
@@ -508,7 +511,9 @@ function useAsync(init, deps, debounce) {
     if (deps[0]) {
       // keep call to refresh in useEffect to avoid double invocation
       // in strict mode in development environment
-      setImmediateOnce(state.refresh);
+      setImmediateOnce(function () {
+        catchAsync(state.refresh());
+      });
     }
   }, deps);
   (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useMemo)(function () {
@@ -597,9 +602,7 @@ function useErrorHandler() {
   var reemitError = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useCallback)(function (error) {
     try {
       reemitting.current = true;
-      return zeta_dom_dom.emit('error', _ref.current || zeta_dom_dom.root, {
-        error: error
-      }, true);
+      return reportError(error, _ref.current);
     } finally {
       reemitting.current = false;
     }
@@ -689,7 +692,6 @@ function createBreakpointContext(breakpoints) {
 
 
 /** @type {React.Context<import("./viewState").ViewStateProvider | null>} */
-// @ts-ignore: type inference issue
 
 var ViewStateProviderContext = /*#__PURE__*/(0,external_commonjs_react_commonjs2_react_amd_react_root_React_.createContext)(null);
 var noopStorage = Object.freeze({
@@ -1892,9 +1894,10 @@ definePrototype(FormContext, {
     var errorFields = grep(form_(this).fields, function (v) {
       return v.error;
     });
-    return errorFields[0] ? Object.fromEntries(errorFields.map(function (v) {
-      return [v.path, String(v.error)];
-    })) : null;
+    return errorFields[0] ? errorFields.reduce(function (v, a) {
+      v[a.path] = String(a.error);
+      return v;
+    }, {}) : null;
   },
   getError: function getError(key) {
     return String((getField(this, key) || '').error || '');
