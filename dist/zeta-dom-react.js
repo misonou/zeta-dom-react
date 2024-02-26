@@ -1,4 +1,4 @@
-/*! zeta-dom-react v0.5.0 | (c) misonou | https://misonou.github.io */
+/*! zeta-dom-react v0.5.1 | (c) misonou | https://misonou.github.io */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory(require("react"), require("zeta-dom"), require("react-dom"));
@@ -359,6 +359,11 @@ var AbortController = window.AbortController;
 var useSingletonEffect = IS_DEV ? useSingletonEffectImplDev : useSingletonEffectImpl;
 var unloadCallbacks;
 
+function muteRejection(promise) {
+  catchAsync(promise);
+  return promise;
+}
+
 function clearUnusedSingletons() {
   each(unusedSingletons, function (i) {
     singletons["delete"](i);
@@ -445,10 +450,10 @@ function useAsync(init, deps, debounce) {
         if (debounce && !force) {
           nextResult = nextResult || deferrable();
           nextResult.waitFor(delay(debounce));
-          return nextResult.d || (nextResult.d = nextResult.then(function () {
+          return nextResult.d || (nextResult.d = muteRejection(nextResult.then(function () {
             nextResult = null;
             return state.refresh(true);
-          }));
+          })));
         }
 
         var controller = AbortController ? new AbortController() : {
@@ -511,9 +516,7 @@ function useAsync(init, deps, debounce) {
     if (deps[0]) {
       // keep call to refresh in useEffect to avoid double invocation
       // in strict mode in development environment
-      setImmediateOnce(function () {
-        catchAsync(state.refresh());
-      });
+      setImmediateOnce(state.refresh);
     }
   }, deps);
   (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useMemo)(function () {
