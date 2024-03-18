@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import dom, { reportError } from "./include/zeta-dom/dom.js";
-import { notifyAsync } from "./include/zeta-dom/domLock.js";
-import { bind } from "./include/zeta-dom/domUtil.js";
-import { ZetaEventContainer } from "./include/zeta-dom/events.js";
-import { always, any, catchAsync, clearImmediateOnce, combineFn, deferrable, delay, each, either, extend, is, isArray, isErrorWithCode, isFunction, makeArray, makeAsync, map, mapRemove, noop, pipe, resolve, setAdd, setImmediateOnce, watch } from "./include/zeta-dom/util.js";
+import dom, { reportError } from "zeta-dom/dom";
+import { notifyAsync } from "zeta-dom/domLock";
+import { bind } from "zeta-dom/domUtil";
+import { ZetaEventContainer } from "zeta-dom/events";
+import { always, any, catchAsync, clearImmediateOnce, combineFn, deferrable, delay, each, either, extend, is, isArray, isErrorWithCode, isFunction, makeArray, makeAsync, map, mapRemove, noop, pipe, resolve, setAdd, setImmediateOnce, watch } from "zeta-dom/util";
 import { IS_DEV } from "./env.js";
 
 const container = new ZetaEventContainer();

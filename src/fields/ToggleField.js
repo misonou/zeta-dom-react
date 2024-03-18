@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { definePrototype, extend } from "../include/zeta-dom/util.js";
+import { definePrototype, extend } from "zeta-dom/util";
 
 export default function ToggleField() { }
 

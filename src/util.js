@@ -1,6 +1,6 @@
 import { createElement, Fragment, lazy, Suspense } from "react";
-import { combineFn, each, extend, isFunction, isPlainObject, kv, makeArray, mapGet, noop, setImmediate, throwNotFunction } from "./include/zeta-dom/util.js";
-import dom from "./include/zeta-dom/dom.js";
+import { combineFn, each, extend, isFunction, isPlainObject, kv, makeArray, mapGet, noop, throwNotFunction } from "zeta-dom/util";
+import dom from "zeta-dom/dom";
 
 const boundEvents = new WeakMap();
 

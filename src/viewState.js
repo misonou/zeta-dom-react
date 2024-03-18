@@ -1,5 +1,5 @@
 import { createContext, useContext, useState } from "react";
-import { noop, randomId } from "./include/zeta-dom/util.js";
+import { noop, randomId } from "zeta-dom/util";
 import { useSingleton } from "./hooks.js";
 
 /** @type {React.Context<import("./viewState").ViewStateProvider | null>} */

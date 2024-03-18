@@ -1,9 +1,9 @@
 import { createContext, createElement, forwardRef, useContext, useEffect, useRef, useState } from "react";
-import { always, any, createPrivateStore, define, defineObservableProperty, definePrototype, each, exclude, extend, grep, hasOwnProperty, is, isArray, isFunction, isPlainObject, isUndefinedOrNull, keys, makeArray, map, mapGet, mapRemove, noop, pick, pipe, randomId, resolve, resolveAll, sameValueZero, setImmediate, setImmediateOnce, single, throws, watch } from "./include/zeta-dom/util.js";
-import { ZetaEventContainer } from "./include/zeta-dom/events.js";
-import dom, { focus } from "./include/zeta-dom/dom.js";
-import { preventLeave } from "./include/zeta-dom/domLock.js";
-import { comparePosition, parentsAndSelf } from "./include/zeta-dom/domUtil.js";
+import { always, any, createPrivateStore, define, defineObservableProperty, definePrototype, each, exclude, extend, grep, hasOwnProperty, is, isArray, isFunction, isPlainObject, isUndefinedOrNull, keys, makeArray, map, mapGet, mapRemove, noop, pick, pipe, randomId, resolve, resolveAll, sameValueZero, setImmediate, setImmediateOnce, single, throws, watch } from "zeta-dom/util";
+import { ZetaEventContainer } from "zeta-dom/events";
+import dom, { focus } from "zeta-dom/dom";
+import { preventLeave } from "zeta-dom/domLock";
+import { comparePosition, parentsAndSelf } from "zeta-dom/domUtil";
 import { useObservableProperty, useUnloadEffect, useUpdateTrigger } from "./hooks.js";
 import { combineRef } from "./util.js";
 import { useViewState } from "./viewState.js";

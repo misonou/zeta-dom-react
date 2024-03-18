@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { defineObservableProperty, each, watch } from "./include/zeta-dom/util.js";
-import { bind } from "./include/zeta-dom/domUtil.js";
-import { useDispose, useUpdateTrigger } from "./hooks.js";
+import { defineObservableProperty, each, watch } from "zeta-dom/util";
+import { bind } from "zeta-dom/domUtil";
+import { useUpdateTrigger } from "./hooks.js";
 
 export function useMediaQuery(query) {
     var mq = useMemo(function () {

@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from "react";
-import { define, definePrototype, extend } from "../include/zeta-dom/util.js";
+import { define, definePrototype, extend } from "zeta-dom/util";
 
 export default function ChoiceField() { }
 

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { ZetaEventContainer } from "./include/zeta-dom/events.js";
-import { combineFn, createPrivateStore, define, defineObservableProperty, definePrototype, each, extend, isArray, isFunction, isUndefinedOrNull, keys, makeArray, noop, pick, setImmediateOnce, single, watch } from "./include/zeta-dom/util.js";
+import { ZetaEventContainer } from "zeta-dom/events";
+import { combineFn, createPrivateStore, define, defineObservableProperty, definePrototype, each, extend, isArray, isFunction, isUndefinedOrNull, keys, makeArray, noop, pick, setImmediateOnce, single, watch } from "zeta-dom/util";
 import { useUpdateTrigger } from "./hooks.js";
 import { useViewState } from "./viewState.js";
 

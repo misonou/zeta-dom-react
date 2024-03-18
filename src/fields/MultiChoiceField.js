@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useMemoizedFunction } from "../hooks.js";
-import { definePrototype, either, extend, freeze, isArray, isUndefinedOrNull, makeArray, splice } from "../include/zeta-dom/util.js";
+import { definePrototype, either, extend, freeze, isArray, isUndefinedOrNull, makeArray, splice } from "zeta-dom/util";
 import ChoiceField from "./ChoiceField.js";
 
 export default function MultiChoiceField() { }

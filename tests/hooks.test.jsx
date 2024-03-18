@@ -1,8 +1,8 @@
 import React, { useEffect, useRef } from "react";
 import { act as reactAct, render, screen } from "@testing-library/react";
 import { act, renderHook } from '@testing-library/react-hooks'
-import { catchAsync, errorWithCode, watch } from "src/include/zeta-dom/util";
-import dom from "src/include/zeta-dom/dom";
+import { catchAsync, errorWithCode } from "zeta-dom/util";
+import dom from "zeta-dom/dom";
 import { combineRef } from "src/util";
 import { isSingletonDisposed, useAsync, useDispose, useErrorHandler, useMemoizedFunction, useObservableProperty, useRefInitCallback, useSingleton, useUnloadEffect } from "src/hooks";
 import { delay, mockFn, verifyCalls, _, after } from "@misonou/test-utils";

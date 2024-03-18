@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { definePrototype } from "../include/zeta-dom/util.js";
+import { definePrototype } from "zeta-dom/util";
 
 export default function NumericField() { }
 

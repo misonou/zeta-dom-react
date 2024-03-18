@@ -1,4 +1,4 @@
-import { definePrototype, extend, isUndefinedOrNull, pick } from "../include/zeta-dom/util.js";
+import { definePrototype, extend, isUndefinedOrNull, pick } from "zeta-dom/util";
 
 export default function TextField() { }
 

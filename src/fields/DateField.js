@@ -1,5 +1,5 @@
 import { useMemo, useEffect } from "react";
-import { define, definePrototype, extend, isFunction } from "../include/zeta-dom/util.js";
+import { define, definePrototype, extend, isFunction } from "zeta-dom/util";
 import { useMemoizedFunction } from "../hooks.js";
 
 const re = /^-?\d{4,}-\d{2}-\d{2}$/;
