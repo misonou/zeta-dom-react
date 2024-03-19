@@ -20,12 +20,17 @@ function compare(a, b) {
     return a - b;
 }
 
+function setPageCount(dataView, pageSize, itemCount) {
+    _(dataView).setPageCount(Math.ceil(itemCount / (pageSize || itemCount || 1)));
+}
+
 export function DataView(filters, sortBy, sortOrder, pageSize) {
     var self = this;
     var defaults = {
         filters: extend({}, filters),
         sortBy: sortBy,
         sortOrder: sortOrder || (sortBy && 'asc'),
+        itemCount: null,
         pageIndex: 0,
         pageSize: pageSize === undefined ? DataView.pageSize : pageSize
     }
@@ -34,6 +39,7 @@ export function DataView(filters, sortBy, sortOrder, pageSize) {
         defineObservableProperty(filters, i);
     }
     var state = _(self, {
+        setPageCount: defineObservableProperty(self, 'pageCount', 0, true),
         filters: Object.freeze(filters),
         defaults: defaults,
         items: [],
@@ -41,12 +47,19 @@ export function DataView(filters, sortBy, sortOrder, pageSize) {
     var emitViewChange = function () {
         emitter.emit('viewChange', self);
     };
-    var onUpdated = function () {
+    var onUpdated = function (e) {
+        var isFilter = this !== self;
+        var emitEvent = isFilter || single(e.newValues, function (v, i) {
+            return i !== 'pageCount' && i !== 'itemCount';
+        });
         state.sorted = state.items.length ? undefined : [];
-        if (this !== self) {
+        if (isFilter) {
             state.filtered = state.sorted;
         }
-        setImmediateOnce(emitViewChange);
+        self.pageIndex = self.pageIndex;
+        if (emitEvent) {
+            setImmediateOnce(emitViewChange);
+        }
     };
     extend(this, defaults);
     watch(self, onUpdated);
@@ -58,7 +71,6 @@ define(DataView, {
 });
 
 definePrototype(DataView, {
-    itemCount: 0,
     on: function (event, handler) {
         return emitter.add(this, event, handler);
     },
@@ -130,8 +142,18 @@ definePrototype(DataView, {
 
 defineObservableProperty(proto, 'sortBy');
 defineObservableProperty(proto, 'sortOrder');
-defineObservableProperty(proto, 'pageIndex');
-defineObservableProperty(proto, 'pageSize');
+defineObservableProperty(proto, 'itemCount', 0, function (newValue) {
+    _(this).itemCount = newValue;
+    setPageCount(this, this.pageSize, newValue);
+    return newValue || 0;
+});
+defineObservableProperty(proto, 'pageSize', 0, function (newValue) {
+    setPageCount(this, newValue, this.itemCount);
+    return newValue;
+});
+defineObservableProperty(proto, 'pageIndex', 0, function (newValue) {
+    return Math.max(0, isUndefinedOrNull(_(this).itemCount) ? newValue : Math.min(newValue, this.pageCount - 1));
+});
 defineObservableProperty(proto, 'filters', {}, function (newValue) {
     return extend(_(this).filters, newValue);
 });
@@ -154,6 +176,7 @@ export function useDataView(persistKey, filters, sortBy, sortOrder, pageSize) {
             }),
             viewState.onPopState ? viewState.onPopState(function (newValue) {
                 viewState.set(dataView.toJSON());
+                delete state.itemCount;
                 extend(dataView, newValue || state.defaults);
             }) : noop
         );

@@ -60,6 +60,11 @@ export class DataView<P extends object> {
      */
     pageSize: number;
     /**
+     * Gets the number of page.
+     */
+    readonly pageCount: number;
+
+    /**
      * Sets the default page size.
      * Setting to `0` or negative numbers will disable paging. Default is `0`.
      */

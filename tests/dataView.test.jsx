@@ -3,7 +3,7 @@ import { jest } from "@jest/globals";
 import { act, renderHook } from '@testing-library/react-hooks'
 import { DataView, useDataView } from "src/dataView";
 import { ViewStateProvider } from "src/viewState";
-import { mockFn, verifyCalls, _ } from "@misonou/test-utils";
+import { mockFn, verifyCalls, _, delay } from "@misonou/test-utils";
 
 const { objectContaining } = expect;
 
@@ -163,7 +163,20 @@ describe('useDataView', () => {
         result.current.pageIndex = 2;
         expect(result.current.getView([1, 2, 3, 4, 5], v => v)[0]).toEqual([5]);
         result.current.pageIndex = 3;
-        expect(result.current.getView([1, 2, 3, 4, 5], v => v)[0]).toEqual([]);
+        expect(result.current.pageIndex).toBe(2);
+        expect(result.current.getView([1, 2, 3, 4, 5], v => v)[0]).toEqual([5]);
+        unmount();
+    });
+
+    it('should normalize pageIndex when item count', async () => {
+        const { result, unmount, waitForNextUpdate } = renderHook(() => useDataView({ foo: 1 }, 'foo', 'asc', 2));
+        result.current.pageIndex = 2;
+        expect(result.current.getView([1, 2, 3, 4, 5], v => v)[0]).toEqual([5]);
+        expect(result.current.getView([1, 2])[0]).toEqual([]);
+        await waitForNextUpdate();
+
+        expect(result.current.pageIndex).toBe(0);
+        expect(result.current.getView([1, 2])[0]).toEqual([1, 2]);
         unmount();
     });
 
@@ -230,6 +243,10 @@ describe('useDataView', () => {
 
         const callback = viewState.onPopState.mock.calls[0][0];
         expect(callback).toBeInstanceOf(Function);
+
+        // should be able to restore pageIndex even though
+        // it may be invalid regarding to current itemCount
+        result.current.getView([1, 2, 3]);
 
         const initProps = {
             filters: { foo: 1 },
@@ -319,6 +336,43 @@ describe('DataView', () => {
     });
 });
 
+describe('DataView#pageCount', () => {
+    it('should always return 0 when item count is 0', () => {
+        const { result, unmount } = renderHook(() => useDataView({}, undefined, undefined, 10));
+        result.current.itemCount = 0;
+        expect(result.current.pageCount).toBe(0);
+
+        result.current.pageSize = 0;
+        expect(result.current.pageCount).toBe(0);
+        unmount();
+    });
+
+    it('should always return 1 when page size is 0', () => {
+        const { result, unmount } = renderHook(() => useDataView({}, undefined, undefined, 0));
+        result.current.itemCount = 10;
+        expect(result.current.pageCount).toBe(1);
+        unmount();
+    });
+});
+
+describe('DataView#pageIndex', () => {
+    it('should normalize to value depending on page count', async () => {
+        const { result, waitForNextUpdate, unmount } = renderHook(() => useDataView({}, undefined, undefined, 10));
+        result.current.itemCount = 100;
+        expect(result.current.pageCount).toBe(10);
+
+        result.current.pageIndex = -1;
+        expect(result.current.pageIndex).toBe(0);
+        result.current.pageIndex = 10;
+        expect(result.current.pageIndex).toBe(9);
+
+        result.current.itemCount = 10;
+        await waitForNextUpdate();
+        expect(result.current.pageIndex).toBe(0);
+        unmount();
+    });
+});
+
 describe('DataView#getView', () => {
     it('should sort items if callback is not supplied', () => {
         const items = [
@@ -329,6 +383,17 @@ describe('DataView#getView', () => {
         ]
         const { result, unmount } = renderHook(() => useDataView({ foo: 1 }, 'foo', 'asc'));
         expect(result.current.getView(items)[0]).toEqual(items.slice().reverse());
+        unmount();
+    });
+
+    it('should not trigger viewChange event', async () => {
+        const cb = mockFn();
+        const { result, unmount } = renderHook(() => useDataView({}, undefined, undefined, 10));
+        result.current.on('viewChange', cb);
+
+        result.current.getView([1, 2, 3]);
+        await delay();
+        expect(cb).not.toBeCalled();
         unmount();
     });
 });
