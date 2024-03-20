@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { ZetaEventContainer } from "zeta-dom/events";
-import { combineFn, createPrivateStore, define, defineObservableProperty, definePrototype, each, extend, isArray, isFunction, isUndefinedOrNull, keys, makeArray, noop, pick, setImmediateOnce, single, watch } from "zeta-dom/util";
+import { combineFn, createPrivateStore, define, defineObservableProperty, definePrototype, each, extend, freeze, hasOwnProperty, isArray, isFunction, isUndefinedOrNull, keys, makeArray, noop, pick, setImmediateOnce, single, watch } from "zeta-dom/util";
 import { useUpdateTrigger } from "./hooks.js";
 import { useViewState } from "./viewState.js";
 
@@ -34,13 +34,8 @@ export function DataView(filters, sortBy, sortOrder, pageSize) {
         pageIndex: 0,
         pageSize: pageSize === undefined ? DataView.pageSize : pageSize
     }
-    filters = extend({}, filters);
-    for (let i in filters) {
-        defineObservableProperty(filters, i);
-    }
     var state = _(self, {
         setPageCount: defineObservableProperty(self, 'pageCount', 0, true),
-        filters: Object.freeze(filters),
         defaults: defaults,
         items: [],
     });
@@ -56,14 +51,19 @@ export function DataView(filters, sortBy, sortOrder, pageSize) {
         if (isFilter) {
             state.filtered = state.sorted;
         }
-        self.pageIndex = self.pageIndex;
+        self.pageIndex = isFilter || !hasOwnProperty(e.newValues, 'pageIndex') ? 0 : self.pageIndex;
         if (emitEvent) {
             setImmediateOnce(emitViewChange);
         }
     };
-    extend(this, defaults);
+    var filters = extend(self, defaults).filters;
+    state.callback = watch(filters, false);
     watch(self, onUpdated);
     watch(self.filters, onUpdated);
+    for (var i in filters) {
+        defineObservableProperty(filters, i);
+    }
+    freeze(filters);
 }
 
 define(DataView, {
@@ -135,8 +135,15 @@ definePrototype(DataView, {
             itemCount: self.itemCount
         });
     },
-    reset: function () {
-        extend(this, _(this).defaults);
+    reset: function (values) {
+        var self = this;
+        var state = _(self);
+        delete state.itemCount;
+        values = values || state.defaults;
+        state.callback(function () {
+            extend(self.filters, values.filters);
+        });
+        return extend(self, values);
     }
 });
 
@@ -154,8 +161,8 @@ defineObservableProperty(proto, 'pageSize', 0, function (newValue) {
 defineObservableProperty(proto, 'pageIndex', 0, function (newValue) {
     return Math.max(0, isUndefinedOrNull(_(this).itemCount) ? newValue : Math.min(newValue, this.pageCount - 1));
 });
-defineObservableProperty(proto, 'filters', {}, function (newValue) {
-    return extend(_(this).filters, newValue);
+defineObservableProperty(proto, 'filters', {}, function (newValue, oldValue) {
+    return extend(oldValue || {}, newValue);
 });
 
 export function useDataView(persistKey, filters, sortBy, sortOrder, pageSize) {
@@ -165,10 +172,9 @@ export function useDataView(persistKey, filters, sortBy, sortOrder, pageSize) {
     var viewState = useViewState(persistKey);
     var forceUpdate = useUpdateTrigger();
     var dataView = useState(function () {
-        return extend(new DataView(filters, sortBy, sortOrder, pageSize), viewState.get());
+        return new DataView(filters, sortBy, sortOrder, pageSize).reset(viewState.get());
     })[0];
     useEffect(function () {
-        var state = _(dataView);
         return combineFn(
             dataView.on('viewChange', function () {
                 viewState.set(dataView.toJSON());
@@ -176,8 +182,7 @@ export function useDataView(persistKey, filters, sortBy, sortOrder, pageSize) {
             }),
             viewState.onPopState ? viewState.onPopState(function (newValue) {
                 viewState.set(dataView.toJSON());
-                delete state.itemCount;
-                extend(dataView, newValue || state.defaults);
+                dataView.reset(newValue);
             }) : noop
         );
     }, [dataView]);

@@ -334,6 +334,32 @@ describe('DataView', () => {
         verifyCalls(cb, [[objectContaining({ type: 'viewChange' }), result.current]]);
         unmount();
     });
+
+    it('should reset pageIndex when filters or sorting changes', async () => {
+        const { result, unmount, waitForNextUpdate } = renderHook(() => useDataView({ foo: 1 }, undefined, undefined, 10));
+        const setPageIndex = async () => {
+            result.current.pageIndex = 1;
+            await waitForNextUpdate();
+            expect(result.current.pageIndex).toBe(1);
+        };
+        result.current.itemCount = 20;
+
+        await setPageIndex();
+        result.current.filters.foo = 2;
+        await waitForNextUpdate();
+        expect(result.current.pageIndex).toBe(0);
+
+        await setPageIndex();
+        result.current.toggleSort('foo');
+        await waitForNextUpdate();
+        expect(result.current.pageIndex).toBe(0);
+
+        await setPageIndex();
+        result.current.toggleSort('foo');
+        await waitForNextUpdate();
+        expect(result.current.pageIndex).toBe(0);
+        unmount();
+    });
 });
 
 describe('DataView#pageCount', () => {

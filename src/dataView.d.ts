@@ -127,8 +127,9 @@ export class DataView<P extends object> {
 
     /**
      * Resets filters, sorting and paging to default values.
+     * @param value State to be restored.
      */
-    reset(): void;;
+    reset(value?: DataViewProps<P>): this;
 }
 
 /**
