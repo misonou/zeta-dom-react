@@ -9,10 +9,13 @@ import { IS_DEV } from "./env.js";
 const container = new ZetaEventContainer();
 const singletons = new Map();
 const disposedSingletons = new WeakSet();
+const unloadCallbacks = new Set();
 const AbortController = window.AbortController;
 const useSingletonEffect = IS_DEV ? useSingletonEffectImplDev : useSingletonEffectImpl;
 
-var unloadCallbacks;
+bind(window, 'pagehide', function (e) {
+    combineFn(makeArray(unloadCallbacks).reverse())(e.persisted);
+});
 
 function muteRejection(promise) {
     catchAsync(promise);
@@ -268,12 +271,6 @@ export function useErrorHandler() {
 }
 
 export function useUnloadEffect(callback) {
-    if (!unloadCallbacks) {
-        unloadCallbacks = new Set();
-        bind(window, 'pagehide', function (e) {
-            combineFn(makeArray(unloadCallbacks).reverse())(e.persisted);
-        });
-    }
     callback = useMemoizedFunction(callback);
     useEffect(function () {
         unloadCallbacks.add(callback);
