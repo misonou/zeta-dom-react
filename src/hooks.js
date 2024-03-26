@@ -3,12 +3,12 @@ import dom, { reportError } from "zeta-dom/dom";
 import { notifyAsync } from "zeta-dom/domLock";
 import { bind } from "zeta-dom/domUtil";
 import { ZetaEventContainer } from "zeta-dom/events";
-import { always, any, catchAsync, clearImmediateOnce, combineFn, deferrable, delay, each, either, extend, is, isArray, isErrorWithCode, isFunction, makeArray, makeAsync, map, mapRemove, noop, pipe, resolve, setAdd, setImmediateOnce, watch } from "zeta-dom/util";
+import { always, any, catchAsync, clearImmediateOnce, combineFn, deferrable, delay, each, extend, is, isArray, isErrorWithCode, isFunction, makeArray, makeAsync, map, mapRemove, noop, pipe, resolve, setAdd, setImmediateOnce, watch } from "zeta-dom/util";
 import { IS_DEV } from "./env.js";
 
 const container = new ZetaEventContainer();
-const singletons = new WeakSet();
-const unusedSingletons = new Map();
+const singletons = new Map();
+const disposedSingletons = new WeakSet();
 const AbortController = window.AbortController;
 const useSingletonEffect = IS_DEV ? useSingletonEffectImplDev : useSingletonEffectImpl;
 
@@ -20,33 +20,35 @@ function muteRejection(promise) {
 }
 
 function clearUnusedSingletons() {
-    each(unusedSingletons, function (i) {
-        singletons.delete(i);
-        mapRemove(unusedSingletons, i)();
+    each(singletons, function (i, v) {
+        if (!v.d) {
+            disposedSingletons.add(i);
+            mapRemove(singletons, i)(v.d === false);
+        }
     });
 }
 
 function useSingletonEffectImpl(target, dispose) {
     useEffect(function () {
         return function () {
-            singletons.add(target);
-            dispose();
+            disposedSingletons.add(target);
+            dispose(true);
         };
     }, [target]);
 }
 
 function useSingletonEffectImplDev(target, dispose) {
-    if (setAdd(singletons, target)) {
-        unusedSingletons.set(target, dispose);
+    if (!singletons.has(target)) {
+        singletons.set(target, dispose);
         clearImmediateOnce(clearUnusedSingletons);
     }
     useEffect(function () {
-        unusedSingletons.delete(target);
-        setImmediateOnce(clearUnusedSingletons);
-        return function () {
-            unusedSingletons.set(target, dispose);
+        var cb = function (flag) {
+            singletons.get(target).d = !!flag;
             setImmediateOnce(clearUnusedSingletons);
         };
+        cb(true);
+        return cb;
     }, [target]);
 }
 
@@ -190,7 +192,7 @@ export function useDispose() {
 }
 
 export function isSingletonDisposed(target) {
-    return either(useSingletonEffect !== useSingletonEffectImpl, singletons.has(target));
+    return disposedSingletons.has(target);
 }
 
 export function useSingleton(factory, onDispose) {
