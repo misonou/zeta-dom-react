@@ -664,7 +664,7 @@ describe('useErrorHandler', () => {
 });
 
 describe('useUnloadEffect', () => {
-    it('should invoke callback with false when component is being unmounted', () => {
+    it('should invoke callback with false when component is being unmounted', async () => {
         const cb = mockFn();
         const Outer = function () {
             useEffect(() => cb('outer'), []);
@@ -679,6 +679,7 @@ describe('useUnloadEffect', () => {
         const { unmount } = render(<Outer />);
 
         unmount();
+        await 0;
         verifyCalls(cb, [
             ['inner'],
             ['outer'],
@@ -714,7 +715,7 @@ describe('useUnloadEffect', () => {
         unmount();
     });
 
-    it('should not invoke callback registered in unmounted component on pagehide event', () => {
+    it('should not invoke callback registered in unmounted component on pagehide event', async () => {
         const cb = mockFn();
         const Outer = function ({ inner }) {
             useUnloadEffect(v => cb('outer unload', v));
@@ -726,6 +727,7 @@ describe('useUnloadEffect', () => {
         };
         const { rerender, unmount } = render(<Outer inner={true} />);
         rerender(<Outer inner={false} />);
+        await 0;
         verifyCalls(cb, [['inner unload', false]]);
 
         cb.mockClear();

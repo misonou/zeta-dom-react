@@ -353,6 +353,7 @@ describe('useFormContext', () => {
             Object.assign(result.current.data, { foo: 2, baz: 'baz' });
         });
         unmount();
+        await 0;
         expect(viewState.set).toBeCalledTimes(1);
         expect(viewState.set.mock.calls[0][0]).toEqual({ foo: 2, baz: 'baz' });
         expect(viewState.set.mock.calls[0][0]).not.toBe(result.current.data);

@@ -14,7 +14,7 @@ const AbortController = window.AbortController;
 const useSingletonEffect = IS_DEV ? useSingletonEffectImplDev : useSingletonEffectImpl;
 
 bind(window, 'pagehide', function (e) {
-    combineFn(makeArray(unloadCallbacks).reverse())(e.persisted);
+    combineFn(makeArray(unloadCallbacks))(e.persisted);
 });
 
 function muteRejection(promise) {
@@ -272,11 +272,9 @@ export function useErrorHandler() {
 
 export function useUnloadEffect(callback) {
     callback = useMemoizedFunction(callback);
-    useEffect(function () {
-        unloadCallbacks.add(callback);
-        return function () {
-            unloadCallbacks.delete(callback);
-            callback(false);
-        };
-    }, []);
+    unloadCallbacks.add(callback);
+    useSingletonEffect(callback, function (used) {
+        unloadCallbacks.delete(callback);
+        return used && callback(false);
+    });
 }
