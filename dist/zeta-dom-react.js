@@ -1,14 +1,14 @@
-/*! zeta-dom-react v0.5.1 | (c) misonou | https://misonou.github.io */
+/*! zeta-dom-react v0.5.2 | (c) misonou | https://misonou.github.io */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
-		module.exports = factory(require("react"), require("zeta-dom"), require("react-dom"));
+		module.exports = factory(require("zeta-dom"), require("react"), require("react-dom"));
 	else if(typeof define === 'function' && define.amd)
-		define("zeta-dom-react", ["react", "zeta-dom", "react-dom"], factory);
+		define("zeta-dom-react", ["zeta-dom", "react", "react-dom"], factory);
 	else if(typeof exports === 'object')
-		exports["zeta-dom-react"] = factory(require("react"), require("zeta-dom"), require("react-dom"));
+		exports["zeta-dom-react"] = factory(require("zeta-dom"), require("react"), require("react-dom"));
 	else
-		root["zeta-dom-react"] = factory(root["React"], root["zeta"], root["ReactDOM"]);
-})(self, (__WEBPACK_EXTERNAL_MODULE__12__, __WEBPACK_EXTERNAL_MODULE__231__, __WEBPACK_EXTERNAL_MODULE__33__) => {
+		root["zeta"] = root["zeta"] || {}, root["zeta"]["react"] = factory(root["zeta"], root["React"], root["ReactDOM"]);
+})(self, (__WEBPACK_EXTERNAL_MODULE__231__, __WEBPACK_EXTERNAL_MODULE__12__, __WEBPACK_EXTERNAL_MODULE__311__) => {
 return /******/ (() => { // webpackBootstrap
 /******/ 	"use strict";
 /******/ 	var __webpack_modules__ = ({
@@ -20,10 +20,10 @@ module.exports = __WEBPACK_EXTERNAL_MODULE__12__;
 
 /***/ }),
 
-/***/ 33:
+/***/ 311:
 /***/ ((module) => {
 
-module.exports = __WEBPACK_EXTERNAL_MODULE__33__;
+module.exports = __WEBPACK_EXTERNAL_MODULE__311__;
 
 /***/ }),
 
@@ -93,237 +93,135 @@ module.exports = __WEBPACK_EXTERNAL_MODULE__231__;
 var __webpack_exports__ = {};
 // This entry need to be wrapped in an IIFE because it need to be isolated against other modules in the chunk.
 (() => {
+// ESM COMPAT FLAG
+__webpack_require__.r(__webpack_exports__);
 
 // EXPORTS
 __webpack_require__.d(__webpack_exports__, {
-  "default": () => (/* binding */ entry)
+  ChoiceField: () => (/* reexport */ ChoiceField),
+  DataView: () => (/* reexport */ DataView),
+  DateField: () => (/* reexport */ DateField),
+  Form: () => (/* reexport */ Form),
+  FormArray: () => (/* reexport */ FormArray),
+  FormContext: () => (/* reexport */ FormContext),
+  FormContextProvider: () => (/* reexport */ FormContextProvider),
+  FormObject: () => (/* reexport */ FormObject),
+  HiddenField: () => (/* reexport */ HiddenField),
+  MultiChoiceField: () => (/* reexport */ MultiChoiceField),
+  NumericField: () => (/* reexport */ NumericField),
+  TextField: () => (/* reexport */ TextField),
+  ToggleField: () => (/* reexport */ ToggleField),
+  ValidationError: () => (/* reexport */ ValidationError),
+  ViewStateProvider: () => (/* reexport */ ViewStateProvider),
+  classNames: () => (/* reexport */ classNames),
+  combineRef: () => (/* reexport */ combineRef),
+  combineValidators: () => (/* reexport */ combineValidators),
+  createBreakpointContext: () => (/* reexport */ createBreakpointContext),
+  domEventRef: () => (/* reexport */ domEventRef),
+  innerTextOrHTML: () => (/* reexport */ innerTextOrHTML),
+  isSingletonDisposed: () => (/* reexport */ isSingletonDisposed),
+  partial: () => (/* reexport */ partial),
+  registerFieldType: () => (/* reexport */ registerFieldType),
+  toRefCallback: () => (/* reexport */ toRefCallback),
+  useAsync: () => (/* reexport */ useAsync),
+  useDataView: () => (/* reexport */ useDataView),
+  useDispose: () => (/* reexport */ useDispose),
+  useErrorHandler: () => (/* reexport */ useErrorHandler),
+  useErrorHandlerRef: () => (/* reexport */ useErrorHandlerRef),
+  useFormContext: () => (/* reexport */ useFormContext),
+  useFormField: () => (/* reexport */ useFormField),
+  useMediaQuery: () => (/* reexport */ useMediaQuery),
+  useMemoizedFunction: () => (/* reexport */ useMemoizedFunction),
+  useObservableProperty: () => (/* reexport */ useObservableProperty),
+  useRefInitCallback: () => (/* reexport */ useRefInitCallback),
+  useSingleton: () => (/* reexport */ useSingleton),
+  useUnloadEffect: () => (/* reexport */ useUnloadEffect),
+  useUpdateTrigger: () => (/* reexport */ useUpdateTrigger),
+  useViewState: () => (/* reexport */ useViewState),
+  withSuspense: () => (/* reexport */ withSuspense)
 });
 
-// NAMESPACE OBJECT: ./src/index.js
-var src_namespaceObject = {};
-__webpack_require__.r(src_namespaceObject);
-__webpack_require__.d(src_namespaceObject, {
-  ChoiceField: () => (ChoiceField),
-  DataView: () => (DataView),
-  DateField: () => (DateField),
-  Form: () => (Form),
-  FormArray: () => (FormArray),
-  FormContext: () => (FormContext),
-  FormContextProvider: () => (FormContextProvider),
-  FormObject: () => (FormObject),
-  HiddenField: () => (HiddenField),
-  MultiChoiceField: () => (MultiChoiceField),
-  NumericField: () => (NumericField),
-  TextField: () => (TextField),
-  ToggleField: () => (ToggleField),
-  ValidationError: () => (ValidationError),
-  ViewStateProvider: () => (ViewStateProvider),
-  classNames: () => (classNames),
-  combineRef: () => (combineRef),
-  combineValidators: () => (combineValidators),
-  createBreakpointContext: () => (createBreakpointContext),
-  domEventRef: () => (domEventRef),
-  innerTextOrHTML: () => (innerTextOrHTML),
-  isSingletonDisposed: () => (isSingletonDisposed),
-  partial: () => (partial),
-  registerFieldType: () => (registerFieldType),
-  toRefCallback: () => (toRefCallback),
-  useAsync: () => (useAsync),
-  useDataView: () => (useDataView),
-  useDispose: () => (useDispose),
-  useErrorHandler: () => (useErrorHandler),
-  useErrorHandlerRef: () => (useErrorHandlerRef),
-  useFormContext: () => (useFormContext),
-  useFormField: () => (useFormField),
-  useMediaQuery: () => (useMediaQuery),
-  useMemoizedFunction: () => (useMemoizedFunction),
-  useObservableProperty: () => (useObservableProperty),
-  useRefInitCallback: () => (useRefInitCallback),
-  useSingleton: () => (useSingleton),
-  useUnloadEffect: () => (useUnloadEffect),
-  useUpdateTrigger: () => (useUpdateTrigger),
-  useViewState: () => (useViewState),
-  withSuspense: () => (withSuspense)
-});
-
-// EXTERNAL MODULE: external {"commonjs":"react","commonjs2":"react","amd":"react","root":"React"}
-var external_commonjs_react_commonjs2_react_amd_react_root_React_ = __webpack_require__(12);
 // EXTERNAL MODULE: external {"commonjs":"zeta-dom","commonjs2":"zeta-dom","amd":"zeta-dom","root":"zeta"}
 var external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_zeta_ = __webpack_require__(231);
-;// CONCATENATED MODULE: ./tmp/zeta-dom/util.js
+;// CONCATENATED MODULE: ./|umd|/zeta-dom/util.js
 
-var _zeta$util = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_zeta_.util,
-    noop = _zeta$util.noop,
-    pipe = _zeta$util.pipe,
-    either = _zeta$util.either,
-    sameValueZero = _zeta$util.sameValueZero,
-    is = _zeta$util.is,
-    isUndefinedOrNull = _zeta$util.isUndefinedOrNull,
-    isArray = _zeta$util.isArray,
-    isFunction = _zeta$util.isFunction,
-    isThenable = _zeta$util.isThenable,
-    isPlainObject = _zeta$util.isPlainObject,
-    isArrayLike = _zeta$util.isArrayLike,
-    makeArray = _zeta$util.makeArray,
-    extend = _zeta$util.extend,
-    each = _zeta$util.each,
-    map = _zeta$util.map,
-    grep = _zeta$util.grep,
-    splice = _zeta$util.splice,
-    any = _zeta$util.any,
-    single = _zeta$util.single,
-    kv = _zeta$util.kv,
-    fill = _zeta$util.fill,
-    pick = _zeta$util.pick,
-    exclude = _zeta$util.exclude,
-    mapObject = _zeta$util.mapObject,
-    mapGet = _zeta$util.mapGet,
-    mapRemove = _zeta$util.mapRemove,
-    arrRemove = _zeta$util.arrRemove,
-    setAdd = _zeta$util.setAdd,
-    equal = _zeta$util.equal,
-    combineFn = _zeta$util.combineFn,
-    executeOnce = _zeta$util.executeOnce,
-    createPrivateStore = _zeta$util.createPrivateStore,
-    util_setTimeout = _zeta$util.setTimeout,
-    setTimeoutOnce = _zeta$util.setTimeoutOnce,
-    util_setInterval = _zeta$util.setInterval,
-    setIntervalSafe = _zeta$util.setIntervalSafe,
-    setImmediate = _zeta$util.setImmediate,
-    setImmediateOnce = _zeta$util.setImmediateOnce,
-    clearImmediateOnce = _zeta$util.clearImmediateOnce,
-    _throws = _zeta$util["throws"],
-    throwNotFunction = _zeta$util.throwNotFunction,
-    errorWithCode = _zeta$util.errorWithCode,
-    isErrorWithCode = _zeta$util.isErrorWithCode,
-    keys = _zeta$util.keys,
-    values = _zeta$util.values,
-    util_hasOwnProperty = _zeta$util.hasOwnProperty,
-    getOwnPropertyDescriptors = _zeta$util.getOwnPropertyDescriptors,
-    util_define = _zeta$util.define,
-    definePrototype = _zeta$util.definePrototype,
-    defineOwnProperty = _zeta$util.defineOwnProperty,
-    defineGetterProperty = _zeta$util.defineGetterProperty,
-    defineHiddenProperty = _zeta$util.defineHiddenProperty,
-    defineAliasProperty = _zeta$util.defineAliasProperty,
-    defineObservableProperty = _zeta$util.defineObservableProperty,
-    watch = _zeta$util.watch,
-    watchOnce = _zeta$util.watchOnce,
-    watchable = _zeta$util.watchable,
-    inherit = _zeta$util.inherit,
-    freeze = _zeta$util.freeze,
-    deepFreeze = _zeta$util.deepFreeze,
-    iequal = _zeta$util.iequal,
-    randomId = _zeta$util.randomId,
-    repeat = _zeta$util.repeat,
-    camel = _zeta$util.camel,
-    hyphenate = _zeta$util.hyphenate,
-    ucfirst = _zeta$util.ucfirst,
-    lcfirst = _zeta$util.lcfirst,
-    trim = _zeta$util.trim,
-    matchWord = _zeta$util.matchWord,
-    matchWordMulti = _zeta$util.matchWordMulti,
-    htmlDecode = _zeta$util.htmlDecode,
-    resolve = _zeta$util.resolve,
-    reject = _zeta$util.reject,
-    always = _zeta$util.always,
-    resolveAll = _zeta$util.resolveAll,
-    retryable = _zeta$util.retryable,
-    deferrable = _zeta$util.deferrable,
-    catchAsync = _zeta$util.catchAsync,
-    setPromiseTimeout = _zeta$util.setPromiseTimeout,
-    delay = _zeta$util.delay,
-    makeAsync = _zeta$util.makeAsync;
+var _lib$util = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_zeta_.util,
+  always = _lib$util.always,
+  any = _lib$util.any,
+  catchAsync = _lib$util.catchAsync,
+  clearImmediateOnce = _lib$util.clearImmediateOnce,
+  combineFn = _lib$util.combineFn,
+  createPrivateStore = _lib$util.createPrivateStore,
+  deferrable = _lib$util.deferrable,
+  util_define = _lib$util.define,
+  defineGetterProperty = _lib$util.defineGetterProperty,
+  defineObservableProperty = _lib$util.defineObservableProperty,
+  definePrototype = _lib$util.definePrototype,
+  delay = _lib$util.delay,
+  each = _lib$util.each,
+  either = _lib$util.either,
+  exclude = _lib$util.exclude,
+  extend = _lib$util.extend,
+  freeze = _lib$util.freeze,
+  grep = _lib$util.grep,
+  util_hasOwnProperty = _lib$util.hasOwnProperty,
+  is = _lib$util.is,
+  isArray = _lib$util.isArray,
+  isErrorWithCode = _lib$util.isErrorWithCode,
+  isFunction = _lib$util.isFunction,
+  isPlainObject = _lib$util.isPlainObject,
+  isUndefinedOrNull = _lib$util.isUndefinedOrNull,
+  keys = _lib$util.keys,
+  kv = _lib$util.kv,
+  makeArray = _lib$util.makeArray,
+  makeAsync = _lib$util.makeAsync,
+  map = _lib$util.map,
+  mapGet = _lib$util.mapGet,
+  mapRemove = _lib$util.mapRemove,
+  noop = _lib$util.noop,
+  pick = _lib$util.pick,
+  pipe = _lib$util.pipe,
+  randomId = _lib$util.randomId,
+  resolve = _lib$util.resolve,
+  resolveAll = _lib$util.resolveAll,
+  sameValueZero = _lib$util.sameValueZero,
+  setAdd = _lib$util.setAdd,
+  setImmediate = _lib$util.setImmediate,
+  setImmediateOnce = _lib$util.setImmediateOnce,
+  single = _lib$util.single,
+  splice = _lib$util.splice,
+  throwNotFunction = _lib$util.throwNotFunction,
+  _throws = _lib$util["throws"],
+  watch = _lib$util.watch;
 
-;// CONCATENATED MODULE: ./tmp/zeta-dom/domUtil.js
+// EXTERNAL MODULE: external {"commonjs":"react","commonjs2":"react","amd":"react","root":["React"]}
+var external_commonjs_react_commonjs2_react_amd_react_root_React_ = __webpack_require__(12);
+;// CONCATENATED MODULE: ./|umd|/zeta-dom/domUtil.js
 
-var domUtil_zeta$util = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_zeta_.util,
-    domReady = domUtil_zeta$util.domReady,
-    tagName = domUtil_zeta$util.tagName,
-    isVisible = domUtil_zeta$util.isVisible,
-    matchSelector = domUtil_zeta$util.matchSelector,
-    comparePosition = domUtil_zeta$util.comparePosition,
-    connected = domUtil_zeta$util.connected,
-    containsOrEquals = domUtil_zeta$util.containsOrEquals,
-    acceptNode = domUtil_zeta$util.acceptNode,
-    combineNodeFilters = domUtil_zeta$util.combineNodeFilters,
-    iterateNode = domUtil_zeta$util.iterateNode,
-    iterateNodeToArray = domUtil_zeta$util.iterateNodeToArray,
-    getCommonAncestor = domUtil_zeta$util.getCommonAncestor,
-    parentsAndSelf = domUtil_zeta$util.parentsAndSelf,
-    selectIncludeSelf = domUtil_zeta$util.selectIncludeSelf,
-    selectClosestRelative = domUtil_zeta$util.selectClosestRelative,
-    createNodeIterator = domUtil_zeta$util.createNodeIterator,
-    createTreeWalker = domUtil_zeta$util.createTreeWalker,
-    bind = domUtil_zeta$util.bind,
-    bindOnce = domUtil_zeta$util.bindOnce,
-    bindUntil = domUtil_zeta$util.bindUntil,
-    dispatchDOMMouseEvent = domUtil_zeta$util.dispatchDOMMouseEvent,
-    removeNode = domUtil_zeta$util.removeNode,
-    getClass = domUtil_zeta$util.getClass,
-    setClass = domUtil_zeta$util.setClass,
-    getSafeAreaInset = domUtil_zeta$util.getSafeAreaInset,
-    getScrollOffset = domUtil_zeta$util.getScrollOffset,
-    getScrollParent = domUtil_zeta$util.getScrollParent,
-    getContentRect = domUtil_zeta$util.getContentRect,
-    scrollBy = domUtil_zeta$util.scrollBy,
-    scrollIntoView = domUtil_zeta$util.scrollIntoView,
-    makeSelection = domUtil_zeta$util.makeSelection,
-    getRect = domUtil_zeta$util.getRect,
-    getRects = domUtil_zeta$util.getRects,
-    toPlainRect = domUtil_zeta$util.toPlainRect,
-    rectEquals = domUtil_zeta$util.rectEquals,
-    rectCovers = domUtil_zeta$util.rectCovers,
-    rectIntersects = domUtil_zeta$util.rectIntersects,
-    pointInRect = domUtil_zeta$util.pointInRect,
-    mergeRect = domUtil_zeta$util.mergeRect,
-    elementFromPoint = domUtil_zeta$util.elementFromPoint;
+var domUtil_lib$util = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_zeta_.util,
+  bind = domUtil_lib$util.bind,
+  comparePosition = domUtil_lib$util.comparePosition,
+  parentsAndSelf = domUtil_lib$util.parentsAndSelf;
 
-;// CONCATENATED MODULE: ./tmp/zeta-dom/dom.js
+;// CONCATENATED MODULE: ./|umd|/zeta-dom/dom.js
 
-var _defaultExport = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_zeta_.dom;
-/* harmony default export */ const dom = (_defaultExport);
-var _zeta$dom = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_zeta_.dom,
-    reportError = _zeta$dom.reportError,
-    textInputAllowed = _zeta$dom.textInputAllowed,
-    beginDrag = _zeta$dom.beginDrag,
-    beginPinchZoom = _zeta$dom.beginPinchZoom,
-    insertText = _zeta$dom.insertText,
-    getShortcut = _zeta$dom.getShortcut,
-    setShortcut = _zeta$dom.setShortcut,
-    focusable = _zeta$dom.focusable,
-    focused = _zeta$dom.focused,
-    setTabRoot = _zeta$dom.setTabRoot,
-    unsetTabRoot = _zeta$dom.unsetTabRoot,
-    setModal = _zeta$dom.setModal,
-    releaseModal = _zeta$dom.releaseModal,
-    retainFocus = _zeta$dom.retainFocus,
-    releaseFocus = _zeta$dom.releaseFocus,
-    iterateFocusPath = _zeta$dom.iterateFocusPath,
-    dom_focus = _zeta$dom.focus,
-    dom_blur = _zeta$dom.blur;
-
-;// CONCATENATED MODULE: ./src/include/zeta-dom/dom.js
-
-
+var dom = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_zeta_.dom;
 /* harmony default export */ const zeta_dom_dom = (dom);
-;// CONCATENATED MODULE: ./tmp/zeta-dom/domLock.js
+var dom_focus = dom.focus,
+  reportError = dom.reportError;
 
-var domLock_zeta$dom = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_zeta_.dom,
-    lock = domLock_zeta$dom.lock,
-    locked = domLock_zeta$dom.locked,
-    cancelLock = domLock_zeta$dom.cancelLock,
-    subscribeAsync = domLock_zeta$dom.subscribeAsync,
-    notifyAsync = domLock_zeta$dom.notifyAsync,
-    runAsync = domLock_zeta$dom.runAsync,
-    preventLeave = domLock_zeta$dom.preventLeave;
+;// CONCATENATED MODULE: ./|umd|/zeta-dom/domLock.js
 
-;// CONCATENATED MODULE: ./tmp/zeta-dom/events.js
+var _lib$dom = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_zeta_.dom,
+  notifyAsync = _lib$dom.notifyAsync,
+  preventLeave = _lib$dom.preventLeave;
 
-var ZetaEventContainer = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_zeta_.EventContainer;
+;// CONCATENATED MODULE: ./|umd|/zeta-dom/events.js
 
-// EXTERNAL MODULE: external {"commonjs":"react-dom","commonjs2":"react-dom","amd":"react-dom","root":"ReactDOM"}
-var external_commonjs_react_dom_commonjs2_react_dom_amd_react_dom_root_ReactDOM_ = __webpack_require__(33);
+var EventContainer = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_zeta_.EventContainer;
+
+// EXTERNAL MODULE: external {"commonjs":"react-dom","commonjs2":"react-dom","amd":"react-dom","root":["ReactDOM"]}
+var external_commonjs_react_dom_commonjs2_react_dom_amd_react_dom_root_ReactDOM_ = __webpack_require__(311);
 ;// CONCATENATED MODULE: ./src/env.umd.js
 
 
@@ -333,10 +231,8 @@ external_commonjs_react_dom_commonjs2_react_dom_amd_react_dom_root_ReactDOM_.flu
     extraRender = !extraRender;
     return null;
   }
-
   var container = document.createElement('div');
   var element = /*#__PURE__*/(0,external_commonjs_react_commonjs2_react_amd_react_root_React_.createElement)(external_commonjs_react_commonjs2_react_amd_react_root_React_.StrictMode, null, /*#__PURE__*/(0,external_commonjs_react_commonjs2_react_amd_react_root_React_.createElement)(TestComponent));
-
   if (external_commonjs_react_dom_commonjs2_react_dom_amd_react_dom_root_ReactDOM_.createRoot) {
     external_commonjs_react_dom_commonjs2_react_dom_amd_react_dom_root_ReactDOM_.createRoot(container).render(element);
   } else {
@@ -352,50 +248,49 @@ var IS_DEV = extraRender;
 
 
 
-var container = new ZetaEventContainer();
-var singletons = new WeakSet();
-var unusedSingletons = new Map();
+var container = new EventContainer();
+var singletons = new Map();
+var disposedSingletons = new WeakSet();
+var unloadCallbacks = new Set();
 var AbortController = window.AbortController;
 var useSingletonEffect = IS_DEV ? useSingletonEffectImplDev : useSingletonEffectImpl;
-var unloadCallbacks;
-
+bind(window, 'pagehide', function (e) {
+  combineFn(makeArray(unloadCallbacks))(e.persisted);
+});
 function muteRejection(promise) {
   catchAsync(promise);
   return promise;
 }
-
 function clearUnusedSingletons() {
-  each(unusedSingletons, function (i) {
-    singletons["delete"](i);
-    mapRemove(unusedSingletons, i)();
+  each(singletons, function (i, v) {
+    if (!v.d) {
+      disposedSingletons.add(i);
+      mapRemove(singletons, i)(v.d === false);
+    }
   });
 }
-
 function useSingletonEffectImpl(target, dispose) {
   (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
     return function () {
-      singletons.add(target);
-      dispose();
+      disposedSingletons.add(target);
+      dispose(true);
     };
   }, [target]);
 }
-
 function useSingletonEffectImplDev(target, dispose) {
-  if (setAdd(singletons, target)) {
-    unusedSingletons.set(target, dispose);
+  if (!singletons.has(target)) {
+    singletons.set(target, dispose);
     clearImmediateOnce(clearUnusedSingletons);
   }
-
   (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
-    unusedSingletons["delete"](target);
-    setImmediateOnce(clearUnusedSingletons);
-    return function () {
-      unusedSingletons.set(target, dispose);
+    var cb = function cb(flag) {
+      singletons.get(target).d = !!flag;
       setImmediateOnce(clearUnusedSingletons);
     };
+    cb(true);
+    return cb;
   }, [target]);
 }
-
 function useUpdateTrigger() {
   var setState = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)()[1];
   return (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useCallback)(function () {
@@ -420,7 +315,6 @@ function useObservableProperty(obj, key) {
         forceUpdate();
       }
     };
-
     cb(obj[key]);
     return watch(obj, key, cb);
   }, [obj, key]);
@@ -455,15 +349,12 @@ function useAsync(init, deps, debounce) {
             return state.refresh(true);
           })));
         }
-
         var controller = AbortController ? new AbortController() : {
           abort: noop
         };
-
         if (currentController) {
           currentController.abort();
         }
-
         extend(state, {
           loading: true,
           error: undefined
@@ -485,7 +376,6 @@ function useAsync(init, deps, debounce) {
                 value: undefined,
                 error: value
               });
-
               if (!container.emit('error', state, {
                 error: value
               })) {
@@ -503,7 +393,6 @@ function useAsync(init, deps, debounce) {
           currentController.abort(reason);
           currentController = null;
         }
-
         state.loading = false;
       }
     };
@@ -552,7 +441,7 @@ function useDispose() {
   return dispose;
 }
 function isSingletonDisposed(target) {
-  return either(useSingletonEffect !== useSingletonEffectImpl, singletons.has(target));
+  return disposedSingletons.has(target);
 }
 function useSingleton(factory, onDispose) {
   var target = isFunction(factory) ? (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useMemo)(factory, []) : (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useMemo)(pipe.bind(0, factory), [factory]);
@@ -566,9 +455,7 @@ function useErrorHandlerRef() {
 }
 function useErrorHandler() {
   var reemitting = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useRef)(false);
-
   var _ref = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useRef)(null);
-
   var args = makeArray(arguments);
   var handler = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)(function () {
     return {
@@ -581,7 +468,6 @@ function useErrorHandler() {
       },
       "catch": function _catch(filter, callback) {
         var isErrorOf;
-
         if (!callback) {
           callback = filter;
         } else if (!isArray(filter)) {
@@ -593,7 +479,6 @@ function useErrorHandler() {
             });
           };
         }
-
         return container.add(handler, isErrorOf ? 'error' : 'default', function (e) {
           if ((isErrorOf || pipe)(e.error, filter)) {
             return callback(e.error);
@@ -632,21 +517,12 @@ function useErrorHandler() {
   return handler;
 }
 function useUnloadEffect(callback) {
-  if (!unloadCallbacks) {
-    unloadCallbacks = new Set();
-    bind(window, 'pagehide', function (e) {
-      combineFn(makeArray(unloadCallbacks).reverse())(e.persisted);
-    });
-  }
-
   callback = useMemoizedFunction(callback);
-  (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
-    unloadCallbacks.add(callback);
-    return function () {
-      unloadCallbacks["delete"](callback);
-      callback(false);
-    };
-  }, []);
+  unloadCallbacks.add(callback);
+  useSingletonEffect(callback, function (used) {
+    unloadCallbacks["delete"](callback);
+    return used && callback(false);
+  });
 }
 ;// CONCATENATED MODULE: ./src/css.js
 
@@ -665,10 +541,10 @@ function useMediaQuery(query) {
   }, [mq]);
   return state[0];
 }
+
 /**
  * @param {Zeta.Dictionary<string>} breakpoints
  */
-
 function createBreakpointContext(breakpoints) {
   var values = {};
   watch(values, true);
@@ -694,8 +570,8 @@ function createBreakpointContext(breakpoints) {
 
 
 
-/** @type {React.Context<import("./viewState").ViewStateProvider | null>} */
 
+/** @type {React.Context<import("./viewState").ViewStateProvider | null>} */
 var ViewStateProviderContext = /*#__PURE__*/(0,external_commonjs_react_commonjs2_react_amd_react_root_React_.createContext)(null);
 var noopStorage = Object.freeze({
   get: noop,
@@ -713,119 +589,105 @@ function useViewState(key) {
 
 
 
-
 var _ = createPrivateStore();
-
 var proto = DataView.prototype;
-var emitter = new ZetaEventContainer();
-
+var emitter = new EventContainer();
 function compare(a, b) {
   var x = isUndefinedOrNull(a) && -1;
   var y = isUndefinedOrNull(b) && 1;
-
   if (x || y) {
     return x + y;
   }
-
   if (typeof a === 'string' || typeof b === 'string') {
     return String(a).localeCompare(b, undefined, {
       caseFirst: 'upper'
     });
   }
-
   return a - b;
 }
-
+function setPageCount(dataView, pageSize, itemCount) {
+  _(dataView).setPageCount(Math.ceil(itemCount / (pageSize || itemCount || 1)));
+}
 function DataView(filters, sortBy, sortOrder, pageSize) {
   var self = this;
   var defaults = {
     filters: extend({}, filters),
     sortBy: sortBy,
     sortOrder: sortOrder || sortBy && 'asc',
+    itemCount: null,
     pageIndex: 0,
     pageSize: pageSize === undefined ? DataView.pageSize : pageSize
   };
-  filters = extend({}, filters);
-
-  for (var i in filters) {
-    defineObservableProperty(filters, i);
-  }
-
   var state = _(self, {
-    filters: Object.freeze(filters),
+    setPageCount: defineObservableProperty(self, 'pageCount', 0, true),
     defaults: defaults,
     items: []
   });
-
   var emitViewChange = function emitViewChange() {
     emitter.emit('viewChange', self);
   };
-
-  var onUpdated = function onUpdated() {
+  var onUpdated = function onUpdated(e) {
+    var isFilter = this !== self;
+    var emitEvent = isFilter || single(e.newValues, function (v, i) {
+      return i !== 'pageCount' && i !== 'itemCount';
+    });
     state.sorted = state.items.length ? undefined : [];
-
-    if (this !== self) {
+    if (isFilter) {
       state.filtered = state.sorted;
     }
-
-    setImmediateOnce(emitViewChange);
+    self.pageIndex = isFilter || !util_hasOwnProperty(e.newValues, 'pageIndex') ? 0 : self.pageIndex;
+    if (emitEvent) {
+      setImmediateOnce(emitViewChange);
+    }
   };
-
-  extend(this, defaults);
+  var filters = extend(self, defaults).filters;
+  state.callback = watch(filters, false);
   watch(self, onUpdated);
   watch(self.filters, onUpdated);
+  for (var i in filters) {
+    defineObservableProperty(filters, i);
+  }
+  freeze(filters);
 }
 util_define(DataView, {
   pageSize: 0
 });
 definePrototype(DataView, {
-  itemCount: 0,
   on: function on(event, handler) {
     return emitter.add(this, event, handler);
   },
   getView: function getView(items, callback) {
     var self = this;
-
     var state = _(self);
-
     var pageIndex = self.pageIndex || 0;
     var pageSize = self.pageSize || 0;
-
     if (items !== state.items) {
       state.items = items || [];
       state.filtered = state.items.length ? undefined : [];
       state.sorted = state.filtered;
     }
-
     callback = callback || function (items) {
       return self.sort(items);
     };
-
     var filteredItems = state.sorted || (state.sorted = callback.call(self, state.filtered || state.items, self.filters, self.sortBy, self.sortOrder) || []);
     state.filtered = filteredItems;
-
     if (items) {
       self.itemCount = filteredItems.length;
     }
-
     return [filteredItems.slice(pageIndex * pageSize, pageSize ? (pageIndex + 1) * pageSize : undefined), filteredItems.length];
   },
   sort: function sort(items, callback) {
     var self = this;
     items = makeArray(items);
-
     if (!isFunction(callback)) {
       var prop = callback || self.sortBy;
-
       if (!prop) {
         return items;
       }
-
       callback = function callback(item) {
         return item[prop];
       };
     }
-
     var dir = self.sortOrder === 'desc' ? -1 : 1;
     var values = new Map();
     each(items, function (i, v) {
@@ -841,7 +703,6 @@ definePrototype(DataView, {
   },
   toggleSort: function toggleSort(sortBy, sortOrder) {
     var self = this;
-
     if (self.sortBy === sortBy) {
       self.sortOrder = self.sortOrder === 'asc' ? 'desc' : 'asc';
     } else {
@@ -856,36 +717,50 @@ definePrototype(DataView, {
       itemCount: self.itemCount
     });
   },
-  reset: function reset() {
-    extend(this, _(this).defaults);
+  reset: function reset(values) {
+    var self = this;
+    var state = _(self);
+    delete state.itemCount;
+    values = values || state.defaults;
+    state.callback(function () {
+      extend(self.filters, values.filters);
+    });
+    return extend(self, values);
   }
 });
 defineObservableProperty(proto, 'sortBy');
 defineObservableProperty(proto, 'sortOrder');
-defineObservableProperty(proto, 'pageIndex');
-defineObservableProperty(proto, 'pageSize');
-defineObservableProperty(proto, 'filters', {}, function (newValue) {
-  return extend(_(this).filters, newValue);
+defineObservableProperty(proto, 'itemCount', 0, function (newValue) {
+  _(this).itemCount = newValue;
+  setPageCount(this, this.pageSize, newValue);
+  return newValue || 0;
+});
+defineObservableProperty(proto, 'pageSize', 0, function (newValue) {
+  setPageCount(this, newValue, this.itemCount);
+  return newValue;
+});
+defineObservableProperty(proto, 'pageIndex', 0, function (newValue) {
+  return Math.max(0, isUndefinedOrNull(_(this).itemCount) ? newValue : Math.min(newValue, this.pageCount - 1));
+});
+defineObservableProperty(proto, 'filters', {}, function (newValue, oldValue) {
+  return extend(oldValue || {}, newValue);
 });
 function useDataView(persistKey, filters, sortBy, sortOrder, pageSize) {
   if (typeof persistKey !== 'string') {
     return useDataView('__dataView', persistKey, filters, sortBy, sortOrder);
   }
-
   var viewState = useViewState(persistKey);
   var forceUpdate = useUpdateTrigger();
   var dataView = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)(function () {
-    return extend(new DataView(filters, sortBy, sortOrder, pageSize), viewState.get());
+    return new DataView(filters, sortBy, sortOrder, pageSize).reset(viewState.get());
   })[0];
   (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
-    var state = _(dataView);
-
     return combineFn(dataView.on('viewChange', function () {
       viewState.set(dataView.toJSON());
       forceUpdate();
     }), viewState.onPopState ? viewState.onPopState(function (newValue) {
       viewState.set(dataView.toJSON());
-      extend(dataView, newValue || state.defaults);
+      dataView.reset(newValue);
     }) : noop);
   }, [dataView]);
   return dataView;
@@ -903,13 +778,10 @@ function domEventRef(event, handler) {
       if (arr && arr.ref) {
         throw new Error('Callback can only be passed to single React element');
       }
-
       arr = mapGet(boundEvents, element, Array);
-
       if (arr.index === undefined) {
         arr.index = 0;
       }
-
       var index = arr.index++;
       var state = arr[index] || (arr[index] = {
         keys: {}
@@ -924,13 +796,11 @@ function domEventRef(event, handler) {
     } else {
       arr.index = 0;
     }
-
     arr.ref = element;
   };
 }
 function classNames() {
   var className = [];
-
   (function process(args) {
     each(args, function (j, v) {
       if (v) {
@@ -941,7 +811,6 @@ function classNames() {
         } else {
           for (var i in v) {
             var value = v[i];
-
             if (value || value === 0) {
               className.push(value === true ? i : i + '-' + value);
             }
@@ -950,7 +819,6 @@ function classNames() {
       }
     });
   })(makeArray(arguments));
-
   return className.join(' ');
 }
 function innerTextOrHTML(text) {
@@ -966,11 +834,9 @@ function partial(setState, key) {
       if (typeof key === 'string') {
         key = kv(key, isFunction(value) ? value(v[key], v) : value);
       }
-
       return extend({}, v, key);
     });
   };
-
   return key ? fn.bind(0, key) : fn;
 }
 function combineRef() {
@@ -982,16 +848,13 @@ function toRefCallback(ref) {
       return ref.current = v;
     };
   }
-
   return ref || noop;
 }
 function withSuspense(factory, fallback) {
   fallback = fallback || external_commonjs_react_commonjs2_react_amd_react_root_React_.Fragment;
-
   if (isFunction(fallback)) {
     fallback = /*#__PURE__*/(0,external_commonjs_react_commonjs2_react_amd_react_root_React_.createElement)(fallback);
   }
-
   var Component = /*#__PURE__*/(0,external_commonjs_react_commonjs2_react_amd_react_root_React_.lazy)(factory);
   return function (props) {
     return /*#__PURE__*/(0,external_commonjs_react_commonjs2_react_amd_react_root_React_.createElement)(external_commonjs_react_commonjs2_react_amd_react_root_React_.Suspense, {
@@ -1000,12 +863,10 @@ function withSuspense(factory, fallback) {
   };
 }
 ;// CONCATENATED MODULE: ./src/fields/ChoiceField.js
-function _typeof(obj) { "@babel/helpers - typeof"; return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (obj) { return typeof obj; } : function (obj) { return obj && "function" == typeof Symbol && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }, _typeof(obj); }
-
+function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (o) { return typeof o; } : function (o) { return o && "function" == typeof Symbol && o.constructor === Symbol && o !== Symbol.prototype ? "symbol" : typeof o; }, _typeof(o); }
 
 
 function ChoiceField() {}
-
 function normalizeChoiceItems(items) {
   return (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useMemo)(function () {
     return (items || []).map(function (v) {
@@ -1016,7 +877,6 @@ function normalizeChoiceItems(items) {
     });
   }, [items]);
 }
-
 util_define(ChoiceField, {
   normalizeItems: normalizeChoiceItems
 });
@@ -1044,15 +904,15 @@ definePrototype(ChoiceField, {
 
 
 
-var re = /^-?\d{4,}-\d{2}-\d{2}$/; // method mapping for relative date units
+var re = /^-?\d{4,}-\d{2}-\d{2}$/;
 
+// method mapping for relative date units
 var units = {
   y: ['getFullYear', 'setFullYear'],
   m: ['getMonth', 'setMonth'],
   d: ['getDate', 'setDate']
 };
 units.w = units.d;
-
 function parseRelativeDate(str) {
   var date = new Date();
   var dir = str[0] === '-' ? -1 : 1;
@@ -1061,29 +921,23 @@ function parseRelativeDate(str) {
   });
   return date;
 }
-
 function normalizeDate(date) {
   if (typeof date === 'string') {
     if (re.test(date)) {
       return Date.parse(date + 'T00:00');
     }
-
     date = date[0] === '+' || date[0] === '-' ? parseRelativeDate(date) : Date.parse(date);
   }
-
   return new Date(date).setHours(0, 0, 0, 0);
 }
-
 function clampValue(date, min, max) {
   var ts = normalizeDate(date);
   return ts < min ? min : ts > max ? max : date;
 }
-
 function toDateObject(str) {
   var ts = normalizeDate(str);
   return isNaN(ts) ? null : new Date(ts);
 }
-
 function toDateString(date) {
   if (!isNaN(date)) {
     // counter UTC conversion due to toISOString
@@ -1091,10 +945,8 @@ function toDateString(date) {
     var str = new Date(date - tz).toISOString();
     return str.slice(0, str.indexOf('T', 10));
   }
-
   return '';
 }
-
 function DateField() {}
 util_define(DateField, {
   toDateString: toDateString,
@@ -1115,7 +967,6 @@ definePrototype(DateField, {
     }, [value]);
     (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
       var clamped = value && clampValue(value, min, max);
-
       if (clamped !== value) {
         setValue(clamped);
       }
@@ -1126,12 +977,10 @@ definePrototype(DateField, {
       displayText: displayText,
       setValue: useMemoizedFunction(function (v) {
         v = isFunction(v) ? v(state.value) : v;
-
         if (!v) {
           setValue('');
         } else if (/\d{4}/.test(v) && /[^\s\d]/.test(v)) {
           v = normalizeDate(v);
-
           if (!isNaN(v)) {
             setValue(clampValue(v, min, max));
           }
@@ -1155,28 +1004,23 @@ definePrototype(MultiChoiceField, {
   postHook: function postHook(state, props) {
     var allowCustomValues = props.allowCustomValues || !props.items;
     var items = ChoiceField.normalizeItems(props.items);
-
     var isUnknown = function isUnknown(value) {
       return !items.some(function (v) {
         return v.value === value;
       });
     };
-
     var toggleValue = useMemoizedFunction(function (value, selected) {
       if (allowCustomValues || !isUnknown(value)) {
         state.setValue(function (arr) {
           var index = arr.indexOf(value);
-
           if (isUndefinedOrNull(selected) || either(index >= 0, selected)) {
             arr = makeArray(arr);
-
             if (index < 0) {
               arr.push(value);
             } else {
               arr.splice(index, 1);
             }
           }
-
           return arr;
         });
       }
@@ -1185,7 +1029,6 @@ definePrototype(MultiChoiceField, {
       if (!allowCustomValues) {
         var cur = makeArray(state.value);
         var arr = splice(cur, isUnknown);
-
         if (arr.length) {
           state.setValue(cur);
         }
@@ -1214,13 +1057,11 @@ definePrototype(NumericField, {
     var allowEmpty = props.allowEmpty;
     (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
       var rounded = step > 0 ? Math.round(value / step) * step : value;
-
       if (rounded < min || isNaN(rounded) && !allowEmpty) {
         rounded = min || 0;
       } else if (rounded > max) {
         rounded = max;
       }
-
       if (rounded !== value) {
         state.setValue(rounded);
       }
@@ -1239,11 +1080,9 @@ definePrototype(TextField, {
   postHook: function postHook(state, props) {
     var form = state.form;
     var inputProps = pick(props, ['type', 'disabled', 'autoComplete', 'maxLength', 'inputMode', 'placeholder', 'enterKeyHint', 'readOnly']);
-
     if (props.type === 'password' && !inputProps.autoComplete) {
       inputProps.autoComplete = 'current-password';
     }
-
     inputProps.type = inputProps.type || 'text';
     inputProps.enterKeyHint = inputProps.enterKeyHint || form && form.enterKeyHint;
     return extend(state, {
@@ -1285,10 +1124,8 @@ definePrototype(ToggleField, {
 
 
 
-
 var form_ = createPrivateStore();
-
-var form_emitter = new ZetaEventContainer();
+var form_emitter = new EventContainer();
 var presets = new WeakMap();
 var instances = new WeakMap();
 var changedProps = new Map();
@@ -1300,8 +1137,8 @@ var fieldTypes = {
   toggle: ToggleField,
   choice: ChoiceField
 };
-/** @type {React.Context<any>} */
 
+/** @type {React.Context<any>} */
 var FormObjectContext = /*#__PURE__*/(0,external_commonjs_react_commonjs2_react_amd_react_root_React_.createContext)(null);
 var FormObjectProvider = FormObjectContext.Provider;
 function ValidationError(kind, message, args) {
@@ -1309,29 +1146,23 @@ function ValidationError(kind, message, args) {
   this.args = args;
   this.message = message;
 }
-
 function isEmpty(field, value) {
   var fn = field.props.isEmpty || field.preset.isEmpty;
   return fn ? fn(value) : isUndefinedOrNull(value) || value === '' || isArray(value) && !value.length;
 }
-
 function hasImplicitError(field) {
   return field.props.required && isEmpty(field, field.value);
 }
-
 function cloneValue(value) {
   return form_(value) ? extend(true, isArray(value) ? [] : {}, value) : value;
 }
-
 function keyFor(value) {
   return (form_(value) || '').uniqueId;
 }
-
 function resolvePathInfo(form, path) {
   var arr = isArray(path) || path.split('.');
   var value = form.data;
   var parent = value;
-
   for (var i = 0, len = arr.length; i < len; i++) {
     if (!util_hasOwnProperty(value, arr[i])) {
       return {
@@ -1339,11 +1170,9 @@ function resolvePathInfo(form, path) {
         parent: i === len - 1 ? value : null
       };
     }
-
     parent = value;
     value = value[arr[i]];
   }
-
   return {
     exists: true,
     name: arr[len - 1],
@@ -1351,41 +1180,31 @@ function resolvePathInfo(form, path) {
     parent: parent
   };
 }
-
 function getField(form, path) {
   var prop = resolvePathInfo(form, path);
   var key = keyFor(prop.parent);
   return key && form_(form).fields[key + '.' + prop.name];
 }
-
 function getPath(form, obj, name) {
   if (obj === form.data) {
     return name;
   }
-
   var paths = form_(form).paths;
-
   var path = [name];
-
   for (var key = keyFor(obj); key = paths[key]; key = key.slice(0, 8)) {
     path.unshift(key.slice(9));
   }
-
   return resolvePathInfo(form, path).parent === obj ? path.join('.') : '';
 }
-
 function emitDataChangeEvent() {
   each(changedProps, function (form) {
     var state = form_(form);
-
     var props = mapRemove(changedProps, form);
-
     for (var i in props) {
       while (i = i.replace(/(^|\.)[^.]+$/, '')) {
         props[i] = true;
       }
     }
-
     var element = state.ref || zeta_dom_dom.root;
     var updatedFields = grep(state.fields, function (v) {
       return props[v.path];
@@ -1394,7 +1213,6 @@ function emitDataChangeEvent() {
     validateFields(form, grep(updatedFields, function (v) {
       return v.version && (v.props.validateOnChange + 1 || form.validateOnChange + 1) > 1;
     }));
-
     if (form.preventLeave && !state.unlock && updatedFields[0] && zeta_dom_dom.getEventSource(element) !== 'script') {
       var promise = new Promise(function (resolve) {
         state.unlock = function () {
@@ -1408,11 +1226,9 @@ function emitDataChangeEvent() {
     }
   });
 }
-
 function handleDataChange(callback) {
   var local;
   var map = handleDataChange.d || (handleDataChange.d = local = new Set());
-
   try {
     callback();
   } finally {
@@ -1424,46 +1240,35 @@ function handleDataChange(callback) {
     }
   }
 }
-
 handleDataChange.d = null;
-
 function createDataObject(context, initialData) {
   var state = form_(context);
-
   var target = isArray(initialData) ? [] : {};
   var uniqueId = randomId();
-
   var onChange = function onChange(p, field) {
     var path = getPath(context, proxy, p);
-
     if (path) {
       if (field) {
         field.value = target[p];
-
         if (!sameValueZero(field.value, target[p])) {
           setValue(p, field.value);
           return;
         }
-
         handleDataChange.d.add(field);
-      } // ensure field associated with parent data object got notified
-
-
+      }
+      // ensure field associated with parent data object got notified
       for (var key = uniqueId; key = state.paths[key]; key = key.slice(0, 8)) {
         if (state.fields[key]) {
           handleDataChange.d.add(state.fields[key]);
         }
       }
-
       if (context !== rootForm) {
         mapGet(changedProps, context, Object)[path] = true;
         setImmediateOnce(emitDataChangeEvent);
       }
-
       return true;
     }
   };
-
   var setValue = function setValue(p, v) {
     if (isPlainObject(v) || isArray(v)) {
       // ensure changes to nested data objects
@@ -1471,61 +1276,50 @@ function createDataObject(context, initialData) {
       if ((form_(v) || '').context !== context) {
         v = createDataObject(context, v);
       }
-
       state.paths[keyFor(v)] = uniqueId + '.' + p;
     }
-
     target[p] = v;
     return v;
   };
-
   var deleteValue = function deleteValue(p) {
     delete target[p];
   };
-
   var proxy = new Proxy(target, {
     set: function set(t, p, v) {
       if (typeof p === 'string' && (!sameValueZero(t[p], v) || !(p in t))) {
         handleDataChange(function () {
           var prev = t[p];
-
           if (isArray(t)) {
             if (p === 'length') {
               // check for truncated indexes that would be deleted without calling the trap
               for (var index = prev - 1; index >= v; index--) {
                 onChange(index);
               }
-
               t[p] = v;
               return true;
             }
           } else {
             if (form_(v)) {
               _throws("Cannot assign proxied data object");
-            } // apply changes to existing object or array when assigning new object or array
+            }
+            // apply changes to existing object or array when assigning new object or array
             // so that fields of the same path can have consistent key and state
-
-
             if (isArray(v) && isArray(prev)) {
               prev.splice.apply(prev, [0, prev.length].concat(v));
               return true;
             }
-
             if (isPlainObject(v) && form_(prev)) {
               for (var i in exclude(prev, v)) {
                 delete prev[i];
               }
-
               extend(prev, v);
               return true;
             }
           }
-
           setValue(p, v);
           onChange(p, state.fields[uniqueId + '.' + p]);
         });
       }
-
       return true;
     },
     deleteProperty: function deleteProperty(t, p) {
@@ -1535,24 +1329,20 @@ function createDataObject(context, initialData) {
           onChange(p);
         });
       }
-
       return true;
     }
   });
-
   form_(proxy, {
     context: context,
     uniqueId: uniqueId,
     set: setValue,
     "delete": deleteValue
   });
-
   each(initialData, function (i, v) {
     setValue(i, v);
   });
   return proxy;
 }
-
 function createFieldState(initialValue) {
   var field = {
     version: 0,
@@ -1564,14 +1354,12 @@ function createFieldState(initialValue) {
       if (!field.controlled) {
         field.version++;
       }
-
       if (field.props.onChange) {
         field.props.onChange(cloneValue(v));
       }
     },
     setValue: function setValue(v) {
       v = isFunction(v) ? v(field.value) : v;
-
       if (!field.controlled) {
         field.value = v;
       } else if (!sameValueZero(v, field.value)) {
@@ -1592,12 +1380,10 @@ function createFieldState(initialValue) {
   watch(field, true);
   defineObservableProperty(field, 'value', initialValue, function (newValue, oldValue) {
     newValue = (field.preset.normalizeValue || pipe)(newValue, field.props);
-
     if (newValue !== oldValue && form_(oldValue) && newValue !== field.dict[field.name]) {
       field.dict[field.name] = newValue;
       return oldValue;
     }
-
     return newValue;
   });
   defineObservableProperty(field, 'error', '', function (v) {
@@ -1605,7 +1391,6 @@ function createFieldState(initialValue) {
   });
   watch(field, 'value', function (v) {
     field.version++;
-
     if (field.key) {
       field.dict[field.name] = v;
     } else if (!field.controlled) {
@@ -1614,7 +1399,6 @@ function createFieldState(initialValue) {
   });
   watch(field, 'error', function (v) {
     field.version++;
-
     if (field.key) {
       form_emitter.emit('validationChange', field.form, {
         name: field.path,
@@ -1625,7 +1409,6 @@ function createFieldState(initialValue) {
   });
   return field;
 }
-
 function useFormFieldInternal(form, state, field, preset, props, controlled, dict, key) {
   var hasErrorProp = ('error' in props);
   var prevKey = field.key || key;
@@ -1637,37 +1420,29 @@ function useFormFieldInternal(form, state, field, preset, props, controlled, dic
     dict: dict,
     key: key
   });
-
   if (form && key) {
     field.name = key.slice(9);
     field.path = getPath(form, dict, field.name);
-
     if (prevKey !== key) {
       field.locks = [];
-
       if (!hasErrorProp) {
         field.error = '';
       }
     }
-
     state.fields[key] = field;
   } else {
     field.path = '';
   }
-
   if (hasErrorProp) {
     field.error = props.error;
   }
-
   (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
     if (form && key) {
       state.fields[key] = field;
     }
-
     return function () {
       if (state && state.fields[key] === field) {
         delete state.fields[key];
-
         if (field.props.clearWhenUnmount || field.form === rootForm) {
           setImmediate(function () {
             if (!state.fields[key]) {
@@ -1675,7 +1450,6 @@ function useFormFieldInternal(form, state, field, preset, props, controlled, dic
             }
           });
         }
-
         state.setValid();
       }
     };
@@ -1686,7 +1460,6 @@ function useFormFieldInternal(form, state, field, preset, props, controlled, dic
     }
   }, [state, field.error, props.disabled, props.required]);
 }
-
 function validateFields(form, fields) {
   var validate = function validate(field) {
     var name = field.path;
@@ -1695,18 +1468,14 @@ function validateFields(form, fields) {
       name: name,
       value: value
     });
-
     if (result || !field.props) {
       return result;
     }
-
     return (field.props.onValidate || noop)(value, name, form) || hasImplicitError(field) && new ValidationError('required', 'Required');
   };
-
   var promises = fields.map(function (v) {
     var locks = v.locks || (v.locks = []);
     var prev = locks[0];
-
     if (prev) {
       // debounce async validation
       return locks[1] || (locks[1] = always(locks[0], function () {
@@ -1721,7 +1490,6 @@ function validateFields(form, fields) {
         return next;
       }));
     }
-
     locks[0] = resolve(validate(v));
     return locks[0];
   });
@@ -1733,17 +1501,13 @@ function validateFields(form, fields) {
         v.error = result[i];
       }
     });
-
     var state = form_(form);
-
     if (state) {
       state.setValid();
     }
-
     return !any(result);
   });
 }
-
 function wrapErrorResult(field, error) {
   return {
     toString: function toString() {
@@ -1752,38 +1516,31 @@ function wrapErrorResult(field, error) {
           return (v.formatError || noop).call(v, error, field.path || null, field.props, field.form);
         }) || error.message;
       }
-
       return error(field.props || {});
     }
   };
 }
-
 function normalizeOptions(options) {
   if (typeof options === 'boolean') {
     options = {
       validateOnChange: options
     };
   }
-
   return extend({
     autoPersist: true,
     preventLeave: false,
     validateOnChange: true
   }, options);
 }
-
 function formPersist(form) {
   form_(form).viewState.set(form.toJSON());
 }
-
 function FormContext(initialData, options, viewState) {
   if (isFunction(initialData)) {
     initialData = initialData();
   }
-
   var self = this;
   var fields = {};
-
   var state = form_(self, {
     fields: fields,
     viewState: viewState,
@@ -1795,17 +1552,13 @@ function FormContext(initialData, options, viewState) {
       });
     })
   });
-
   extend(self, normalizeOptions(options));
-
   self.ref = function (element) {
     state.ref = element;
-
     if (element) {
       instances.set(element, self);
     }
   };
-
   self.isValid = true;
   self.data = createDataObject(self, viewState.get() || state.initialData);
 }
@@ -1822,7 +1575,6 @@ definePrototype(FormContext, {
   },
   focus: function focus(key) {
     var element;
-
     if (typeof key === 'number') {
       element = map(form_(this).fields, function (v) {
         return v.error && key & 1 || isEmpty(v, v.value) && key & 2 ? v.element : null;
@@ -1830,7 +1582,6 @@ definePrototype(FormContext, {
     } else {
       element = this.element(key);
     }
-
     return !!element && dom_focus(element);
   },
   on: function on(event, handler) {
@@ -1842,13 +1593,10 @@ definePrototype(FormContext, {
   },
   restore: function restore() {
     var self = this;
-
     var data = form_(self).viewState.get();
-
     if (data) {
       self.reset(data);
     }
-
     return !!data;
   },
   clear: function clear() {
@@ -1856,27 +1604,21 @@ definePrototype(FormContext, {
   },
   reset: function reset(data) {
     var self = this;
-
     var state = form_(self);
-
     var dict = form_(self.data);
-
     for (var i in self.data) {
       dict["delete"](i);
     }
-
     each(data || state.initialData, function (i, v) {
       dict.set(i, v);
     });
     each(state.fields, function (i, v) {
       var prop = resolvePathInfo(self, v.path);
-
       if (v.controlled) {
         v.onChange(prop.exists ? prop.value : v.initialValue);
       } else if (prop.exists) {
         v.value = prop.value;
       }
-
       v.error = null;
     });
     state.setValid();
@@ -1888,7 +1630,6 @@ definePrototype(FormContext, {
   },
   setValue: function setValue(key, value) {
     var prop = resolvePathInfo(this, key);
-
     if (prop.parent) {
       prop.parent[prop.name] = cloneValue(value);
     }
@@ -1910,17 +1651,13 @@ definePrototype(FormContext, {
   },
   validate: function validate() {
     var self = this;
-
     var fields = form_(self).fields;
-
     var prefix = makeArray(arguments);
-
     if (!prefix[0]) {
       return validateFields(self, grep(fields, function (v) {
         return !v.props.disabled;
       }));
     }
-
     return validateFields(self, grep(fields, function (v) {
       return any(prefix, function (w) {
         var len = w.length;
@@ -1936,14 +1673,12 @@ defineObservableProperty(FormContext.prototype, 'preventLeave', false, function 
   if (!value) {
     (form_(this).unlock || noop)();
   }
-
   return !!value;
 });
 function useFormContext(persistKey, initialData, options) {
   if (typeof persistKey !== 'string') {
     return useFormContext('', persistKey, initialData);
   }
-
   var viewState = useViewState(persistKey);
   var form = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)(function () {
     return new FormContext(initialData, options, viewState);
@@ -1952,7 +1687,6 @@ function useFormContext(persistKey, initialData, options) {
   useObservableProperty(form, 'isValid');
   useUnloadEffect(function () {
     (form_(form).unlock || noop)();
-
     if (form.autoPersist) {
       formPersist(form);
     }
@@ -1961,7 +1695,6 @@ function useFormContext(persistKey, initialData, options) {
     if (mapRemove(changedProps, form)) {
       forceUpdate();
     }
-
     return form.on({
       dataChange: forceUpdate,
       reset: forceUpdate
@@ -1973,22 +1706,17 @@ function useFormField(type, props, defaultValue, prop) {
   if (typeof type === 'string') {
     type = fieldTypes[type];
   }
-
   if (!isFunction(type)) {
     prop = defaultValue;
     defaultValue = props;
     props = type;
     type = '';
   }
-
   var preset = type ? mapGet(presets, type, type) : {};
   prop = prop || preset.valueProperty || 'value';
   var dict = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useContext)(FormObjectContext);
-
   var form = dict && form_(dict).context;
-
   var state = form && form_(form);
-
   var name = props.name || '';
   var key = form && name && keyFor(dict) + '.' + name;
   var controlled = (prop in props);
@@ -1997,11 +1725,9 @@ function useFormField(type, props, defaultValue, prop) {
     return createFieldState(initialValue);
   })[0];
   useFormFieldInternal(form, state, field, preset, props, controlled, dict, key);
-
   if (controlled) {
     field.value = props[prop];
   }
-
   if (form && key) {
     if (!(name in dict)) {
       if (isEmpty(field, field.initialValue)) {
@@ -2009,13 +1735,11 @@ function useFormField(type, props, defaultValue, prop) {
       } else {
         dict[name] = field.initialValue;
       }
-
       field.version = 0;
     } else if (!controlled) {
       field.value = dict[name];
     }
   }
-
   var state1 = (preset.postHook || pipe)({
     form: form,
     key: key,
@@ -2048,28 +1772,23 @@ function registerFieldType(type, options) {
       postHook: options
     };
   }
-
   fieldTypes[type] = function () {
     return options;
   };
 }
 var Form = /*#__PURE__*/(0,external_commonjs_react_commonjs2_react_amd_react_root_React_.forwardRef)(function (props, ref) {
   var form = props.context;
-
   var onSubmit = function onSubmit(e) {
     if (!props.action) {
       e.preventDefault();
     }
-
     (props.onSubmit || noop).call(this, e);
   };
-
   var onReset = function onReset(e) {
     e.preventDefault();
     form.reset();
     (props.onReset || noop).call(this, e);
   };
-
   extend(form, pick(props, ['enterKeyHint', 'preventLeave', 'formatError']));
   return /*#__PURE__*/(0,external_commonjs_react_commonjs2_react_amd_react_root_React_.createElement)(FormObjectProvider, {
     value: form.data
@@ -2093,31 +1812,23 @@ function FormObject(props) {
   var uniqueId = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)(randomId)[0];
   var name = props.name;
   var dict = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useContext)(FormObjectContext);
-
   if (!dict) {
     dict = rootForm.data;
     name = uniqueId;
   }
-
   var fieldRef = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useRef)();
-
   var form = form_(dict).context;
-
   var state = form_(form);
-
   var value = props.value;
-
   if (name) {
     value = 'value' in props ? value : isPlainObject(dict[name]) || isArray(dict[name]) || props.defaultValue || {};
     value = form_(dict).set(name, value);
   } else if (!(form_(value) || '').context) {
     _throws('Value must be a data object or array');
-  } // field state registered by useFormField has a higher priority
+  }
+  // field state registered by useFormField has a higher priority
   // create own field state only when needed
-
-
   var key = state.paths[keyFor(value)];
-
   if (typeof (state.fields[key] || '').controlled !== 'boolean') {
     var field = fieldRef.current || (fieldRef.current = createFieldState(value));
     useFormFieldInternal(form, state, field, {}, props, 0, dict, key);
@@ -2126,13 +1837,10 @@ function FormObject(props) {
     (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(noop, [null]);
     (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(noop, [null]);
   }
-
   var children = props.children;
-
   if (isFunction(children)) {
     children = children(value);
   }
-
   return /*#__PURE__*/(0,external_commonjs_react_commonjs2_react_amd_react_root_React_.createElement)(FormObjectProvider, {
     value: value
   }, children);
@@ -2158,21 +1866,15 @@ util_define(FormObject, {
 
 
 
-;// CONCATENATED MODULE: ./tmp/zeta-dom/index.js
-
-var zeta_dom_defaultExport = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_zeta_;
-/* harmony default export */ const zeta_dom = (zeta_dom_defaultExport);
-;// CONCATENATED MODULE: ./src/include/zeta-dom/index.js
-
-/* harmony default export */ const include_zeta_dom = (zeta_dom);
 ;// CONCATENATED MODULE: ./src/entry.js
 
-/* harmony default export */ const entry = (src_namespaceObject);
+defineGetterProperty(window, 'zeta-dom-react', function () {
+  console.warn('window["zeta-dom-react"] is deprecated, access zeta.react instead.');
+  return zeta.react;
+});
 
-include_zeta_dom.react = src_namespaceObject;
 })();
 
-__webpack_exports__ = __webpack_exports__["default"];
 /******/ 	return __webpack_exports__;
 /******/ })()
 ;
