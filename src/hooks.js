@@ -3,7 +3,7 @@ import dom, { reportError } from "zeta-dom/dom";
 import { notifyAsync } from "zeta-dom/domLock";
 import { bind } from "zeta-dom/domUtil";
 import { ZetaEventContainer } from "zeta-dom/events";
-import { always, any, catchAsync, clearImmediateOnce, combineFn, deferrable, delay, each, extend, is, isArray, isErrorWithCode, isFunction, makeArray, makeAsync, map, mapRemove, noop, pipe, resolve, setAdd, setImmediateOnce, watch } from "zeta-dom/util";
+import { always, any, catchAsync, clearImmediateOnce, combineFn, deferrable, delay, each, extend, fill, is, isArray, isErrorWithCode, isFunction, makeArray, makeAsync, map, mapRemove, noop, pipe, resolve, setAdd, setImmediateOnce, watch } from "zeta-dom/util";
 import { IS_DEV } from "./env.js";
 
 const container = new ZetaEventContainer();
@@ -60,6 +60,17 @@ export function useUpdateTrigger() {
     return useCallback(function () {
         setState({});
     }, []);
+}
+
+export function useEventTrigger(obj, event, selector, initialState) {
+    const state = useState(initialState);
+    useEffect(function () {
+        var callback = function (e) {
+            state[1](selector ? selector.bind(this, e) : {});
+        };
+        return obj.addEventListener ? bind(obj, event, callback) : obj.on(fill(event, callback));
+    }, [obj, event]);
+    return selector ? state[0] : undefined;
 }
 
 export function useMemoizedFunction(callback) {

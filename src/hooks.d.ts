@@ -1,3 +1,10 @@
+type EventsOf<T> = T extends Zeta.ZetaEventDispatcher<infer M, unknown> ? keyof M : string;
+type EventType<T, E extends string> =
+    T extends Zeta.ZetaEventDispatcher<infer M, infer T> ? Zeta.ZetaEventType<E, M, T> :
+    T extends EventTarget ? Zeta.DOMEventType<T, E> : any;
+type EventHandlerThis<T> = T extends Zeta.ZetaEventDispatcher<any, infer T> ? T : T;
+type EventStateSelector<T, E extends string, V> = (this: EventHandlerThis<T>, e: EventType<T, E>, previousState: V | undefined) => V;
+
 export type DisposeCallback = Zeta.UnregisterCallback & {
     /**
      * Pushes cleanup callbacks into the queue.
@@ -114,6 +121,58 @@ export interface AsyncContentState<T = any> extends Zeta.ZetaEventDispatcher<Asy
  * Creates a callback that forcibly triggers re-render of a component.
  */
 export function useUpdateTrigger(): () => void;
+
+/**
+ * Triggers re-render when specific event is emitted.
+ * @param obj An event target.
+ * @param event A whitespace separated list of event types.
+ */
+export function useEventTrigger<T extends EventTarget, E extends Zeta.HintedString<Zeta.DOMEventsOf<T>>>(obj: T, event: E): void;
+
+/**
+ * Triggers re-render when derived state from specific event is changed.
+ * @param obj An event target.
+ * @param event A whitespace separated list of event types.
+ * @param selector A callback that derives state.
+ * @returns Derived state from the callback, or `undefined` if the event has never been fired.
+ */
+export function useEventTrigger<T extends EventTarget, E extends Zeta.HintedString<Zeta.DOMEventsOf<T>>, V>(obj: T, event: E, selector: EventStateSelector<T, Zeta.WhitespaceDelimited<E>, V>): V | undefined;
+
+/**
+ * Triggers re-render when derived state from specific event is changed.
+ * @param obj An event target.
+ * @param event A whitespace separated list of event types.
+ * @param selector A callback that derives state.
+ * @param initialState Initial state.
+ * @returns Derived state from the callback, or the initial state if the event has never been fired.
+ */
+export function useEventTrigger<T extends EventTarget, E extends Zeta.HintedString<Zeta.DOMEventsOf<T>>, V>(obj: T, event: E, selector: EventStateSelector<T, Zeta.WhitespaceDelimited<E>, V>, initialState: V): V;
+
+/**
+ * Triggers re-render when specific event is emitted.
+ * @param obj An event target.
+ * @param event A whitespace separated list of event types.
+ */
+export function useEventTrigger<T extends Zeta.ZetaEventDispatcher<any, any>, E extends Zeta.HintedString<EventsOf<T>>>(obj: T, event: E): void;
+
+/**
+ * Triggers re-render when derived state from specific event is changed.
+ * @param obj An event target.
+ * @param event A whitespace separated list of event types.
+ * @param selector A callback that derives state.
+ * @returns Derived state from the callback, or `undefined` if the event has never been fired.
+ */
+export function useEventTrigger<T extends Zeta.ZetaEventDispatcher<any, any>, E extends Zeta.HintedString<EventsOf<T>>, V>(obj: T, event: E, selector: EventStateSelector<T, Zeta.WhitespaceDelimited<E>, V>): V | undefined;
+
+/**
+ * Triggers re-render when derived state from specific event is changed.
+ * @param obj An event target.
+ * @param event A whitespace separated list of event types.
+ * @param selector A callback that derives state.
+ * @param initialState Initial state.
+ * @returns Derived state from the callback, or the initial state if the event has never been fired.
+ */
+export function useEventTrigger<T extends Zeta.ZetaEventDispatcher<any, any>, E extends Zeta.HintedString<EventsOf<T>>, V>(obj: T, event: E, selector: EventStateSelector<T, Zeta.WhitespaceDelimited<E>, V>, initialState: V): V;
 
 /**
  * Creates a memoized callback that invokes the supplied callback when called.

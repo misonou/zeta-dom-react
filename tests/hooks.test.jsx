@@ -2,10 +2,105 @@ import React, { useEffect, useRef } from "react";
 import { act as reactAct, render, screen } from "@testing-library/react";
 import { act, renderHook } from '@testing-library/react-hooks'
 import { catchAsync, errorWithCode } from "zeta-dom/util";
+import { ZetaEventContainer } from "zeta-dom/events";
 import dom from "zeta-dom/dom";
 import { combineRef } from "src/util";
-import { isSingletonDisposed, useAsync, useDispose, useErrorHandler, useMemoizedFunction, useObservableProperty, useRefInitCallback, useSingleton, useUnloadEffect } from "src/hooks";
+import { isSingletonDisposed, useAsync, useDispose, useErrorHandler, useEventTrigger, useMemoizedFunction, useObservableProperty, useRefInitCallback, useSingleton, useUnloadEffect } from "src/hooks";
 import { delay, mockFn, verifyCalls, _, after } from "@misonou/test-utils";
+
+describe('useEventTrigger', () => {
+    it('should trigger component update when event is fired from DOM object', () => {
+        const { result, unmount } = renderHook(() => useEventTrigger(window, 'test'));
+        expect(result.current).toBeUndefined();
+
+        act(() => window.dispatchEvent(new CustomEvent('test')));
+        expect(result.all.length).toBe(2);
+        expect(result.current).toBeUndefined();
+        unmount();
+    });
+
+    it('should trigger component update when event is fired from custom object', () => {
+        const emitter = new ZetaEventContainer();
+        const obj = {
+            on(handlers) {
+                return emitter.add(this, handlers);
+            }
+        };
+        const { result, unmount } = renderHook(() => useEventTrigger(obj, 'test'));
+        expect(result.current).toBeUndefined();
+
+        act(() => emitter.emit('test', obj));
+        expect(result.all.length).toBe(2);
+        expect(result.current).toBeUndefined();
+        unmount();
+    });
+
+    it('should trigger component update when any event is fired from DOM object', () => {
+        const { result, unmount } = renderHook(() => useEventTrigger(window, 'test1 test2'));
+        expect(result.current).toBeUndefined();
+
+        act(() => window.dispatchEvent(new CustomEvent('test1')));
+        expect(result.all.length).toBe(2);
+        expect(result.current).toBeUndefined();
+
+        act(() => window.dispatchEvent(new CustomEvent('test2')));
+        expect(result.all.length).toBe(3);
+        expect(result.current).toBeUndefined();
+        unmount();
+    });
+
+    it('should trigger component update when any event is fired from custom object', () => {
+        const emitter = new ZetaEventContainer();
+        const obj = {
+            on(handlers) {
+                return emitter.add(this, handlers);
+            }
+        };
+        const { result, unmount } = renderHook(() => useEventTrigger(obj, 'test1 test2'));
+        expect(result.current).toBeUndefined();
+
+        act(() => emitter.emit('test1', obj));
+        expect(result.all.length).toBe(2);
+        expect(result.current).toBeUndefined();
+
+        act(() => emitter.emit('test2', obj));
+        expect(result.all.length).toBe(3);
+        expect(result.current).toBeUndefined();
+        unmount();
+    });
+
+    it('should invoke callback and update state to returned value', () => {
+        const emitter = new ZetaEventContainer();
+        const obj = {
+            on(handlers) {
+                return emitter.add(this, handlers);
+            }
+        };
+        const cb = mockFn(e => e.data);
+        const { result, unmount } = renderHook(() => useEventTrigger(obj, 'test', cb));
+        expect(result.current).toBeUndefined();
+
+        act(() => emitter.emit('test', obj, 'foo'));
+        expect(result.all.length).toBe(2);
+        expect(result.current).toBe('foo');
+
+        act(() => emitter.emit('test', obj, 'bar'));
+        expect(result.all.length).toBe(3);
+        expect(result.current).toBe('bar');
+
+        verifyCalls(cb, [
+            [expect.objectContaining({ type: 'test', data: 'foo' }), undefined],
+            [expect.objectContaining({ type: 'test', data: 'bar' }), 'foo']
+        ]);
+        unmount();
+    });
+
+    it('should set initial state', () => {
+        const { result, unmount } = renderHook(() => useEventTrigger(window, 'test', () => 'bar', 'foo'));
+        expect(result.current).toBe('foo');
+        unmount();
+    });
+});
 
 describe('useMemoizedFunction', () => {
     it('should return the same callback every cycle', () => {
