@@ -1,5 +1,5 @@
 import { createElement, Fragment, lazy, Suspense } from "react";
-import { combineFn, each, extend, isFunction, isPlainObject, kv, makeArray, mapGet, noop, throwNotFunction } from "zeta-dom/util";
+import { combineFn, each, extend, isFunction, isPlainObject, kv, makeArray, mapGet, noop, single, throwNotFunction } from "zeta-dom/util";
 import dom from "zeta-dom/dom";
 
 const boundEvents = new WeakMap();
@@ -61,11 +61,13 @@ export function innerTextOrHTML(text) {
 
 export function partial(setState, key) {
     var fn = function (key, value) {
-        setState(function (v) {
+        setState(function (current) {
             if (typeof key === 'string') {
-                key = kv(key, isFunction(value) ? value(v[key], v) : value);
+                key = kv(key, isFunction(value) ? value(current[key], current) : value);
             }
-            return extend({}, v, key);
+            return single(key, function (v, i) {
+                return v !== current[i] && extend({}, current, key);
+            }) || current;
         });
     };
     return key ? fn.bind(0, key) : fn;

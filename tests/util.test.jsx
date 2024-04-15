@@ -278,6 +278,20 @@ describe('partial', () => {
             ['true', { ...partialInitialState, prop1: 'false' }],
         ]);
     });
+
+    it('should return same object when no property has changed', () => {
+        const { result } = renderHook(() => useState({ ...partialInitialState }));
+        act(() => partial(result.current[1])(partialInitialState));
+        expect(result.all.length).toBe(1);
+
+        act(() => partial(result.current[1])('prop1', partialInitialState.prop1));
+        act(() => partial(result.current[1], 'prop1')(partialInitialState.prop1));
+        expect(result.all.length).toBe(1);
+
+        act(() => partial(result.current[1])('prop1', () => partialInitialState.prop1));
+        act(() => partial(result.current[1], 'prop1')(() => partialInitialState.prop1));
+        expect(result.all.length).toBe(1);
+    });
 });
 
 describe('toRefCallback', () => {
