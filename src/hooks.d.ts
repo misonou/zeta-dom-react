@@ -118,9 +118,22 @@ export interface AsyncContentState<T = any> extends Zeta.ZetaEventDispatcher<Asy
 }
 
 /**
+ * Similar to but unlike {@link React.useRef}, the given value is automatically set on each render.
+ * @param value Value to be set on `current` property of the ref object.
+ */
+export function useAutoSetRef<T>(value: T): React.MutableRefObject<T>;
+
+/**
  * Creates a callback that forcibly triggers re-render of a component.
  */
 export function useUpdateTrigger(): () => void;
+
+/**
+ * Creates a callback that forcibly triggers re-render of a component
+ * when it is called with a value different from that passed to the hook in last render.
+ * @param value Value which returned callback will compare to.
+ */
+export function useValueTrigger<T>(value: T): (newValue: T) => void;
 
 /**
  * Triggers re-render when specific event is emitted.

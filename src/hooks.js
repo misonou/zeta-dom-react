@@ -55,11 +55,27 @@ function useSingletonEffectImplDev(target, dispose) {
     }, [target]);
 }
 
+export function useAutoSetRef(value) {
+    const ref = useRef();
+    ref.current = value;
+    return ref;
+}
+
 export function useUpdateTrigger() {
-    const setState = useState()[1];
-    return useCallback(function () {
-        setState({});
-    }, []);
+    return useValueTrigger({});
+}
+
+export function useValueTrigger(value) {
+    const ref = useAutoSetRef(value);
+    const state = useState(function () {
+        var fn = function (value) {
+            if (value !== ref.current) {
+                state[1]({ fn });
+            }
+        };
+        return { fn };
+    });
+    return state[0].fn;
 }
 
 export function useEventTrigger(obj, event, selector, initialState) {

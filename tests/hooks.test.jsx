@@ -5,8 +5,29 @@ import { catchAsync, errorWithCode } from "zeta-dom/util";
 import { ZetaEventContainer } from "zeta-dom/events";
 import dom from "zeta-dom/dom";
 import { combineRef } from "src/util";
-import { isSingletonDisposed, useAsync, useDispose, useErrorHandler, useEventTrigger, useMemoizedFunction, useObservableProperty, useRefInitCallback, useSingleton, useUnloadEffect } from "src/hooks";
+import { isSingletonDisposed, useAsync, useDispose, useErrorHandler, useEventTrigger, useMemoizedFunction, useObservableProperty, useRefInitCallback, useSingleton, useUnloadEffect, useUpdateTrigger, useValueTrigger } from "src/hooks";
 import { delay, mockFn, verifyCalls, _, after } from "@misonou/test-utils";
+
+describe('useUpdateTrigger', () => {
+    it('should invoke effect with callback that triggers re-render', () => {
+        const { result, unmount } = renderHook(() => useUpdateTrigger());
+        expect(result.current).toBeInstanceOf(Function);
+        act(() => result.current());
+        expect(result.all.length).toBe(2);
+        unmount();
+    });
+});
+
+describe('useValueTrigger', () => {
+    it('should invoke effect with callback that triggers re-render when states differ', () => {
+        const { result, unmount } = renderHook(() => useValueTrigger(1));
+        act(() => result.current(1));
+        expect(result.all.length).toBe(1);
+        act(() => result.current(2));
+        expect(result.all.length).toBe(2);
+        unmount();
+    });
+});
 
 describe('useEventTrigger', () => {
     it('should trigger component update when event is fired from DOM object', () => {
