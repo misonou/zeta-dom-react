@@ -2198,6 +2198,21 @@ describe('FormContext#validate', () => {
         unmount();
     });
 
+    it('should not trigger validation of unmentioned field from form context when first argument is empty', async () => {
+        const cb = mockFn();
+        const { form, wrapper, unmount } = createFormContext();
+        renderHook(() => [
+            useFormField({ name: '', onValidate: cb }, 'foo_value'),
+            useFormField({ name: 'bar', onValidate: cb }, 'bar_value'),
+        ], { wrapper });
+
+        let result;
+        await act(async () => void (result = await form.validate('')));
+        expect(cb).not.toBeCalled();
+        expect(result).toBe(true);
+        unmount();
+    });
+
     it('should return true if all validations passed', async () => {
         const cb = mockFn().mockResolvedValue('');
         const { form, wrapper, unmount } = createFormContext();
