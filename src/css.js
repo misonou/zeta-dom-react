@@ -1,19 +1,14 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { defineObservableProperty, each, watch } from "zeta-dom/util";
 import { bind } from "zeta-dom/domUtil";
-import { useUpdateTrigger } from "./hooks.js";
+import { useEventTrigger, useUpdateTrigger } from "./hooks.js";
 
 export function useMediaQuery(query) {
     var mq = useMemo(function () {
         return matchMedia(query);
     }, [query]);
-    var state = useState(mq.matches);
-    useEffect(function () {
-        return bind(mq, 'change', function () {
-            state[1](mq.matches);
-        });
-    }, [mq]);
-    return state[0];
+    useEventTrigger(mq, 'change');
+    return mq.matches;
 }
 
 /**

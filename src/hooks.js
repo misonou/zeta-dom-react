@@ -90,26 +90,18 @@ export function useEventTrigger(obj, event, selector, initialState) {
 }
 
 export function useMemoizedFunction(callback) {
-    const ref = useRef();
-    ref.current = isFunction(callback) || noop;
+    const ref = useAutoSetRef(callback);
     return useCallback(function () {
-        return ref.current.apply(this, arguments);
+        return (isFunction(ref.current) || noop).apply(this, arguments);
     }, []);
 }
 
 export function useObservableProperty(obj, key) {
-    const forceUpdate = useUpdateTrigger();
     const value = obj[key];
-    const ref = useRef();
-    ref.current = value;
+    const notifyChange = useValueTrigger(value);
     useEffect(function () {
-        var cb = function (v) {
-            if (v !== ref.current) {
-                forceUpdate();
-            }
-        };
-        cb(obj[key]);
-        return watch(obj, key, cb);
+        notifyChange(obj[key]);
+        return watch(obj, key, notifyChange);
     }, [obj, key]);
     return value;
 }
