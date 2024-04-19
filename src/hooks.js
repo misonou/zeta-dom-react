@@ -24,11 +24,12 @@ function muteRejection(promise) {
 
 function clearUnusedSingletons() {
     each(singletons, function (i, v) {
-        if (!v.d) {
+        if (clearUnusedSingletons.d & (v.d || 1)) {
             disposedSingletons.add(i);
-            mapRemove(singletons, i)(v.d === false);
+            mapRemove(singletons, i)(v.d === 2);
         }
     });
+    clearUnusedSingletons.d = 0;
 }
 
 function useSingletonEffectImpl(target, dispose) {
@@ -43,11 +44,13 @@ function useSingletonEffectImpl(target, dispose) {
 function useSingletonEffectImplDev(target, dispose) {
     if (!singletons.has(target)) {
         singletons.set(target, dispose);
+        clearUnusedSingletons.d = 0;
         clearImmediateOnce(clearUnusedSingletons);
     }
     useEffect(function () {
         var cb = function (flag) {
-            singletons.get(target).d = !!flag;
+            singletons.get(target).d = flag ? 4 : 2;
+            clearUnusedSingletons.d |= flag ? 1 : 2;
             setImmediateOnce(clearUnusedSingletons);
         };
         cb(true);
