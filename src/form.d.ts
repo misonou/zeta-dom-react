@@ -333,7 +333,7 @@ export interface FormContextOptions {
     formatError?: FormatErrorCallback;
 }
 
-export class FormContext<T extends object = Zeta.Dictionary<any>> {
+export class FormContext<T extends object = Zeta.Dictionary<any>> implements Zeta.ZetaEventDispatcher<FormEventMap, FormContext<T>> {
     static readonly ERROR_FIELD = 1;
     static readonly EMPTY_FIELD = 2;
 
@@ -416,6 +416,14 @@ export class FormContext<T extends object = Zeta.Dictionary<any>> {
      * @returns Whether the given element is set focused.
      */
     focus(path: string | string[]): boolean;
+
+    /**
+     * Registers event handlers.
+     * @param handlers A dictionary which the keys are event names and values are the callback for each event.
+     * @returns A function that will unregister the handlers when called.
+     * @see {@link FormEventMap}
+     */
+    on(handlers: Zeta.ZetaEventHandlers<FormEventMap, FormContext<T>>): Zeta.UnregisterCallback;
 
     /**
      * Registers event handlers.

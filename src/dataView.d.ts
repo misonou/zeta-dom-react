@@ -28,7 +28,7 @@ interface DataViewEventMap {
 /**
  * Represents a filterable, sortable and paged context of list of items.
  */
-export class DataView<P extends object> {
+export class DataView<P extends object> implements Zeta.ZetaEventDispatcher<DataViewEventMap, DataView<P>> {
     /**
      * Gets the filter object.
      * Updating its property will trigger a component update.
@@ -69,6 +69,13 @@ export class DataView<P extends object> {
      * Setting to `0` or negative numbers will disable paging. Default is `0`.
      */
     static pageSize: number;
+
+    /**
+     * Registers event handlers.
+     * @param handlers A dictionary which the keys are event names and values are the callback for each event.
+     * @returns A function that will unregister the handlers when called.
+     */
+    on(handlers: Zeta.ZetaEventHandlers<DataViewEventMap, DataView<P>>): Zeta.UnregisterCallback;
 
     /**
      * Registers event handlers.
