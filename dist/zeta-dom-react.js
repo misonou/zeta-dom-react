@@ -1,4 +1,4 @@
-/*! zeta-dom-react v0.5.2 | (c) misonou | https://misonou.github.io */
+/*! zeta-dom-react v0.5.3 | (c) misonou | https://misonou.github.io */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory(require("zeta-dom"), require("react"), require("react-dom"));
@@ -124,10 +124,12 @@ __webpack_require__.d(__webpack_exports__, {
   registerFieldType: () => (/* reexport */ registerFieldType),
   toRefCallback: () => (/* reexport */ toRefCallback),
   useAsync: () => (/* reexport */ useAsync),
+  useAutoSetRef: () => (/* reexport */ useAutoSetRef),
   useDataView: () => (/* reexport */ useDataView),
   useDispose: () => (/* reexport */ useDispose),
   useErrorHandler: () => (/* reexport */ useErrorHandler),
   useErrorHandlerRef: () => (/* reexport */ useErrorHandlerRef),
+  useEventTrigger: () => (/* reexport */ useEventTrigger),
   useFormContext: () => (/* reexport */ useFormContext),
   useFormField: () => (/* reexport */ useFormField),
   useMediaQuery: () => (/* reexport */ useMediaQuery),
@@ -137,6 +139,7 @@ __webpack_require__.d(__webpack_exports__, {
   useSingleton: () => (/* reexport */ useSingleton),
   useUnloadEffect: () => (/* reexport */ useUnloadEffect),
   useUpdateTrigger: () => (/* reexport */ useUpdateTrigger),
+  useValueTrigger: () => (/* reexport */ useValueTrigger),
   useViewState: () => (/* reexport */ useViewState),
   withSuspense: () => (/* reexport */ withSuspense)
 });
@@ -162,6 +165,7 @@ var _lib$util = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_
   either = _lib$util.either,
   exclude = _lib$util.exclude,
   extend = _lib$util.extend,
+  fill = _lib$util.fill,
   freeze = _lib$util.freeze,
   grep = _lib$util.grep,
   util_hasOwnProperty = _lib$util.hasOwnProperty,
@@ -263,11 +267,12 @@ function muteRejection(promise) {
 }
 function clearUnusedSingletons() {
   each(singletons, function (i, v) {
-    if (!v.d) {
+    if (clearUnusedSingletons.d & (v.d || 1)) {
       disposedSingletons.add(i);
-      mapRemove(singletons, i)(v.d === false);
+      mapRemove(singletons, i)(v.d === 2);
     }
   });
+  clearUnusedSingletons.d = 0;
 }
 function useSingletonEffectImpl(target, dispose) {
   (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
@@ -280,43 +285,65 @@ function useSingletonEffectImpl(target, dispose) {
 function useSingletonEffectImplDev(target, dispose) {
   if (!singletons.has(target)) {
     singletons.set(target, dispose);
+    clearUnusedSingletons.d = 0;
     clearImmediateOnce(clearUnusedSingletons);
   }
   (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
     var cb = function cb(flag) {
-      singletons.get(target).d = !!flag;
+      singletons.get(target).d = flag ? 4 : 2;
+      clearUnusedSingletons.d |= flag ? 1 : 2;
       setImmediateOnce(clearUnusedSingletons);
     };
     cb(true);
     return cb;
   }, [target]);
 }
+function useAutoSetRef(value) {
+  var ref = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useRef)();
+  ref.current = value;
+  return ref;
+}
 function useUpdateTrigger() {
-  var setState = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)()[1];
-  return (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useCallback)(function () {
-    setState({});
-  }, []);
+  return useValueTrigger({});
+}
+function useValueTrigger(value) {
+  var ref = useAutoSetRef(value);
+  var state = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)(function () {
+    var fn = function fn(value) {
+      if (value !== ref.current) {
+        state[1]({
+          fn: fn
+        });
+      }
+    };
+    return {
+      fn: fn
+    };
+  });
+  return state[0].fn;
+}
+function useEventTrigger(obj, event, selector, initialState) {
+  var state = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)(initialState);
+  (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
+    var callback = function callback(e) {
+      state[1](selector ? selector.bind(this, e) : {});
+    };
+    return obj.addEventListener ? bind(obj, event, callback) : obj.on(fill(event, callback));
+  }, [obj, event]);
+  return selector ? state[0] : undefined;
 }
 function useMemoizedFunction(callback) {
-  var ref = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useRef)();
-  ref.current = isFunction(callback) || noop;
+  var ref = useAutoSetRef(callback);
   return (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useCallback)(function () {
-    return ref.current.apply(this, arguments);
+    return (isFunction(ref.current) || noop).apply(this, arguments);
   }, []);
 }
 function useObservableProperty(obj, key) {
-  var forceUpdate = useUpdateTrigger();
   var value = obj[key];
-  var ref = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useRef)();
-  ref.current = value;
+  var notifyChange = useValueTrigger(value);
   (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
-    var cb = function cb(v) {
-      if (v !== ref.current) {
-        forceUpdate();
-      }
-    };
-    cb(obj[key]);
-    return watch(obj, key, cb);
+    notifyChange(obj[key]);
+    return watch(obj, key, notifyChange);
   }, [obj, key]);
   return value;
 }
@@ -533,13 +560,8 @@ function useMediaQuery(query) {
   var mq = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useMemo)(function () {
     return matchMedia(query);
   }, [query]);
-  var state = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)(mq.matches);
-  (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
-    return bind(mq, 'change', function () {
-      state[1](mq.matches);
-    });
-  }, [mq]);
-  return state[0];
+  useEventTrigger(mq, 'change');
+  return mq.matches;
 }
 
 /**
@@ -830,11 +852,13 @@ function innerTextOrHTML(text) {
 }
 function partial(setState, key) {
   var fn = function fn(key, value) {
-    setState(function (v) {
+    setState(function (current) {
       if (typeof key === 'string') {
-        key = kv(key, isFunction(value) ? value(v[key], v) : value);
+        key = kv(key, isFunction(value) ? value(current[key], current) : value);
       }
-      return extend({}, v, key);
+      return single(key, function (v, i) {
+        return v !== current[i] && extend({}, current, key);
+      }) || current;
     });
   };
   return key ? fn.bind(0, key) : fn;
@@ -1653,7 +1677,7 @@ definePrototype(FormContext, {
     var self = this;
     var fields = form_(self).fields;
     var prefix = makeArray(arguments);
-    if (!prefix[0]) {
+    if (!prefix.length) {
       return validateFields(self, grep(fields, function (v) {
         return !v.props.disabled;
       }));
