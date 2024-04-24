@@ -67,25 +67,41 @@ export function useAutoSetRef(value) {
     return ref;
 }
 
+export function useEagerReducer(reducer, init) {
+    var state = useState(function () {
+        var value = isFunction(init) ? init() : init;
+        var fn = function (newValue) {
+            newValue = reducer(value, newValue);
+            if (!sameValue(newValue, value)) {
+                value = newValue;
+                state[1]([value, fn]);
+            }
+        };
+        return [value, fn];
+    });
+    return state[0];
+}
+
+export function useEagerState(init) {
+    return useEagerReducer(function (prevState, state) {
+        return isFunction(state) ? state(prevState) : state;
+    }, init);
+}
+
 export function useUpdateTrigger() {
     return useValueTrigger({});
 }
 
 export function useValueTrigger(value) {
-    const ref = useAutoSetRef(value);
-    const state = useState(function () {
-        var fn = function (value) {
-            if (!sameValue(value, ref.current)) {
-                state[1]({ fn });
-            }
-        };
-        return { fn };
-    });
-    return state[0].fn;
+    var state = useEagerReducer(function (ref, value) {
+        return sameValue(value, ref.current) ? ref : {};
+    }, {});
+    state[0].current = value;
+    return state[1];
 }
 
 export function useEventTrigger(obj, event, selector, initialState) {
-    const state = useState(initialState);
+    const state = useEagerState(initialState);
     useEffect(function () {
         var callback = function (e) {
             state[1](selector ? selector.bind(this, e) : {});

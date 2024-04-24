@@ -1,12 +1,93 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useReducer, useRef, useState } from "react";
 import { act as reactAct, render, screen } from "@testing-library/react";
 import { act, renderHook } from '@testing-library/react-hooks'
 import { catchAsync, errorWithCode } from "zeta-dom/util";
 import { ZetaEventContainer } from "zeta-dom/events";
 import dom from "zeta-dom/dom";
 import { combineRef } from "src/util";
-import { isSingletonDisposed, useAsync, useDispose, useErrorHandler, useEventTrigger, useMemoizedFunction, useObservableProperty, useRefInitCallback, useSingleton, useUnloadEffect, useUpdateTrigger, useValueTrigger } from "src/hooks";
+import { isSingletonDisposed, useAsync, useDispose, useEagerReducer, useEagerState, useErrorHandler, useEventTrigger, useMemoizedFunction, useObservableProperty, useRefInitCallback, useSingleton, useUnloadEffect, useUpdateTrigger, useValueTrigger } from "src/hooks";
 import { delay, mockFn, verifyCalls, _, after } from "@misonou/test-utils";
+
+describe('useEagerReducer', () => {
+    it('should act like useReducer', () => {
+        const cb = mockFn().mockReturnValue(3);
+        const { result, unmount } = renderHook(() => useEagerReducer(cb, 1));
+        expect(result.current[0]).toBe(1);
+        expect(result.current[1]).toBeInstanceOf(Function);
+
+        act(() => result.current[1](2));
+        expect(result.current[0]).toBe(3);
+        expect(cb).toBeCalledWith(1, 2);
+        unmount();
+    });
+
+    it('should accept callback to initialize state', () => {
+        const { result, unmount } = renderHook(() => useEagerReducer(() => 2, () => 1));
+        expect(result.current[0]).toBe(1);
+        unmount();
+    });
+
+    it('should invoke reducer and bail out eagerly', () => {
+        const run = (useReducerCallback, expected) => {
+            const { result, unmount } = renderHook(() => useReducerCallback((v, a) => v + a, 1));
+            const updateState = result.current[1];
+            act(() => updateState(1));
+            act(() => updateState(0));
+            expect(result.all.length).toBe(expected);
+            unmount();
+        };
+        run(useReducer, 3);
+        run(useEagerReducer, 2);
+    });
+});
+
+describe('useEagerState', () => {
+    it('should act like useState', () => {
+        const { result, unmount } = renderHook(() => useEagerState(1));
+        expect(result.current[0]).toBe(1);
+        expect(result.current[1]).toBeInstanceOf(Function);
+
+        act(() => result.current[1](2));
+        expect(result.current[0]).toBe(2);
+        unmount();
+    });
+
+    it('should accept callback to initialize state', () => {
+        const { result, unmount } = renderHook(() => useEagerState(() => 1));
+        expect(result.current[0]).toBe(1);
+        unmount();
+    });
+
+    it('should initialize state to undefined if not specified', () => {
+        const { result, unmount } = renderHook(() => useEagerState());
+        expect(result.current[0]).toBeUndefined();
+        unmount();
+    });
+
+    it('should accept callback for set state action', () => {
+        const { result, unmount } = renderHook(() => useEagerState(1));
+        expect(result.current[0]).toBe(1);
+
+        const cb = mockFn().mockReturnValue(2);
+        act(() => result.current[1](cb));
+        expect(result.current[0]).toBe(2);
+        expect(cb).toBeCalledWith(1);
+        unmount();
+    });
+
+    it('should invoke callback and bail out eagerly', () => {
+        const run = (useStateCallback, expected) => {
+            const { result, unmount } = renderHook(() => useStateCallback(1));
+            const setState = result.current[1];
+            act(() => setState(v => ++v));
+            act(() => setState(v => v));
+            expect(result.all.length).toBe(expected);
+            unmount();
+        };
+        run(useState, 3);
+        run(useEagerState, 2);
+    });
+});
 
 describe('useUpdateTrigger', () => {
     it('should invoke effect with callback that triggers re-render', () => {

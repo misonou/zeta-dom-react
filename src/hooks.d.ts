@@ -124,6 +124,35 @@ export interface AsyncContentState<T = any> extends Zeta.ZetaEventDispatcher<Asy
 export function useAutoSetRef<T>(value: T): React.MutableRefObject<T>;
 
 /**
+ * Similar to but unlike {@link React.useState}, it guarantees that callback supplied to updating function is called synchronously,
+ * and it will not cause component to re-render when state did not change.
+ * @param initialState Initial state, or a function that returns the initial state.
+ */
+export function useEagerState<T>(initialState: T | (() => T)): [T, React.Dispatch<React.SetStateAction<T>>];
+
+/**
+ * Similar to but unlike {@link React.useState}, it guarantees that callback supplied to updating function is called synchronously,
+ * and it will not cause component to re-render when state did not change.
+ */
+export function useEagerState<T = undefined>(): [T | undefined, React.Dispatch<React.SetStateAction<T | undefined>>];
+
+/**
+ * Similar to but unlike {@link React.useReducer}, it guarantees that reducer is called synchronously,
+ * and it will not cause component to re-render when state did not change.
+ * @param reducer A callback computes the new state.
+ * @param initialState Initial state, or a function that returns the initial state.
+ */
+export function useEagerReducer<T>(reducer: React.ReducerWithoutAction<T>, initialState: T | (() => T)): [T, React.DispatchWithoutAction];
+
+/**
+ * Similar to but unlike {@link React.useReducer}, it guarantees that reducer is called synchronously,
+ * and it will not cause component to re-render when state did not change.
+ * @param reducer A callback that receives value passed to updating function and computes the new state.
+ * @param initialState Initial state, or a function that returns the initial state.
+ */
+export function useEagerReducer<T, V = T>(reducer: React.Reducer<T, V>, initialState: T | (() => T)): [T, React.Dispatch<V>];
+
+/**
  * Creates a callback that forcibly triggers re-render of a component.
  */
 export function useUpdateTrigger(): () => void;
