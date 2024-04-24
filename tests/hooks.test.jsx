@@ -27,6 +27,20 @@ describe('useValueTrigger', () => {
         expect(result.all.length).toBe(2);
         unmount();
     });
+
+    it('should trigger re-render when current and previous value is 0 and -0', () => {
+        const { result, unmount } = renderHook(() => useValueTrigger(0));
+        act(() => result.current(-0));
+        expect(result.all.length).toBe(2);
+        unmount();
+    });
+
+    it('should not trigger re-render when current and previous value is both NaN', () => {
+        const { result, unmount } = renderHook(() => useValueTrigger(NaN));
+        act(() => result.current(NaN));
+        expect(result.all.length).toBe(1);
+        unmount();
+    });
 });
 
 describe('useEventTrigger', () => {
