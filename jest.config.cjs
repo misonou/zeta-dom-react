@@ -9,8 +9,7 @@ const config = {
         "<rootDir>/build/"
     ],
     "moduleNameMapper": {
-        "^src/(.*)$": "<rootDir>/src/$1",
-        "^zeta-dom/(.*)$": "<rootDir>/../zeta-dom/src/$1"
+        "^src/(.*)$": "<rootDir>/src/$1"
     },
     "extensionsToTreatAsEsm": [
         ".jsx"
@@ -23,6 +22,12 @@ const config = {
     ]
 }
 
+if (process.env.CI !== 'true' && require('fs').existsSync('../zeta-dom')) {
+    config.moduleNameMapper = {
+        ...config.moduleNameMapper,
+        "^zeta-dom/(.*)$": "<rootDir>/../zeta-dom/src/$1"
+    };
+}
 if (process.env.REACT_VERSION) {
     const runtimeDir = `<rootDir>/tests/runtime/react${process.env.REACT_VERSION}`;
     config.cacheDirectory = `${runtimeDir}/.cache`;
