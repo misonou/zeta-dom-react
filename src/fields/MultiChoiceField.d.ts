@@ -1,4 +1,4 @@
-import type { ChoiceItem, ChoiceItemValueType, FieldType, FormFieldProps, FormFieldState } from "../form";
+import type { ChoiceItem, ChoiceFieldPropsItem, ChoiceItemValueType, FieldType, FormFieldProps, FormFieldState } from "../form";
 
 export interface MultiChoiceFieldProps<T extends ChoiceItem = ChoiceItem> extends FormFieldProps<ChoiceItemValueType<T>[]> {
     /**
@@ -6,7 +6,7 @@ export interface MultiChoiceFieldProps<T extends ChoiceItem = ChoiceItem> extend
      * Primitive values in the list will be normalized as {@link ChoiceItem}.
      * If not specified, `allowCustomValues` will be set to `true`.
      */
-    items?: readonly (T | Extract<T['value'], number | string | boolean>)[];
+    items?: readonly ChoiceFieldPropsItem<T>[];
     /**
      * Whether values not in the list of items are allowed.
      */

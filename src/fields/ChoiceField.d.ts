@@ -1,6 +1,15 @@
 import type { FieldType, FormFieldProps, FormFieldState } from "../form";
 
 export type ChoiceItemValueType<T extends ChoiceItem> = T extends ChoiceItem<infer U> ? U : any;
+export type ChoiceFieldPropsItem<T extends ChoiceItem> = T | Extract<T['value'], number | string | boolean>;
+/**
+ * Extracts normalized item type from {@link ChoiceFieldProps}.
+ */
+export type ChoiceItemType<T> = T extends { items?: infer U } ?
+    (ChoiceItem[] extends U ?
+        U extends readonly ChoiceFieldPropsItem<infer V>[] ? V : ChoiceItem :
+        ChoiceItem<Zeta.ArrayMember<U>>) :
+    ChoiceItem;
 
 export interface ChoiceItem<T = any> {
     value: T;
@@ -14,7 +23,7 @@ export interface ChoiceFieldProps<T extends ChoiceItem = ChoiceItem> extends For
      * A list of items as choices.
      * Primitive values in the list will be normalized as {@link ChoiceItem}.
      */
-    items: readonly (T | Extract<T['value'], number | string | boolean>)[];
+    items: readonly ChoiceFieldPropsItem<T>[];
     /**
      * Whether the field can be empty, i.e. none of the choices are selected.
      */

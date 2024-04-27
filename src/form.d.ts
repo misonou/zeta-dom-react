@@ -6,11 +6,14 @@ export type ValidateCallback<T = any> = (value: T, name: string, form: FormConte
 export type FormatErrorCallback = (err: ValidationError, name: string | null, props: FormFieldProps & Zeta.Dictionary, form: FormContext | null) => string | undefined;
 
 type WithFallback<T, U> = [T] extends [never] ? U : T;
-type FieldValueType<T> = T extends FormFieldProps<any, infer V> ? V extends any[] ? V : Partial<V> : any;
+type FieldValueType<T, U = any> = T extends FormFieldProps<any, infer V> ? (unknown extends V ? U : V extends any[] ? V : Partial<V>) : any;
 type FieldStateType<K extends FieldTypeConstructor<any, any>, T> = WithFallback<{
     [P in keyof Zeta.ReactFieldTypeMap]: Zeta.ReactFieldTypeMap[P] extends Zeta.ReactFieldType<K, any> ? ReturnType<Zeta.ReactFieldTypeMap<T>[P]> : never;
 }[keyof Zeta.ReactFieldTypeMap],
     ReturnType<InstanceType<K>['postHook']>>;
+type FieldPropsType<K> = K extends FieldTypeConstructor<infer T, any> ? T : FormFieldProps<any>;
+type LegacyFieldStateType<K extends keyof Zeta.ReactFieldTypes, T = any> = ReturnType<Zeta.ReactFieldTypes<T>[K]>;
+type LegacyFieldPropsType<K extends keyof Zeta.ReactFieldTypes, T = any> = Parameters<Zeta.ReactFieldTypes<T>[K]>[0];
 /** @deprecated */
 type FieldPostHookCallback = <S extends FormFieldState, P extends FormFieldProps>(state: S, props: P) => S;
 
@@ -525,9 +528,9 @@ export function useFormContext<T extends object = Zeta.Dictionary<any>>(persistK
 /**
  * @deprecated Use overload where first argument is the field type constructor instead.
  */
-export function useFormField<K extends keyof Zeta.ReactFieldTypes, T extends Parameters<Zeta.ReactFieldTypes[K]>[0]>(type: K, props: T, defaultValue: FieldValueType<T>, prop?: keyof T): ReturnType<Zeta.ReactFieldTypes<T>[K]>;
+export function useFormField<K extends keyof Zeta.ReactFieldTypes, T extends LegacyFieldPropsType<K>>(type: K, props: T, defaultValue: LegacyFieldStateType<K, T>['value'], prop?: keyof T): LegacyFieldStateType<K, T>;
 
-export function useFormField<K extends FieldTypeConstructor<any, any>, T extends (K extends FieldTypeConstructor<infer T, any> ? T : any)>(type: K, props: T, defaultValue?: FieldValueType<T>): FieldStateType<K, T>;
+export function useFormField<K extends FieldTypeConstructor<any, any>, T extends FieldPropsType<K>>(type: K, props: T, defaultValue?: FieldStateType<K, T>['value']): FieldStateType<K, T>;
 
 export function useFormField<T extends FormFieldProps>(props: T, defaultValue: FieldValueType<T>, prop?: keyof T): FormFieldState<FieldValueType<T>>;
 
@@ -567,26 +570,26 @@ declare global {
          * @deprecated Use {@link ReactFieldTypeMap} instead.
          */
         interface ReactFieldTypes<T = any> {
-            text: ReactFieldType<TextFieldProps, TextFieldState<FieldValueType<T>>>;
+            text: ReactFieldType<TextFieldProps, TextFieldState<FieldValueType<T, string>>>;
             toggle: ReactFieldType<ToggleFieldProps, ToggleFieldState>;
-            choice: ReactFieldType<ChoiceFieldProps, ChoiceFieldState<T extends ChoiceFieldProps<infer V> ? V : ChoiceItem>>;
+            choice: ReactFieldType<ChoiceFieldProps, ChoiceFieldState<ChoiceItemType<T>>>;
         }
 
         /**
          * Provides type hint to {@link useFormField} when the return type cannot be correctly inferred from the {@link FieldType.postHook} method.
          */
         interface ReactFieldTypeMap<Props = any> {
-            θ1: ReactFieldType<typeof TextField, TextFieldState<FieldValueType<Props>>>;
+            θ1: ReactFieldType<typeof TextField, TextFieldState<FieldValueType<Props, string>>>;
             θ2: ReactFieldType<typeof ToggleField, ToggleFieldState>;
-            θ3: ReactFieldType<typeof ChoiceField, ChoiceFieldState<Props extends ChoiceFieldProps<infer V> ? V : ChoiceItem>>;
-            θ4: ReactFieldType<typeof MultiChoiceField, MultiChoiceFieldState<Props extends MultiChoiceFieldProps<infer V> ? V : ChoiceItem>>;
+            θ3: ReactFieldType<typeof ChoiceField, ChoiceFieldState<ChoiceItemType<Props>>>;
+            θ4: ReactFieldType<typeof MultiChoiceField, MultiChoiceFieldState<ChoiceItemType<Props>>>;
             θ5: ReactFieldType<typeof NumericField, NumericFieldState>;
             θ6: ReactFieldType<typeof DateField, DateFieldState>;
         }
     }
 }
 
-import ChoiceField, { ChoiceFieldState, ChoiceFieldProps, ChoiceItem } from "./fields/ChoiceField";
+import ChoiceField, { ChoiceFieldState, ChoiceFieldProps, ChoiceItem, ChoiceItemType } from "./fields/ChoiceField";
 import DateField, { DateFieldState } from "./fields/DateField";
 import MultiChoiceField, { MultiChoiceFieldProps, MultiChoiceFieldState } from "./fields/MultiChoiceField";
 import NumericField, { NumericFieldState } from "./fields/NumericField";
