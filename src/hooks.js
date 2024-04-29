@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import dom, { reportError } from "zeta-dom/dom";
 import { notifyAsync } from "zeta-dom/domLock";
 import { bind } from "zeta-dom/domUtil";
@@ -89,7 +89,9 @@ export function useEagerState(init) {
 }
 
 export function useUpdateTrigger() {
-    return useValueTrigger({});
+    return useReducer(function (prevState) {
+        return !prevState;
+    }, false)[1];
 }
 
 export function useValueTrigger(value) {
