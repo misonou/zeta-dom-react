@@ -1,4 +1,4 @@
-/*! zeta-dom-react v0.5.3 | (c) misonou | https://misonou.github.io */
+/*! zeta-dom-react v0.5.4 | (c) misonou | https://misonou.github.io */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory(require("zeta-dom"), require("react"), require("react-dom"));
@@ -127,6 +127,8 @@ __webpack_require__.d(__webpack_exports__, {
   useAutoSetRef: () => (/* reexport */ useAutoSetRef),
   useDataView: () => (/* reexport */ useDataView),
   useDispose: () => (/* reexport */ useDispose),
+  useEagerReducer: () => (/* reexport */ useEagerReducer),
+  useEagerState: () => (/* reexport */ useEagerState),
   useErrorHandler: () => (/* reexport */ useErrorHandler),
   useErrorHandlerRef: () => (/* reexport */ useErrorHandlerRef),
   useEventTrigger: () => (/* reexport */ useEventTrigger),
@@ -258,6 +260,9 @@ var disposedSingletons = new WeakSet();
 var unloadCallbacks = new Set();
 var AbortController = window.AbortController;
 var useSingletonEffect = IS_DEV ? useSingletonEffectImplDev : useSingletonEffectImpl;
+var sameValue = Object.is || function (a, b) {
+  return sameValueZero(a, b) && (a !== 0 || 1 / a === 1 / b);
+};
 bind(window, 'pagehide', function (e) {
   combineFn(makeArray(unloadCallbacks))(e.persisted);
 });
@@ -303,27 +308,39 @@ function useAutoSetRef(value) {
   ref.current = value;
   return ref;
 }
-function useUpdateTrigger() {
-  return useValueTrigger({});
-}
-function useValueTrigger(value) {
-  var ref = useAutoSetRef(value);
+function useEagerReducer(reducer, init) {
   var state = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)(function () {
-    var fn = function fn(value) {
-      if (value !== ref.current) {
-        state[1]({
-          fn: fn
-        });
+    var value = isFunction(init) ? init() : init;
+    var fn = function fn(newValue) {
+      newValue = reducer(value, newValue);
+      if (!sameValue(newValue, value)) {
+        value = newValue;
+        state[1]([value, fn]);
       }
     };
-    return {
-      fn: fn
-    };
+    return [value, fn];
   });
-  return state[0].fn;
+  return state[0];
+}
+function useEagerState(init) {
+  return useEagerReducer(function (prevState, state) {
+    return isFunction(state) ? state(prevState) : state;
+  }, init);
+}
+function useUpdateTrigger() {
+  return (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useReducer)(function (prevState) {
+    return !prevState;
+  }, false)[1];
+}
+function useValueTrigger(value) {
+  var state = useEagerReducer(function (ref, value) {
+    return sameValue(value, ref.current) ? ref : {};
+  }, {});
+  state[0].current = value;
+  return state[1];
 }
 function useEventTrigger(obj, event, selector, initialState) {
-  var state = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)(initialState);
+  var state = useEagerState(initialState);
   (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
     var callback = function callback(e) {
       state[1](selector ? selector.bind(this, e) : {});
