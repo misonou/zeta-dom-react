@@ -71,6 +71,12 @@ define(DataView, {
 });
 
 definePrototype(DataView, {
+    get hasPreviousPage() {
+        return this.pageIndex > 0;
+    },
+    get hasNextPage() {
+        return this.pageIndex < this.pageCount - 1;
+    },
     on: function (event, handler) {
         return emitter.add(this, event, handler);
     },

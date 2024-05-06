@@ -63,6 +63,14 @@ export class DataView<P extends object> implements Zeta.ZetaEventDispatcher<Data
      * Gets the number of page.
      */
     readonly pageCount: number;
+    /**
+     * Returns whether there is previous page of data.
+     */
+    readonly hasPreviousPage: boolean;
+    /**
+     * Returns whether there is next page of data.
+     */
+    readonly hasNextPage: boolean;
 
     /**
      * Sets the default page size.

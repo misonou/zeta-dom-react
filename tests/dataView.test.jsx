@@ -399,6 +399,57 @@ describe('DataView#pageIndex', () => {
     });
 });
 
+describe('DataView#hasPreviousPage', () => {
+    it('should return true if pageIndex is larger than 0', () => {
+        const { result, unmount } = renderHook(() => useDataView({}, undefined, undefined, 10));
+        result.current.itemCount = 30;
+        expect(result.current.pageIndex).toBe(0);
+        expect(result.current.hasPreviousPage).toBe(false);
+
+        result.current.pageIndex = 1;
+        expect(result.current.pageIndex).toBe(1);
+        expect(result.current.hasPreviousPage).toBe(true);
+        unmount();
+    });
+});
+
+describe('DataView#hasNextPage', () => {
+    it('should return true if pageIndex is one less than pageCount', () => {
+        const { result, unmount } = renderHook(() => useDataView({}, undefined, undefined, 10));
+        result.current.itemCount = 30;
+        expect(result.current.pageCount).toBe(3);
+        expect(result.current.pageIndex).toBe(0);
+        expect(result.current.hasNextPage).toBe(true);
+
+        result.current.pageIndex = 1;
+        expect(result.current.pageIndex).toBe(1);
+        expect(result.current.hasNextPage).toBe(true);
+
+        result.current.pageIndex = 2;
+        expect(result.current.pageIndex).toBe(2);
+        expect(result.current.hasNextPage).toBe(false);
+        unmount();
+    });
+
+    it('should return correct value when pageCount has changed', () => {
+        const { result, unmount } = renderHook(() => useDataView({}, undefined, undefined, 10));
+        result.current.itemCount = 30;
+        result.current.pageIndex = 1;
+        expect(result.current.pageCount).toBe(3);
+        expect(result.current.pageIndex).toBe(1);
+        expect(result.current.hasNextPage).toBe(true);
+
+        result.current.itemCount = 20;
+        expect(result.current.pageIndex).toBe(1);
+        expect(result.current.hasNextPage).toBe(false);
+
+        result.current.itemCount = 30;
+        expect(result.current.pageIndex).toBe(1);
+        expect(result.current.hasNextPage).toBe(true);
+        unmount();
+    });
+});
+
 describe('DataView#getView', () => {
     it('should sort items if callback is not supplied', () => {
         const items = [
