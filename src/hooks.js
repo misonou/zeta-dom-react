@@ -89,9 +89,9 @@ export function useEagerState(init) {
 }
 
 export function useUpdateTrigger() {
-    return useReducer(function (prevState) {
-        return !prevState;
-    }, false)[1];
+    return useReducer(function () {
+        return {};
+    })[1];
 }
 
 export function useValueTrigger(value) {
