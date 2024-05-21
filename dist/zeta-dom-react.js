@@ -1,4 +1,4 @@
-/*! zeta-dom-react v0.5.4 | (c) misonou | https://misonou.github.io */
+/*! zeta-dom-react v0.5.5 | (c) misonou | https://misonou.github.io */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory(require("zeta-dom"), require("react"), require("react-dom"));
@@ -328,9 +328,9 @@ function useEagerState(init) {
   }, init);
 }
 function useUpdateTrigger() {
-  return (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useReducer)(function (prevState) {
-    return !prevState;
-  }, false)[1];
+  return (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useReducer)(function () {
+    return {};
+  })[1];
 }
 function useValueTrigger(value) {
   var state = useEagerReducer(function (ref, value) {
@@ -692,6 +692,12 @@ util_define(DataView, {
   pageSize: 0
 });
 definePrototype(DataView, {
+  get hasPreviousPage() {
+    return this.pageIndex > 0;
+  },
+  get hasNextPage() {
+    return this.pageIndex < this.pageCount - 1;
+  },
   on: function on(event, handler) {
     return emitter.add(this, event, handler);
   },
