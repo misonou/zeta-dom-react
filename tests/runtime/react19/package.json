@@ -1,0 +1,14 @@
+{
+    "private": true,
+    "description": "Used to test react 19",
+    "type": "module",
+    "dependencies": {
+        "@testing-library/react": "15.0.7",
+        "react": ">=19.0.0-rc",
+        "react-dom": ">=19.0.0-rc"
+    },
+    "overrides": {
+        "react": ">=19.0.0-rc",
+        "react-dom": ">=19.0.0-rc"
+    }
+}

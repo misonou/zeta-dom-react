@@ -10,10 +10,12 @@
     "build": "webpack",
     "install:react17": "cd tests/runtime/react17 && npm install",
     "install:react18": "cd tests/runtime/react18 && npm install",
-    "postinstall": "npm run install:react17 && npm run install:react18",
+    "install:react19": "cd tests/runtime/react19 && npm install",
+    "postinstall": "npm run install:react17 && npm run install:react18 && npm run install:react19",
     "test": "cross-env NODE_OPTIONS=--experimental-vm-modules npx jest",
     "test:react17": "cross-env NODE_OPTIONS=--experimental-vm-modules REACT_VERSION=17 npx jest",
     "test:react18": "cross-env NODE_OPTIONS=--experimental-vm-modules REACT_VERSION=18 npx jest",
+    "test:react19": "cross-env NODE_OPTIONS=--experimental-vm-modules REACT_VERSION=19 npx jest",
     "test:dts": "npx check-dts tests/*.ts",
     "version": "npm run build && git add -A dist",
     "release": "npx @misonou/build-utils publish"

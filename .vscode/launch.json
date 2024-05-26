@@ -33,6 +33,21 @@
             "runtimeExecutable": "npx",
             "program": "jest",
             "args": ["--runInBand"]
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Launch Test (React 19)",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "env": {
+                "NODE_OPTIONS": "--experimental-vm-modules",
+                "REACT_VERSION": "19"
+            },
+            "runtimeExecutable": "npx",
+            "program": "jest",
+            "args": ["--runInBand"]
         }
     ]
 }
