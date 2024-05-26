@@ -29,27 +29,33 @@ function clearUnusedSingletons() {
     each(singletons, function (i, v) {
         if (clearUnusedSingletons.d & (v.d || 1)) {
             disposedSingletons.add(i);
-            mapRemove(singletons, i)(v.d === 2);
+            mapRemove(singletons, i)(i, v.d === 2);
         }
     });
     clearUnusedSingletons.d = 0;
 }
 
-function useSingletonEffectImpl(target, dispose) {
+function useSingletonEffectImpl(factory, dispose, deps) {
+    var target = useMemo(factory, deps);
     useEffect(function () {
         return function () {
             disposedSingletons.add(target);
-            dispose(true);
+            dispose(target, true);
         };
     }, [target]);
+    return target;
 }
 
-function useSingletonEffectImplDev(target, dispose) {
-    if (!singletons.has(target)) {
-        singletons.set(target, dispose);
-        clearUnusedSingletons.d = 0;
-        clearImmediateOnce(clearUnusedSingletons);
-    }
+function useSingletonEffectImplDev(factory, dispose, deps) {
+    var target = useMemo(function () {
+        var target = factory();
+        if (!singletons.has(target)) {
+            singletons.set(target, dispose);
+            clearUnusedSingletons.d = 0;
+            clearImmediateOnce(clearUnusedSingletons);
+        }
+        return target;
+    }, deps);
     useEffect(function () {
         var cb = function (flag) {
             singletons.get(target).d = flag ? 4 : 2;
@@ -59,6 +65,7 @@ function useSingletonEffectImplDev(target, dispose) {
         cb(true);
         return cb;
     }, [target]);
+    return target;
 }
 
 export function useAutoSetRef(value) {
@@ -242,11 +249,10 @@ export function isSingletonDisposed(target) {
 }
 
 export function useSingleton(factory, onDispose) {
-    const target = isFunction(factory) ? useMemo(factory, []) : useMemo(pipe.bind(0, factory), [factory]);
-    useSingletonEffect(target, function () {
+    var dispose = function (target) {
         (onDispose || target.dispose || noop).call(target);
-    });
-    return target;
+    };
+    return isFunction(factory) ? useSingletonEffect(factory, dispose, []) : useSingletonEffect(pipe.bind(0, factory), dispose, [factory]);
 }
 
 export function useErrorHandlerRef() {
@@ -316,8 +322,8 @@ export function useErrorHandler() {
 export function useUnloadEffect(callback) {
     callback = useMemoizedFunction(callback);
     unloadCallbacks.add(callback);
-    useSingletonEffect(callback, function (used) {
+    useSingletonEffect(pipe.bind(0, callback), function (target, used) {
         unloadCallbacks.delete(callback);
         return used && callback(false);
-    });
+    }, []);
 }
