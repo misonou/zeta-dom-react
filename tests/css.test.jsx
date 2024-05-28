@@ -81,6 +81,33 @@ describe('createBreakpointContext', () => {
         unmount();
     });
 
+    it('should return hook that trigger component update when specific state has changed', () => {
+        const { useBreakpoint } = createBreakpointContext({
+            foo: '(max-width: 700px)',
+            bar: '(min-width: 500px)',
+            baz: '(orientation: landscape)'
+        });
+        const { result, unmount } = renderHook(() => useBreakpoint('bar', 'baz'));
+        expect(result.current).toEqual({
+            foo: false,
+            bar: false,
+            baz: false
+        });
+
+        const setState = assertMatchMediaResult();
+        setState(true, false, false);
+        expect(result.all.length).toBe(1);
+
+        setState(false, false, true);
+        expect(result.all.length).toBe(2);
+        expect(result.current).toEqual({
+            foo: false,
+            bar: false,
+            baz: true
+        });
+        unmount();
+    });
+
     it('should update component once when multiple breakpoint states changed', () => {
         const { useBreakpoint } = createBreakpointContext({
             foo: '(max-width: 700px)',

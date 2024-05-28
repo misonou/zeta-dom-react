@@ -8,6 +8,12 @@ export interface BreakpointContext<T> {
      * @returns A dictionary which for each key returns whether the correspoding media query matches currently.
      */
     useBreakpoint(): { readonly [K in keyof T]: boolean; };
+    /**
+     * Triggers component rendering upon changes of conditions.
+     * @param keys A list of names of breakpoints that should trigger component rendering.
+     * @returns A dictionary which for each key returns whether the correspoding media query matches currently.
+     */
+    useBreakpoint<P extends keyof T>(...keys: P[]): { readonly [K in P]: boolean; };
 }
 
 /**

@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from "react";
-import { combineFn, defineObservableProperty, map, watch } from "zeta-dom/util";
+import { combineFn, defineObservableProperty, hasOwnProperty, makeArray, map, single, watch } from "zeta-dom/util";
 import { bind } from "zeta-dom/domUtil";
 import { useEventTrigger, useUpdateTrigger } from "./hooks.js";
 
@@ -32,10 +32,15 @@ export function createBreakpointContext(breakpoints) {
     return {
         breakpoints: Object.freeze(values),
         useBreakpoint: function () {
+            var deps = makeArray(arguments);
             var forceUpdate = useUpdateTrigger();
             useEffect(function () {
-                return watch(values, forceUpdate);
-            }, []);
+                return watch(values, function (e) {
+                    if (!deps.length || single(deps, hasOwnProperty.bind(0, e.newValues))) {
+                        forceUpdate();
+                    }
+                });
+            }, deps);
             return values;
         }
     };
