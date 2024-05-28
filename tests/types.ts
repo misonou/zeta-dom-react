@@ -1,6 +1,6 @@
 import { expectTypeOf } from "expect-type";
 import { Dispatch, DispatchWithoutAction, SetStateAction } from "react";
-import { useEagerReducer, useEagerState, useEventTrigger } from "../src/hooks";
+import { createDependency, useDependency, useEagerReducer, useEagerState, useEventTrigger } from "../src/hooks";
 import { ChoiceField, ChoiceFieldProps, ChoiceFieldState, ChoiceItem, DateField, DateFieldState, FieldType, FormContext, FormFieldProps, FormFieldState, FormObject, FormValidateEvent, FormValidationChangeEvent, MultiChoiceField, MultiChoiceFieldProps, MultiChoiceFieldState, NumericField, NumericFieldState, TextField, TextFieldState, ToggleField, ToggleFieldState, ValidationError, useFormContext, useFormField } from "../src/form";
 
 const _: unknown = {};
@@ -29,6 +29,17 @@ expectTypeOf(useEventTrigger(<FormContext>_, 'validate', (_1: FormValidateEvent)
 expectTypeOf(useEventTrigger(<FormContext>_, 'validate', (_1: FormValidateEvent) => 1, 1)).toEqualTypeOf<number>();
 expectTypeOf(useEventTrigger(<FormContext>_, 'validate validationChange', (_1: FormValidateEvent | FormValidationChangeEvent) => 1)).toEqualTypeOf<number | undefined>();
 expectTypeOf(useEventTrigger(<FormContext>_, 'validate validationChange', (_1: FormValidateEvent | FormValidationChangeEvent) => 1, 1)).toEqualTypeOf<number>();
+
+const dep1 = createDependency(0);
+const dep2 = createDependency<number>();
+expectTypeOf(useDependency(dep1)).toEqualTypeOf<number>();
+expectTypeOf(useDependency(dep2)).toEqualTypeOf<number | undefined>();
+// @ts-expect-error
+useDependency(dep1, 1);
+// @ts-expect-error
+useDependency(dep1.Provider);
+// @ts-expect-error
+useDependency(dep1.Provider, true);
 
 // -------------------------------------
 // form.d.ts

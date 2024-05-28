@@ -117,6 +117,27 @@ export interface AsyncContentState<T = any> extends Zeta.ZetaEventDispatcher<Asy
     abort(reason?: any): void;
 }
 
+export interface Dependency<T> {
+    /**
+     * Gets the provider object to be passed to {@link useDependency} for sending data to consumer.
+     */
+    readonly Provider: DependencyProvider<T>;
+}
+
+export interface DependencyProvider<T> {
+    /**
+     * @private Type inference purpose only.
+     */
+    θ1: T;
+}
+
+export interface DependencyProviderContext<T> {
+    /**
+     * Gets the data passed in.
+     */
+    readonly value: T;
+}
+
 /**
  * Similar to but unlike {@link React.useRef}, the given value is automatically set on each render.
  * @param value Value to be set on `current` property of the ref object.
@@ -350,3 +371,36 @@ export function useErrorHandler<T extends Element = HTMLElement>(...args: ErrorS
  * @param callback Callback to be invoked, receiving a boolean indicating if the page is still cached. The flag is always `false` if the component is being unmounted.
  */
 export function useUnloadEffect(callback: (persisted: boolean) => void): void;
+
+/**
+ * Creates a dependency that components can provide to and read data from.
+ */
+export function createDependency<T>(): Dependency<T | undefined>;
+
+/**
+ * Creates a dependency that components can provide to and read data from.
+ * @param defaultValue Default value to return when there is no component providing data.
+ */
+export function createDependency<T>(defaultValue: T): Dependency<T>;
+
+/**
+ * Gets data sent from producer.
+ * @param dependency A dependency object returned from {@link createDependency}.
+ */
+export function useDependency<T>(dependency: Dependency<T>): T;
+
+/**
+ * Provides data to consumer.
+ * @param dependency A dependency provider object returned from {@link Dependency.Provider}.
+ * @param value Data to be sent to consumer.
+ * @param deps If present, new data is only sent to consumer if the values in the list change.
+ */
+export function useDependency<T>(dependency: DependencyProvider<T>, value: T, deps?: React.DependencyList): DependencyProviderContext<T>;
+
+/**
+ * Provides data to consumer.
+ * @param dependency A dependency provider object returned from {@link Dependency.Provider}.
+ * @param factory A callback that computes data to be sent to consumer.
+ * @param deps If present, new data is only sent to consumer if the values in the list change.
+ */
+export function useDependency<T>(dependency: DependencyProvider<T>, factory: () => T, deps?: React.DependencyList): DependencyProviderContext<T>;

@@ -5,7 +5,7 @@ import { catchAsync, errorWithCode } from "zeta-dom/util";
 import { ZetaEventContainer } from "zeta-dom/events";
 import dom from "zeta-dom/dom";
 import { combineRef } from "src/util";
-import { isSingletonDisposed, useAsync, useDispose, useEagerReducer, useEagerState, useErrorHandler, useEventTrigger, useMemoizedFunction, useObservableProperty, useRefInitCallback, useSingleton, useUnloadEffect, useUpdateTrigger, useValueTrigger } from "src/hooks";
+import { createDependency, isSingletonDisposed, useAsync, useDependency, useDispose, useEagerReducer, useEagerState, useErrorHandler, useEventTrigger, useMemoizedFunction, useObservableProperty, useRefInitCallback, useSingleton, useUnloadEffect, useUpdateTrigger, useValueTrigger } from "src/hooks";
 import { delay, mockFn, verifyCalls, _, after } from "@misonou/test-utils";
 
 describe('useEagerReducer', () => {
@@ -963,5 +963,151 @@ describe('useUnloadEffect', () => {
         window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted: true }));
         expect(cb).toBeCalledTimes(2);
         unmount();
+    });
+});
+
+describe('useDependency', () => {
+    it('should return default value if there is no mounted producer', () => {
+        const dep = createDependency(1);
+        const { result } = renderHook(() => useDependency(dep));
+        expect(result.current).toBe(1);
+    });
+
+    it('should return value from earliest mounted producer', () => {
+        const dep = createDependency();
+        const Producer = ({ value }) => {
+            useDependency(dep.Provider, value);
+            return <></>;
+        };
+        const Wrapper = ({ children }) => {
+            const { value } = children.props.renderCallbackProps ?? children.props.hookProps;
+            return (<>
+                <Producer value={value} />
+                <Producer value={2} />
+                {children}
+            </>);
+        };
+        const { result, rerender } = renderHook(() => useDependency(dep), {
+            wrapper: Wrapper,
+            initialProps: { value: 1 }
+        });
+        expect(result.current).toBe(1);
+
+        rerender({ value: 3 });
+        expect(result.current).toBe(3);
+    });
+
+    it('should notify consumer if value changes', async () => {
+        const dep = createDependency();
+        const Producer = ({ value }) => {
+            useDependency(dep.Provider, value);
+            return <></>;
+        };
+        const Wrapper = ({ children }) => {
+            const { values } = children.props.renderCallbackProps ?? children.props.hookProps;
+            return (<>
+                {children}
+                {values.map(v => (<Producer key={v} value={v} />))}
+            </>);
+        };
+
+        const { result, rerender, waitForNextUpdate } = renderHook(() => useDependency(dep), {
+            wrapper: Wrapper,
+            initialProps: { values: [] }
+        });
+        expect(result.current).toBeUndefined();
+
+        rerender({ values: [1] });
+        await waitForNextUpdate();
+        expect(result.current).toBe(1);
+
+        rerender({ values: [1, 2] });
+        try {
+            const len = result.all.length;
+            await waitForNextUpdate({ timeout: 100 });
+            expect(result.all.length).toBe(len);
+        } catch { }
+        expect(result.current).toBe(1);
+
+        rerender({ values: [2] });
+        await waitForNextUpdate();
+        expect(result.current).toBe(2);
+
+        rerender({ values: [] });
+        await waitForNextUpdate();
+        expect(result.current).toBeUndefined();
+    });
+
+    it('should throw if first argument changed from consumer to provider', () => {
+        const dep = createDependency();
+        const { result, rerender } = renderHook(({ val }) => useDependency(val), {
+            initialProps: { val: dep }
+        });
+        expect(result.error).toBeUndefined();
+
+        try {
+            rerender({ val: dep.Provider })
+            expect(result.error).not.toBeUndefined();
+        } catch (e) {
+            expect(e).toBeInstanceOf(Error);
+        }
+        expect.assertions(2);
+    });
+
+    it('should throw if first argument changed from provider to consumer', () => {
+        const dep = createDependency();
+        const { result, rerender } = renderHook(({ val }) => useDependency(val), {
+            initialProps: { val: dep.Provider }
+        });
+        expect(result.error).toBeUndefined();
+
+        try {
+            rerender({ val: dep })
+            expect(result.error).not.toBeUndefined();
+        } catch (e) {
+            expect(e).toBeInstanceOf(Error);
+        }
+        expect.assertions(2);
+    });
+
+    it('should return correct values when a different dependency object is supplied', () => {
+        const dep1 = createDependency();
+        const dep2 = createDependency();
+        const Producer = ({ dep, value }) => {
+            useDependency(dep, value);
+            return <></>;
+        };
+        const Wrapper = ({ children }) => (<>
+            <Producer dep={dep1.Provider} value={1} />
+            <Producer dep={dep2.Provider} value={2} />
+            {children}
+        </>)
+        const { result, rerender } = renderHook(({ dep }) => useDependency(dep), {
+            wrapper: Wrapper,
+            initialProps: { dep: dep1 }
+        });
+        expect(result.current).toBe(1);
+
+        rerender({ dep: dep2 });
+        expect(result.current).toBe(2);
+    });
+
+    it('should send value to correct dependency when a different dependency object is supplied', async () => {
+        const dep1 = createDependency();
+        const dep2 = createDependency();
+        const Wrapper = ({ children }) => {
+            const { dep } = children.props.renderCallbackProps ?? children.props.hookProps;
+            useDependency(dep.Provider, 1);
+            return children;
+        };
+        const { result, rerender, waitForNextUpdate } = renderHook(() => [useDependency(dep1), useDependency(dep2)], {
+            wrapper: Wrapper,
+            initialProps: { dep: dep1 }
+        });
+        expect(result.current).toEqual([1, undefined]);
+
+        rerender({ dep: dep2 });
+        await waitForNextUpdate();
+        expect(result.current).toEqual([undefined, 1]);
     });
 });

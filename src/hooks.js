@@ -3,9 +3,10 @@ import dom, { reportError } from "zeta-dom/dom";
 import { notifyAsync } from "zeta-dom/domLock";
 import { bind } from "zeta-dom/domUtil";
 import { ZetaEventContainer } from "zeta-dom/events";
-import { always, any, catchAsync, clearImmediateOnce, combineFn, deferrable, delay, each, extend, fill, is, isArray, isErrorWithCode, isFunction, makeArray, makeAsync, map, mapRemove, noop, pipe, resolve, sameValueZero, setAdd, setImmediateOnce, watch } from "zeta-dom/util";
+import { always, any, arrRemove, catchAsync, clearImmediateOnce, combineFn, createPrivateStore, deferrable, defineObservableProperty, defineOwnProperty, delay, each, extend, fill, freeze, hasOwnProperty, is, isArray, isErrorWithCode, isFunction, makeArray, makeAsync, map, mapRemove, noop, pipe, resolve, sameValueZero, setAdd, setImmediateOnce, watch } from "zeta-dom/util";
 import { IS_DEV } from "./env.js";
 
+const _ = /*#__PURE__*/ createPrivateStore();
 const container = new ZetaEventContainer();
 const singletons = new Map();
 const disposedSingletons = new WeakSet();
@@ -326,4 +327,41 @@ export function useUnloadEffect(callback) {
         unloadCallbacks.delete(callback);
         return used && callback(false);
     }, []);
+}
+
+export function createDependency(defaultValue) {
+    var Provider = freeze({});
+    var dependency = { Provider };
+    var values = _(dependency, extend([], dependency));
+    defineObservableProperty(values, 'current', defaultValue, function () {
+        return values[0] ? values[0].value : defaultValue;
+    });
+    _(Provider, values);
+    return freeze(dependency);
+}
+
+export function useDependency(dependency, value, deps) {
+    var values = _(dependency);
+    if (dependency === values.Provider) {
+        var wrapper = useMemo(function () {
+            return {};
+        }, [values]);
+        if (values.indexOf(wrapper) < 0) {
+            values.push(wrapper);
+        }
+        useSingleton(wrapper, function () {
+            arrRemove(values, wrapper);
+            values.current = null;
+        });
+        useMemo(function () {
+            value = isFunction(value) ? value() : value;
+            if (wrapper.value !== value || !hasOwnProperty(wrapper, 'value')) {
+                defineOwnProperty(wrapper, 'value', value, true);
+                values.current = null;
+            }
+        }, [wrapper].concat(deps || [value]));
+        return wrapper;
+    } else {
+        return useObservableProperty(values, 'current');
+    }
 }
