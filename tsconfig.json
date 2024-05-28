@@ -1,16 +1,11 @@
 {
+    "extends": "./jsconfig",
     "compilerOptions": {
         "esModuleInterop": true,
         "jsx": "react-jsx",
-        "lib": ["ES2015"],
-        "strict": true,
-        "noImplicitAny": false,
-        "noImplicitThis": false,
-        "noImplicitReturns": false,
         "types": [
             "jquery",
             "zeta-dom"
         ]
-    },
-    "exclude": ["build", "node_modules"]
+    }
 }
