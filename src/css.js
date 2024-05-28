@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from "react";
-import { defineObservableProperty, each, watch } from "zeta-dom/util";
+import { combineFn, defineObservableProperty, map, watch } from "zeta-dom/util";
 import { bind } from "zeta-dom/domUtil";
 import { useEventTrigger, useUpdateTrigger } from "./hooks.js";
 
@@ -16,14 +16,19 @@ export function useMediaQuery(query) {
  */
 export function createBreakpointContext(breakpoints) {
     var values = {};
-    watch(values, true);
-    each(breakpoints, function (i, v) {
+    var handleChanges = watch(values, true);
+    var updateAll = combineFn(map(breakpoints, function (v, i) {
         var mq = matchMedia(v);
         var setValue = defineObservableProperty(values, i, mq.matches, true);
         bind(mq, 'change', function () {
-            setValue(mq.matches);
+            if (mq.matches !== values[i]) {
+                handleChanges(updateAll);
+            }
         });
-    });
+        return function () {
+            return setValue(mq.matches);
+        };
+    }));
     return {
         breakpoints: Object.freeze(values),
         useBreakpoint: function () {
