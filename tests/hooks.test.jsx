@@ -216,6 +216,12 @@ describe('useEventTrigger', () => {
         expect(result.current).toBe('foo');
         unmount();
     });
+
+    it('should set initial state from callback', () => {
+        const { result, unmount } = renderHook(() => useEventTrigger(window, 'test', () => 'bar', () => 'foo'));
+        expect(result.current).toBe('foo');
+        unmount();
+    });
 });
 
 describe('useMemoizedFunction', () => {
