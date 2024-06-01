@@ -182,8 +182,9 @@ export function useUpdateTrigger(): () => void;
  * Creates a callback that forcibly triggers re-render of a component
  * when it is called with a value different from that passed to the hook in last render.
  * @param value Value which returned callback will compare to.
+ * @param comparer An optional callback that compares if two values are equal. Component will be updated only when it returns `false`. Default is `Object.is`.
  */
-export function useValueTrigger<T>(value: T): (newValue: T) => void;
+export function useValueTrigger<T>(value: T, comparer?: (currentValue: T, value: T) => boolean): React.Dispatch<T>;
 
 /**
  * Triggers re-render when specific event is emitted.

@@ -122,6 +122,22 @@ describe('useValueTrigger', () => {
         expect(result.all.length).toBe(1);
         unmount();
     });
+
+    it('should invoke custom equality comparer', () => {
+        const cb = mockFn((a, b) => a === b);
+        const { result, unmount } = renderHook(() => useValueTrigger(1, cb));
+        expect(cb).not.toBeCalled();
+
+        act(() => result.current(2));
+        expect(cb).toHaveBeenLastCalledWith(1, 2);
+        expect(result.all.length).toBe(2);
+
+        cb.mockReturnValueOnce(true);
+        act(() => result.current(3));
+        expect(cb).toHaveBeenLastCalledWith(1, 3);
+        expect(result.all.length).toBe(2);
+        unmount();
+    });
 });
 
 describe('useEventTrigger', () => {

@@ -102,9 +102,9 @@ export function useUpdateTrigger() {
     })[1];
 }
 
-export function useValueTrigger(value) {
+export function useValueTrigger(value, comparer) {
     var state = useEagerReducer(function (ref, value) {
-        return sameValue(value, ref.current) ? ref : {};
+        return (comparer || sameValue)(ref.current, value) ? ref : { current: value };
     }, {});
     state[0].current = value;
     return state[1];
