@@ -1,4 +1,4 @@
-/*! zeta-dom-react v0.5.5 | (c) misonou | https://misonou.github.io */
+/*! zeta-dom-react v0.5.6 | (c) misonou | https://misonou.github.io */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory(require("zeta-dom"), require("react"), require("react-dom"));
@@ -117,6 +117,7 @@ __webpack_require__.d(__webpack_exports__, {
   combineRef: () => (/* reexport */ combineRef),
   combineValidators: () => (/* reexport */ combineValidators),
   createBreakpointContext: () => (/* reexport */ createBreakpointContext),
+  createDependency: () => (/* reexport */ createDependency),
   domEventRef: () => (/* reexport */ domEventRef),
   innerTextOrHTML: () => (/* reexport */ innerTextOrHTML),
   isSingletonDisposed: () => (/* reexport */ isSingletonDisposed),
@@ -126,6 +127,7 @@ __webpack_require__.d(__webpack_exports__, {
   useAsync: () => (/* reexport */ useAsync),
   useAutoSetRef: () => (/* reexport */ useAutoSetRef),
   useDataView: () => (/* reexport */ useDataView),
+  useDependency: () => (/* reexport */ useDependency),
   useDispose: () => (/* reexport */ useDispose),
   useEagerReducer: () => (/* reexport */ useEagerReducer),
   useEagerState: () => (/* reexport */ useEagerState),
@@ -153,6 +155,7 @@ var external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_zeta_ = __we
 var _lib$util = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_zeta_.util,
   always = _lib$util.always,
   any = _lib$util.any,
+  arrRemove = _lib$util.arrRemove,
   catchAsync = _lib$util.catchAsync,
   clearImmediateOnce = _lib$util.clearImmediateOnce,
   combineFn = _lib$util.combineFn,
@@ -161,6 +164,7 @@ var _lib$util = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_
   util_define = _lib$util.define,
   defineGetterProperty = _lib$util.defineGetterProperty,
   defineObservableProperty = _lib$util.defineObservableProperty,
+  defineOwnProperty = _lib$util.defineOwnProperty,
   definePrototype = _lib$util.definePrototype,
   delay = _lib$util.delay,
   each = _lib$util.each,
@@ -254,6 +258,7 @@ var IS_DEV = extraRender;
 
 
 
+var _ = /*#__PURE__*/createPrivateStore();
 var container = new EventContainer();
 var singletons = new Map();
 var disposedSingletons = new WeakSet();
@@ -274,25 +279,31 @@ function clearUnusedSingletons() {
   each(singletons, function (i, v) {
     if (clearUnusedSingletons.d & (v.d || 1)) {
       disposedSingletons.add(i);
-      mapRemove(singletons, i)(v.d === 2);
+      mapRemove(singletons, i)(i, v.d === 2);
     }
   });
   clearUnusedSingletons.d = 0;
 }
-function useSingletonEffectImpl(target, dispose) {
+function useSingletonEffectImpl(factory, dispose, deps) {
+  var target = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useMemo)(factory, deps);
   (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
     return function () {
       disposedSingletons.add(target);
-      dispose(true);
+      dispose(target, true);
     };
   }, [target]);
+  return target;
 }
-function useSingletonEffectImplDev(target, dispose) {
-  if (!singletons.has(target)) {
-    singletons.set(target, dispose);
-    clearUnusedSingletons.d = 0;
-    clearImmediateOnce(clearUnusedSingletons);
-  }
+function useSingletonEffectImplDev(factory, dispose, deps) {
+  var target = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useMemo)(function () {
+    var target = factory();
+    if (!singletons.has(target)) {
+      singletons.set(target, dispose);
+      clearUnusedSingletons.d = 0;
+      clearImmediateOnce(clearUnusedSingletons);
+    }
+    return target;
+  }, deps);
   (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
     var cb = function cb(flag) {
       singletons.get(target).d = flag ? 4 : 2;
@@ -302,6 +313,7 @@ function useSingletonEffectImplDev(target, dispose) {
     cb(true);
     return cb;
   }, [target]);
+  return target;
 }
 function useAutoSetRef(value) {
   var ref = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useRef)();
@@ -332,9 +344,11 @@ function useUpdateTrigger() {
     return {};
   })[1];
 }
-function useValueTrigger(value) {
+function useValueTrigger(value, comparer) {
   var state = useEagerReducer(function (ref, value) {
-    return sameValue(value, ref.current) ? ref : {};
+    return (comparer || sameValue)(ref.current, value) ? ref : {
+      current: value
+    };
   }, {});
   state[0].current = value;
   return state[1];
@@ -488,11 +502,10 @@ function isSingletonDisposed(target) {
   return disposedSingletons.has(target);
 }
 function useSingleton(factory, onDispose) {
-  var target = isFunction(factory) ? (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useMemo)(factory, []) : (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useMemo)(pipe.bind(0, factory), [factory]);
-  useSingletonEffect(target, function () {
+  var dispose = function dispose(target) {
     (onDispose || target.dispose || noop).call(target);
-  });
-  return target;
+  };
+  return isFunction(factory) ? useSingletonEffect(factory, dispose, []) : useSingletonEffect(pipe.bind(0, factory), dispose, [factory]);
 }
 function useErrorHandlerRef() {
   return useErrorHandler.apply(this, arguments).ref;
@@ -563,10 +576,47 @@ function useErrorHandler() {
 function useUnloadEffect(callback) {
   callback = useMemoizedFunction(callback);
   unloadCallbacks.add(callback);
-  useSingletonEffect(callback, function (used) {
+  useSingletonEffect(pipe.bind(0, callback), function (target, used) {
     unloadCallbacks["delete"](callback);
     return used && callback(false);
+  }, []);
+}
+function createDependency(defaultValue) {
+  var Provider = freeze({});
+  var dependency = {
+    Provider: Provider
+  };
+  var values = _(dependency, extend([], dependency));
+  defineObservableProperty(values, 'current', defaultValue, function () {
+    return values[0] ? values[0].value : defaultValue;
   });
+  _(Provider, values);
+  return freeze(dependency);
+}
+function useDependency(dependency, value, deps) {
+  var values = _(dependency);
+  if (dependency === values.Provider) {
+    var wrapper = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useMemo)(function () {
+      return {};
+    }, [values]);
+    if (values.indexOf(wrapper) < 0) {
+      values.push(wrapper);
+    }
+    useSingleton(wrapper, function () {
+      arrRemove(values, wrapper);
+      values.current = null;
+    });
+    (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useMemo)(function () {
+      value = isFunction(value) ? value() : value;
+      if (wrapper.value !== value || !util_hasOwnProperty(wrapper, 'value')) {
+        defineOwnProperty(wrapper, 'value', value, true);
+        values.current = null;
+      }
+    }, [wrapper].concat(deps || [value]));
+    return wrapper;
+  } else {
+    return useObservableProperty(values, 'current');
+  }
 }
 ;// CONCATENATED MODULE: ./src/css.js
 
@@ -586,21 +636,31 @@ function useMediaQuery(query) {
  */
 function createBreakpointContext(breakpoints) {
   var values = {};
-  watch(values, true);
-  each(breakpoints, function (i, v) {
+  var handleChanges = watch(values, true);
+  var updateAll = combineFn(map(breakpoints, function (v, i) {
     var mq = matchMedia(v);
     var setValue = defineObservableProperty(values, i, mq.matches, true);
     bind(mq, 'change', function () {
-      setValue(mq.matches);
+      if (mq.matches !== values[i]) {
+        handleChanges(updateAll);
+      }
     });
-  });
+    return function () {
+      return setValue(mq.matches);
+    };
+  }));
   return {
     breakpoints: Object.freeze(values),
     useBreakpoint: function useBreakpoint() {
+      var deps = makeArray(arguments);
       var forceUpdate = useUpdateTrigger();
       (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
-        return watch(values, forceUpdate);
-      }, []);
+        return watch(values, function (e) {
+          if (!deps.length || single(deps, util_hasOwnProperty.bind(0, e.newValues))) {
+            forceUpdate();
+          }
+        });
+      }, deps);
       return values;
     }
   };
@@ -628,7 +688,7 @@ function useViewState(key) {
 
 
 
-var _ = createPrivateStore();
+var dataView_ = createPrivateStore();
 var proto = DataView.prototype;
 var emitter = new EventContainer();
 function compare(a, b) {
@@ -645,7 +705,7 @@ function compare(a, b) {
   return a - b;
 }
 function setPageCount(dataView, pageSize, itemCount) {
-  _(dataView).setPageCount(Math.ceil(itemCount / (pageSize || itemCount || 1)));
+  dataView_(dataView).setPageCount(Math.ceil(itemCount / (pageSize || itemCount || 1)));
 }
 function DataView(filters, sortBy, sortOrder, pageSize) {
   var self = this;
@@ -657,7 +717,7 @@ function DataView(filters, sortBy, sortOrder, pageSize) {
     pageIndex: 0,
     pageSize: pageSize === undefined ? DataView.pageSize : pageSize
   };
-  var state = _(self, {
+  var state = dataView_(self, {
     setPageCount: defineObservableProperty(self, 'pageCount', 0, true),
     defaults: defaults,
     items: []
@@ -703,7 +763,7 @@ definePrototype(DataView, {
   },
   getView: function getView(items, callback) {
     var self = this;
-    var state = _(self);
+    var state = dataView_(self);
     var pageIndex = self.pageIndex || 0;
     var pageSize = self.pageSize || 0;
     if (items !== state.items) {
@@ -757,14 +817,14 @@ definePrototype(DataView, {
   },
   toJSON: function toJSON() {
     var self = this;
-    return extend(pick(self, keys(_(self).defaults)), {
+    return extend(pick(self, keys(dataView_(self).defaults)), {
       filters: extend({}, self.filters),
       itemCount: self.itemCount
     });
   },
   reset: function reset(values) {
     var self = this;
-    var state = _(self);
+    var state = dataView_(self);
     delete state.itemCount;
     values = values || state.defaults;
     state.callback(function () {
@@ -776,7 +836,7 @@ definePrototype(DataView, {
 defineObservableProperty(proto, 'sortBy');
 defineObservableProperty(proto, 'sortOrder');
 defineObservableProperty(proto, 'itemCount', 0, function (newValue) {
-  _(this).itemCount = newValue;
+  dataView_(this).itemCount = newValue;
   setPageCount(this, this.pageSize, newValue);
   return newValue || 0;
 });
@@ -785,7 +845,7 @@ defineObservableProperty(proto, 'pageSize', 0, function (newValue) {
   return newValue;
 });
 defineObservableProperty(proto, 'pageIndex', 0, function (newValue) {
-  return Math.max(0, isUndefinedOrNull(_(this).itemCount) ? newValue : Math.min(newValue, this.pageCount - 1));
+  return Math.max(0, isUndefinedOrNull(dataView_(this).itemCount) ? newValue : Math.min(newValue, this.pageCount - 1));
 });
 defineObservableProperty(proto, 'filters', {}, function (newValue, oldValue) {
   return extend(oldValue || {}, newValue);
