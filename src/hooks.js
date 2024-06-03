@@ -175,6 +175,7 @@ export function useAsync(init, deps, debounce) {
                 var result = makeAsync(init)(controller.signal);
                 var promise = always(result, function (resolved, value) {
                     if (currentController === controller) {
+                        currentController = null;
                         if (resolved) {
                             extend(state, { loading: false, value: value });
                             container.emit('load', state, { data: value });

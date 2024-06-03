@@ -570,6 +570,21 @@ describe('useAsync', () => {
         expect(onabort).toBeCalledTimes(1);
     });
 
+    it('should not send abort signal the previous operation has completed', async () => {
+        const onabort = mockFn();
+        const cb = mockFn((signal) => {
+            signal.onabort = onabort;
+            return delay(100);
+        });
+        const { result, unmount } = renderHook(() => useAsync(cb, false));
+
+        await result.current[1].refresh();
+        result.current[1].abort();
+        result.current[1].refresh();
+        expect(onabort).not.toBeCalled();
+        unmount();
+    });
+
     it('should not cause unhandledrejection event when error is handled', async () => {
         const cb = mockFn(() => Promise.reject(new Error()));
         const { result, rerender } = renderHook(({ deps }) => useAsync(cb, deps, 100), {
