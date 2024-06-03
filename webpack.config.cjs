@@ -3,7 +3,9 @@ const path = require('path');
 const paths = getPaths();
 
 module.exports = {
-    ...createBaseWebpackConfig(),
+    ...createBaseWebpackConfig({
+        hoistImports: ['react']
+    }),
     entry: {
         'zeta-dom-react': './src/entry.js',
         'zeta-dom-react.min': './src/entry.js',
