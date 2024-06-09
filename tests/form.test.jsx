@@ -1363,6 +1363,16 @@ describe('useFormField - choice', () => {
         expect(result.current.value).toBe('');
     });
 
+    it('should keep unknown value if items is not specified', () => {
+        const { result } = renderHook(() => useFormField(ChoiceField, {}, 'bar'));
+        expect(result.current.value).toBe('bar');
+        expect(result.current.selectedIndex).toBe(-1);
+
+        act(() => result.current.setValue('baz'));
+        expect(result.current.value).toBe('baz');
+        expect(result.current.selectedIndex).toBe(-1);
+    });
+
     it('should return newly selected item and index after update', () => {
         const { result } = renderHook(() => useFormField('choice', { items: ['foo', 'bar'] }, ''));
         act(() => result.current.setValue('bar'));

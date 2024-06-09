@@ -23,7 +23,7 @@ export interface ChoiceFieldProps<T extends ChoiceItem = ChoiceItem> extends For
      * A list of items as choices.
      * Primitive values in the list will be normalized as {@link ChoiceItem}.
      */
-    items: readonly ChoiceFieldPropsItem<T>[];
+    items?: readonly ChoiceFieldPropsItem<T>[];
     /**
      * Whether the field can be empty, i.e. none of the choices are selected.
      */
