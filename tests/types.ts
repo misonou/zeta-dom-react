@@ -68,8 +68,18 @@ declare class CustomField implements FieldType<FormFieldProps<string[]>, CustomF
     postHook(state: FormFieldState<string[]>, props: FormFieldProps<string[], string[]>): CustomFieldState;
 }
 
+expectTypeOf(useFormContext().data).toEqualTypeOf<Partial<Zeta.Dictionary<any>>>();
 expectTypeOf(useFormContext(<A>_).data).toEqualTypeOf<Partial<A>>();
+expectTypeOf(useFormContext(<A>_, {}).data).toEqualTypeOf<Partial<A>>();
 expectTypeOf(useFormContext(() => <A>_).data).toEqualTypeOf<Partial<A>>();
+expectTypeOf(useFormContext(() => <A>_, {}).data).toEqualTypeOf<Partial<A>>();
+
+expectTypeOf(useFormContext('key').data).toEqualTypeOf<Partial<Zeta.Dictionary<any>>>();
+expectTypeOf(useFormContext('key', <A>_).data).toEqualTypeOf<Partial<A>>();
+expectTypeOf(useFormContext('key', <A>_, {}).data).toEqualTypeOf<Partial<A>>();
+expectTypeOf(useFormContext('key', () => <A>_).data).toEqualTypeOf<Partial<A>>();
+expectTypeOf(useFormContext('key', () => <A>_, {}).data).toEqualTypeOf<Partial<A>>();
+expectTypeOf(useFormContext('key', { autoPersist: true }).data).toEqualTypeOf<Partial<{ autoPersist: boolean }>>();
 
 // Value and specific members
 
