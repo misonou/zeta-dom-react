@@ -96,6 +96,13 @@ beforeEach(() => {
 });
 
 describe('useFormContext', () => {
+    it('should not treat data object with length property as array-like', async () => {
+        const initialData = { length: 0, foo: 'foo' };
+        const { form, unmount } = createFormContext(initialData);
+        expect(form.data).toEqual(initialData);
+        unmount();
+    });
+
     it('should accept callback to generate initial form data', async () => {
         const cb = mockFn().mockReturnValue({ foo: 1 });
         const { form, unmount } = createFormContext(cb);
@@ -2585,6 +2592,17 @@ describe('FormContext#reset', () => {
 
         act(() => form.reset());
         expect(result.current.value).toBe('baz');
+        unmount();
+    });
+
+    it('should not treat data object with length property as array-like', async () => {
+        const initialData = { length: 0, foo: 'foo' };
+        const { form, unmount } = createFormContext(initialData);
+        form.data.length = 1;
+        expect(form.data.length).toBe(1);
+
+        form.reset();
+        expect(form.data).toEqual(initialData);
         unmount();
     });
 

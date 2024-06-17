@@ -231,9 +231,9 @@ function createDataObject(context, initialData) {
         set: setValue,
         delete: deleteValue
     });
-    each(initialData, function (i, v) {
-        setValue(i, v);
-    });
+    for (var i in initialData) {
+        setValue(i, initialData[i]);
+    }
     return proxy;
 }
 
@@ -501,9 +501,10 @@ definePrototype(FormContext, {
         for (var i in self.data) {
             dict.delete(i);
         }
-        each(data || state.initialData, function (i, v) {
-            dict.set(i, v);
-        });
+        data = data || state.initialData;
+        for (var i in data) {
+            dict.set(i, data[i]);
+        }
         each(state.fields, function (i, v) {
             var prop = resolvePathInfo(self, v.path);
             if (v.controlled) {
