@@ -1131,6 +1131,18 @@ describe('useFormField - multiChoice', () => {
         expect(prevValue).toEqual([]);
     });
 
+    it('should not touch the previous array for named field', () => {
+        const { wrapper, unmount } = createFormContext();
+        const { result } = renderHook(() => useFormField(MultiChoiceField, { name: 'foo', items: ['foo', 'bar'] }, []), { wrapper });
+        const prevValue = result.current.value;
+        expect(result.current.value).toEqual([]);
+
+        act(() => result.current.toggleValue('foo'));
+        expect(result.current.value).not.toBe(prevValue);
+        expect(prevValue).toEqual([]);
+        unmount();
+    });
+
     it('should filter unknown items if allowCustomValues is falsy', () => {
         const { result, rerender } = renderHook((props) => useFormField(MultiChoiceField, { items: props?.items || ['foo', 'bar'] }, []));
         act(() => result.current.toggleValue('baz'));

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useMemoizedFunction } from "../hooks.js";
 import { definePrototype, either, extend, freeze, isArray, isUndefinedOrNull, makeArray, splice } from "zeta-dom/util";
 import ChoiceField from "./ChoiceField.js";
@@ -35,9 +35,12 @@ definePrototype(MultiChoiceField, {
                 });
             }
         });
+        var value = useMemo(function () {
+            return makeArray(state.value);
+        }, [state.version]);
         useEffect(() => {
             if (!allowCustomValues) {
-                var cur = makeArray(state.value);
+                var cur = makeArray(value);
                 var arr = splice(cur, isUnknown);
                 if (arr.length) {
                     state.setValue(cur);
@@ -45,6 +48,7 @@ definePrototype(MultiChoiceField, {
             }
         });
         return extend(state, {
+            value: value,
             items: items,
             toggleValue: toggleValue
         });
