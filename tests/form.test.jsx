@@ -930,6 +930,20 @@ describe('useFormField', () => {
         expect(result.all.length).toBe(2);
         unmount();
     });
+
+    it('should return a different version number when data change occurs in data object', () => {
+        const { form, wrapper, unmount } = createFormContext();
+        const { result } = renderHook(() => useFormField({ name: 'foo' }, {}), { wrapper });
+
+        let version = result.current.version;
+        act(() => result.current.setValue({ foo: 1 }));
+        expect(result.current.version).toBeGreaterThan(version);
+
+        version = result.current.version;
+        act(() => form.data.foo.foo = 2);
+        expect(result.current.version).toBeGreaterThan(version);
+        unmount();
+    });
 });
 
 describe('useFormField - text', () => {

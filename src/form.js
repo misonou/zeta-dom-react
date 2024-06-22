@@ -292,7 +292,6 @@ function createFieldState(initialValue) {
         }
     });
     watch(field, 'error', function (v) {
-        field.version++;
         if (field.key) {
             emitter.emit('validationChange', field.form, {
                 name: field.path,
@@ -638,21 +637,20 @@ export function useFormField(type, props, defaultValue, prop) {
             field.value = dict[name];
         }
     }
-    const state1 = (preset.postHook || pipe)({
+    useObservableProperty(field, 'error');
+    useObservableProperty(field, 'version');
+    return (preset.postHook || pipe)({
         form: form,
         key: key,
         path: field.path,
         value: field.value,
         error: String(field.error),
+        version: field.version,
         setValue: field.setValue,
         setError: field.setError,
         validate: field.validate,
         elementRef: field.elementRef
     }, props);
-    state1.value = field.value;
-    state1.error = String(field.error);
-    useObservableProperty(field, 'version');
-    return state1;
 }
 
 export function combineValidators() {

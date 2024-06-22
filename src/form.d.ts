@@ -261,6 +261,10 @@ export interface FormFieldState<T = any> {
      */
     readonly error: string;
     /**
+     * Gets a version number that changes whenever value or nested values changes.
+     */
+    readonly version: number;
+    /**
      * Sets field value.
      */
     readonly setValue: React.Dispatch<React.SetStateAction<T>>;
