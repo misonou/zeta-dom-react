@@ -1,4 +1,4 @@
-/*! zeta-dom-react v0.5.6 | (c) misonou | https://misonou.github.io */
+/*! zeta-dom-react v0.5.7 | (c) misonou | https://misonou.github.io */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory(require("zeta-dom"), require("react"), require("react-dom"));
@@ -8,7 +8,7 @@
 		exports["zeta-dom-react"] = factory(require("zeta-dom"), require("react"), require("react-dom"));
 	else
 		root["zeta"] = root["zeta"] || {}, root["zeta"]["react"] = factory(root["zeta"], root["React"], root["ReactDOM"]);
-})(self, (__WEBPACK_EXTERNAL_MODULE__231__, __WEBPACK_EXTERNAL_MODULE__12__, __WEBPACK_EXTERNAL_MODULE__311__) => {
+})(self, (__WEBPACK_EXTERNAL_MODULE__231__, __WEBPACK_EXTERNAL_MODULE__12__, __WEBPACK_EXTERNAL_MODULE__33__) => {
 return /******/ (() => { // webpackBootstrap
 /******/ 	"use strict";
 /******/ 	var __webpack_modules__ = ({
@@ -20,10 +20,10 @@ module.exports = __WEBPACK_EXTERNAL_MODULE__12__;
 
 /***/ }),
 
-/***/ 311:
+/***/ 33:
 /***/ ((module) => {
 
-module.exports = __WEBPACK_EXTERNAL_MODULE__311__;
+module.exports = __WEBPACK_EXTERNAL_MODULE__33__;
 
 /***/ }),
 
@@ -204,8 +204,25 @@ var _lib$util = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_
   _throws = _lib$util["throws"],
   watch = _lib$util.watch;
 
-// EXTERNAL MODULE: external {"commonjs":"react","commonjs2":"react","amd":"react","root":["React"]}
+// EXTERNAL MODULE: external {"commonjs":"react","commonjs2":"react","amd":"react","root":"React"}
 var external_commonjs_react_commonjs2_react_amd_react_root_React_ = __webpack_require__(12);
+;// CONCATENATED MODULE: ./|umd|/react.js
+
+var Fragment = external_commonjs_react_commonjs2_react_amd_react_root_React_.Fragment,
+  StrictMode = external_commonjs_react_commonjs2_react_amd_react_root_React_.StrictMode,
+  Suspense = external_commonjs_react_commonjs2_react_amd_react_root_React_.Suspense,
+  createContext = external_commonjs_react_commonjs2_react_amd_react_root_React_.createContext,
+  createElement = external_commonjs_react_commonjs2_react_amd_react_root_React_.createElement,
+  forwardRef = external_commonjs_react_commonjs2_react_amd_react_root_React_.forwardRef,
+  lazy = external_commonjs_react_commonjs2_react_amd_react_root_React_.lazy,
+  useCallback = external_commonjs_react_commonjs2_react_amd_react_root_React_.useCallback,
+  useContext = external_commonjs_react_commonjs2_react_amd_react_root_React_.useContext,
+  useEffect = external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect,
+  useMemo = external_commonjs_react_commonjs2_react_amd_react_root_React_.useMemo,
+  useReducer = external_commonjs_react_commonjs2_react_amd_react_root_React_.useReducer,
+  useRef = external_commonjs_react_commonjs2_react_amd_react_root_React_.useRef,
+  useState = external_commonjs_react_commonjs2_react_amd_react_root_React_.useState;
+
 ;// CONCATENATED MODULE: ./|umd|/zeta-dom/domUtil.js
 
 var domUtil_lib$util = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_zeta_.util,
@@ -230,8 +247,8 @@ var _lib$dom = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_z
 
 var EventContainer = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_zeta_.EventContainer;
 
-// EXTERNAL MODULE: external {"commonjs":"react-dom","commonjs2":"react-dom","amd":"react-dom","root":["ReactDOM"]}
-var external_commonjs_react_dom_commonjs2_react_dom_amd_react_dom_root_ReactDOM_ = __webpack_require__(311);
+// EXTERNAL MODULE: external {"commonjs":"react-dom","commonjs2":"react-dom","amd":"react-dom","root":"ReactDOM"}
+var external_commonjs_react_dom_commonjs2_react_dom_amd_react_dom_root_ReactDOM_ = __webpack_require__(33);
 ;// CONCATENATED MODULE: ./src/env.umd.js
 
 
@@ -242,7 +259,7 @@ external_commonjs_react_dom_commonjs2_react_dom_amd_react_dom_root_ReactDOM_.flu
     return null;
   }
   var container = document.createElement('div');
-  var element = /*#__PURE__*/(0,external_commonjs_react_commonjs2_react_amd_react_root_React_.createElement)(external_commonjs_react_commonjs2_react_amd_react_root_React_.StrictMode, null, /*#__PURE__*/(0,external_commonjs_react_commonjs2_react_amd_react_root_React_.createElement)(TestComponent));
+  var element = /*#__PURE__*/createElement(StrictMode, null, /*#__PURE__*/createElement(TestComponent));
   if (external_commonjs_react_dom_commonjs2_react_dom_amd_react_dom_root_ReactDOM_.createRoot) {
     external_commonjs_react_dom_commonjs2_react_dom_amd_react_dom_root_ReactDOM_.createRoot(container).render(element);
   } else {
@@ -285,8 +302,8 @@ function clearUnusedSingletons() {
   clearUnusedSingletons.d = 0;
 }
 function useSingletonEffectImpl(factory, dispose, deps) {
-  var target = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useMemo)(factory, deps);
-  (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
+  var target = useMemo(factory, deps);
+  useEffect(function () {
     return function () {
       disposedSingletons.add(target);
       dispose(target, true);
@@ -295,7 +312,7 @@ function useSingletonEffectImpl(factory, dispose, deps) {
   return target;
 }
 function useSingletonEffectImplDev(factory, dispose, deps) {
-  var target = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useMemo)(function () {
+  var target = useMemo(function () {
     var target = factory();
     if (!singletons.has(target)) {
       singletons.set(target, dispose);
@@ -304,7 +321,7 @@ function useSingletonEffectImplDev(factory, dispose, deps) {
     }
     return target;
   }, deps);
-  (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
+  useEffect(function () {
     var cb = function cb(flag) {
       singletons.get(target).d = flag ? 4 : 2;
       clearUnusedSingletons.d |= flag ? 1 : 2;
@@ -316,12 +333,12 @@ function useSingletonEffectImplDev(factory, dispose, deps) {
   return target;
 }
 function useAutoSetRef(value) {
-  var ref = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useRef)();
+  var ref = useRef();
   ref.current = value;
   return ref;
 }
 function useEagerReducer(reducer, init) {
-  var state = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)(function () {
+  var state = useState(function () {
     var value = isFunction(init) ? init() : init;
     var fn = function fn(newValue) {
       newValue = reducer(value, newValue);
@@ -340,7 +357,7 @@ function useEagerState(init) {
   }, init);
 }
 function useUpdateTrigger() {
-  return (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useReducer)(function () {
+  return useReducer(function () {
     return {};
   })[1];
 }
@@ -355,7 +372,7 @@ function useValueTrigger(value, comparer) {
 }
 function useEventTrigger(obj, event, selector, initialState) {
   var state = useEagerState(initialState);
-  (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
+  useEffect(function () {
     var callback = function callback(e) {
       state[1](selector ? selector.bind(this, e) : {});
     };
@@ -365,14 +382,14 @@ function useEventTrigger(obj, event, selector, initialState) {
 }
 function useMemoizedFunction(callback) {
   var ref = useAutoSetRef(callback);
-  return (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useCallback)(function () {
+  return useCallback(function () {
     return (isFunction(ref.current) || noop).apply(this, arguments);
   }, []);
 }
 function useObservableProperty(obj, key) {
   var value = obj[key];
   var notifyChange = useValueTrigger(value);
-  (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
+  useEffect(function () {
     notifyChange(obj[key]);
     return watch(obj, key, notifyChange);
   }, [obj, key]);
@@ -420,6 +437,7 @@ function useAsync(init, deps, debounce) {
         var result = makeAsync(init)(controller.signal);
         var promise = always(result, function (resolved, value) {
           if (currentController === controller) {
+            currentController = null;
             if (resolved) {
               extend(state, {
                 loading: false,
@@ -459,14 +477,14 @@ function useAsync(init, deps, debounce) {
   });
   deps = [deps !== false].concat(isArray(deps) || []);
   init = useMemoizedFunction(init);
-  (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
+  useEffect(function () {
     if (deps[0]) {
       // keep call to refresh in useEffect to avoid double invocation
       // in strict mode in development environment
       setImmediateOnce(state.refresh);
     }
   }, deps);
-  (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useMemo)(function () {
+  useMemo(function () {
     if (deps[0] && !debounce) {
       state.loading = true;
     }
@@ -476,7 +494,7 @@ function useAsync(init, deps, debounce) {
 }
 function useRefInitCallback(init) {
   var args = makeArray(arguments);
-  var set = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)(new WeakSet())[0];
+  var set = useState(new WeakSet())[0];
   return function (v) {
     if (v && setAdd(set, v)) {
       args[0] = v;
@@ -485,7 +503,7 @@ function useRefInitCallback(init) {
   };
 }
 function useDispose() {
-  var dispose = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)(function () {
+  var dispose = useState(function () {
     var callbacks = [function () {
       callbacks.splice(0, callbacks.length - 1);
     }];
@@ -493,7 +511,7 @@ function useDispose() {
       push: callbacks.splice.bind(callbacks, -1, 0)
     });
   })[0];
-  (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
+  useEffect(function () {
     return dispose;
   }, [dispose]);
   return dispose;
@@ -511,10 +529,10 @@ function useErrorHandlerRef() {
   return useErrorHandler.apply(this, arguments).ref;
 }
 function useErrorHandler() {
-  var reemitting = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useRef)(false);
-  var _ref = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useRef)(null);
+  var reemitting = useRef(false);
+  var _ref = useRef(null);
   var args = makeArray(arguments);
-  var handler = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)(function () {
+  var handler = useState(function () {
     return {
       ref: function ref(element) {
         _ref.current = element;
@@ -544,7 +562,7 @@ function useErrorHandler() {
       }
     };
   })[0];
-  var reemitError = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useCallback)(function (error) {
+  var reemitError = useCallback(function (error) {
     try {
       reemitting.current = true;
       return reportError(error, _ref.current);
@@ -552,7 +570,7 @@ function useErrorHandler() {
       reemitting.current = false;
     }
   }, []);
-  var catchError = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useCallback)(function (error) {
+  var catchError = useCallback(function (error) {
     return container.emit('error', handler, {
       error: error
     }) || container.emit('default', handler, {
@@ -566,7 +584,7 @@ function useErrorHandler() {
       }
     });
   });
-  (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
+  useEffect(function () {
     return combineFn(map(args, function (v) {
       return v.onError(handler.emit);
     }));
@@ -596,7 +614,7 @@ function createDependency(defaultValue) {
 function useDependency(dependency, value, deps) {
   var values = _(dependency);
   if (dependency === values.Provider) {
-    var wrapper = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useMemo)(function () {
+    var wrapper = useMemo(function () {
       return {};
     }, [values]);
     if (values.indexOf(wrapper) < 0) {
@@ -606,7 +624,7 @@ function useDependency(dependency, value, deps) {
       arrRemove(values, wrapper);
       values.current = null;
     });
-    (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useMemo)(function () {
+    useMemo(function () {
       value = isFunction(value) ? value() : value;
       if (wrapper.value !== value || !util_hasOwnProperty(wrapper, 'value')) {
         defineOwnProperty(wrapper, 'value', value, true);
@@ -624,7 +642,7 @@ function useDependency(dependency, value, deps) {
 
 
 function useMediaQuery(query) {
-  var mq = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useMemo)(function () {
+  var mq = useMemo(function () {
     return matchMedia(query);
   }, [query]);
   useEventTrigger(mq, 'change');
@@ -654,7 +672,7 @@ function createBreakpointContext(breakpoints) {
     useBreakpoint: function useBreakpoint() {
       var deps = makeArray(arguments);
       var forceUpdate = useUpdateTrigger();
-      (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
+      useEffect(function () {
         return watch(values, function (e) {
           if (!deps.length || single(deps, util_hasOwnProperty.bind(0, e.newValues))) {
             forceUpdate();
@@ -671,15 +689,15 @@ function createBreakpointContext(breakpoints) {
 
 
 /** @type {React.Context<import("./viewState").ViewStateProvider | null>} */
-var ViewStateProviderContext = /*#__PURE__*/(0,external_commonjs_react_commonjs2_react_amd_react_root_React_.createContext)(null);
+var ViewStateProviderContext = /*#__PURE__*/createContext(null);
 var noopStorage = Object.freeze({
   get: noop,
   set: noop
 });
 var ViewStateProvider = ViewStateProviderContext.Provider;
 function useViewState(key) {
-  var uniqueId = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)(randomId)[0];
-  var provider = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useContext)(ViewStateProviderContext);
+  var uniqueId = useState(randomId)[0];
+  var provider = useContext(ViewStateProviderContext);
   return useSingleton(provider && key && provider.getState(uniqueId, key) || noopStorage);
 }
 ;// CONCATENATED MODULE: ./src/dataView.js
@@ -856,10 +874,10 @@ function useDataView(persistKey, filters, sortBy, sortOrder, pageSize) {
   }
   var viewState = useViewState(persistKey);
   var forceUpdate = useUpdateTrigger();
-  var dataView = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)(function () {
+  var dataView = useState(function () {
     return new DataView(filters, sortBy, sortOrder, pageSize).reset(viewState.get());
   })[0];
-  (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
+  useEffect(function () {
     return combineFn(dataView.on('viewChange', function () {
       viewState.set(dataView.toJSON());
       forceUpdate();
@@ -958,15 +976,15 @@ function toRefCallback(ref) {
   return ref || noop;
 }
 function withSuspense(factory, fallback) {
-  fallback = fallback || external_commonjs_react_commonjs2_react_amd_react_root_React_.Fragment;
+  fallback = fallback || Fragment;
   if (isFunction(fallback)) {
-    fallback = /*#__PURE__*/(0,external_commonjs_react_commonjs2_react_amd_react_root_React_.createElement)(fallback);
+    fallback = /*#__PURE__*/createElement(fallback);
   }
-  var Component = /*#__PURE__*/(0,external_commonjs_react_commonjs2_react_amd_react_root_React_.lazy)(factory);
+  var Component = /*#__PURE__*/lazy(factory);
   return function (props) {
-    return /*#__PURE__*/(0,external_commonjs_react_commonjs2_react_amd_react_root_React_.createElement)(external_commonjs_react_commonjs2_react_amd_react_root_React_.Suspense, {
+    return /*#__PURE__*/createElement(Suspense, {
       fallback: fallback
-    }, /*#__PURE__*/(0,external_commonjs_react_commonjs2_react_amd_react_root_React_.createElement)(Component, props));
+    }, /*#__PURE__*/createElement(Component, props));
   };
 }
 ;// CONCATENATED MODULE: ./src/fields/ChoiceField.js
@@ -975,7 +993,7 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
 
 function ChoiceField() {}
 function normalizeChoiceItems(items) {
-  return (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useMemo)(function () {
+  return useMemo(function () {
     return (items || []).map(function (v) {
       return _typeof(v) === 'object' ? v : {
         label: String(v),
@@ -994,7 +1012,7 @@ definePrototype(ChoiceField, {
     var selectedIndex = items.findIndex(function (v) {
       return v.value === state.value;
     });
-    (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
+    useEffect(function () {
       if (selectedIndex < 0) {
         selectedIndex = props.allowUnselect || !items[0] ? -1 : 0;
         state.setValue(selectedIndex < 0 ? '' : items[0].value);
@@ -1069,10 +1087,10 @@ definePrototype(DateField, {
     var value = state.value;
     var min = normalizeDate(props.min);
     var max = normalizeDate(props.max);
-    var displayText = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useMemo)(function () {
+    var displayText = useMemo(function () {
       return value && props.formatDisplay ? props.formatDisplay(toDateObject(value)) : value;
     }, [value]);
-    (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
+    useEffect(function () {
       var clamped = value && clampValue(value, min, max);
       if (clamped !== value) {
         setValue(clamped);
@@ -1132,9 +1150,12 @@ definePrototype(MultiChoiceField, {
         });
       }
     });
-    (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
+    var value = useMemo(function () {
+      return makeArray(state.value);
+    }, [state.version]);
+    useEffect(function () {
       if (!allowCustomValues) {
-        var cur = makeArray(state.value);
+        var cur = makeArray(value);
         var arr = splice(cur, isUnknown);
         if (arr.length) {
           state.setValue(cur);
@@ -1142,6 +1163,7 @@ definePrototype(MultiChoiceField, {
       }
     });
     return extend(state, {
+      value: value,
       items: items,
       toggleValue: toggleValue
     });
@@ -1162,7 +1184,7 @@ definePrototype(NumericField, {
     var max = props.max;
     var step = props.step;
     var allowEmpty = props.allowEmpty;
-    (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
+    useEffect(function () {
       var rounded = step > 0 ? Math.round(value / step) * step : value;
       if (rounded < min || isNaN(rounded) && !allowEmpty) {
         rounded = min || 0;
@@ -1211,7 +1233,7 @@ definePrototype(ToggleField, {
     return !value;
   },
   postHook: function postHook(state) {
-    var toggleValue = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useCallback)(function () {
+    var toggleValue = useCallback(function () {
       state.setValue(function (v) {
         return !v;
       });
@@ -1246,7 +1268,7 @@ var fieldTypes = {
 };
 
 /** @type {React.Context<any>} */
-var FormObjectContext = /*#__PURE__*/(0,external_commonjs_react_commonjs2_react_amd_react_root_React_.createContext)(null);
+var FormObjectContext = /*#__PURE__*/createContext(null);
 var FormObjectProvider = FormObjectContext.Provider;
 function ValidationError(kind, message, args) {
   this.kind = kind;
@@ -1445,9 +1467,9 @@ function createDataObject(context, initialData) {
     set: setValue,
     "delete": deleteValue
   });
-  each(initialData, function (i, v) {
-    setValue(i, v);
-  });
+  for (var i in initialData) {
+    setValue(i, initialData[i]);
+  }
   return proxy;
 }
 function createFieldState(initialValue) {
@@ -1505,7 +1527,6 @@ function createFieldState(initialValue) {
     }
   });
   watch(field, 'error', function (v) {
-    field.version++;
     if (field.key) {
       form_emitter.emit('validationChange', field.form, {
         name: field.path,
@@ -1543,7 +1564,7 @@ function useFormFieldInternal(form, state, field, preset, props, controlled, dic
   if (hasErrorProp) {
     field.error = props.error;
   }
-  (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
+  useEffect(function () {
     if (form && key) {
       state.fields[key] = field;
     }
@@ -1561,7 +1582,7 @@ function useFormFieldInternal(form, state, field, preset, props, controlled, dic
       }
     };
   }, [state, field, key]);
-  (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
+  useEffect(function () {
     if (state) {
       state.setValid();
     }
@@ -1716,9 +1737,10 @@ definePrototype(FormContext, {
     for (var i in self.data) {
       dict["delete"](i);
     }
-    each(data || state.initialData, function (i, v) {
-      dict.set(i, v);
-    });
+    data = data || state.initialData;
+    for (var i in data) {
+      dict.set(i, data[i]);
+    }
     each(state.fields, function (i, v) {
       var prop = resolvePathInfo(self, v.path);
       if (v.controlled) {
@@ -1787,7 +1809,7 @@ function useFormContext(persistKey, initialData, options) {
     return useFormContext('', persistKey, initialData);
   }
   var viewState = useViewState(persistKey);
-  var form = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)(function () {
+  var form = useState(function () {
     return new FormContext(initialData, options, viewState);
   })[0];
   var forceUpdate = useUpdateTrigger();
@@ -1798,7 +1820,7 @@ function useFormContext(persistKey, initialData, options) {
       formPersist(form);
     }
   });
-  (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(function () {
+  useEffect(function () {
     if (mapRemove(changedProps, form)) {
       forceUpdate();
     }
@@ -1821,13 +1843,13 @@ function useFormField(type, props, defaultValue, prop) {
   }
   var preset = type ? mapGet(presets, type, type) : {};
   prop = prop || preset.valueProperty || 'value';
-  var dict = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useContext)(FormObjectContext);
+  var dict = useContext(FormObjectContext);
   var form = dict && form_(dict).context;
   var state = form && form_(form);
   var name = props.name || '';
   var key = form && name && keyFor(dict) + '.' + name;
   var controlled = (prop in props);
-  var field = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)(function () {
+  var field = useState(function () {
     var initialValue = controlled ? props[prop] : (preset.normalizeValue || pipe)(defaultValue !== undefined ? defaultValue : preset.defaultValue);
     return createFieldState(initialValue);
   })[0];
@@ -1847,21 +1869,20 @@ function useFormField(type, props, defaultValue, prop) {
       field.value = dict[name];
     }
   }
-  var state1 = (preset.postHook || pipe)({
+  useObservableProperty(field, 'error');
+  useObservableProperty(field, 'version');
+  return (preset.postHook || pipe)({
     form: form,
     key: key,
     path: field.path,
     value: field.value,
     error: String(field.error),
+    version: field.version,
     setValue: field.setValue,
     setError: field.setError,
     validate: field.validate,
     elementRef: field.elementRef
   }, props);
-  state1.value = field.value;
-  state1.error = String(field.error);
-  useObservableProperty(field, 'version');
-  return state1;
 }
 function combineValidators() {
   var validators = grep(makeArray(arguments), isFunction);
@@ -1883,7 +1904,7 @@ function registerFieldType(type, options) {
     return options;
   };
 }
-var Form = /*#__PURE__*/(0,external_commonjs_react_commonjs2_react_amd_react_root_React_.forwardRef)(function (props, ref) {
+var Form = /*#__PURE__*/forwardRef(function (props, ref) {
   var form = props.context;
   var onSubmit = function onSubmit(e) {
     if (!props.action) {
@@ -1897,16 +1918,16 @@ var Form = /*#__PURE__*/(0,external_commonjs_react_commonjs2_react_amd_react_roo
     (props.onReset || noop).call(this, e);
   };
   extend(form, pick(props, ['enterKeyHint', 'preventLeave', 'formatError']));
-  return /*#__PURE__*/(0,external_commonjs_react_commonjs2_react_amd_react_root_React_.createElement)(FormObjectProvider, {
+  return /*#__PURE__*/createElement(FormObjectProvider, {
     value: form.data
-  }, /*#__PURE__*/(0,external_commonjs_react_commonjs2_react_amd_react_root_React_.createElement)('form', extend(exclude(props, ['context', 'enterKeyHint', 'preventLeave', 'formatError']), {
+  }, /*#__PURE__*/createElement('form', extend(exclude(props, ['context', 'enterKeyHint', 'preventLeave', 'formatError']), {
     ref: combineRef(ref, form.ref),
     onSubmit: onSubmit,
     onReset: onReset
   })));
 });
 function FormContextProvider(props) {
-  return /*#__PURE__*/(0,external_commonjs_react_commonjs2_react_amd_react_root_React_.createElement)(FormObjectProvider, {
+  return /*#__PURE__*/createElement(FormObjectProvider, {
     value: props.value.data
   }, props.children);
 }
@@ -1916,14 +1937,14 @@ function FormArray(props) {
   }));
 }
 function FormObject(props) {
-  var uniqueId = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useState)(randomId)[0];
+  var uniqueId = useState(randomId)[0];
   var name = props.name;
-  var dict = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useContext)(FormObjectContext);
+  var dict = useContext(FormObjectContext);
   if (!dict) {
     dict = rootForm.data;
     name = uniqueId;
   }
-  var fieldRef = (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useRef)();
+  var fieldRef = useRef();
   var form = form_(dict).context;
   var state = form_(form);
   var value = props.value;
@@ -1941,14 +1962,14 @@ function FormObject(props) {
     useFormFieldInternal(form, state, field, {}, props, 0, dict, key);
     field.value = value;
   } else {
-    (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(noop, [null]);
-    (0,external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect)(noop, [null]);
+    useEffect(noop, [null]);
+    useEffect(noop, [null]);
   }
   var children = props.children;
   if (isFunction(children)) {
     children = children(value);
   }
-  return /*#__PURE__*/(0,external_commonjs_react_commonjs2_react_amd_react_root_React_.createElement)(FormObjectProvider, {
+  return /*#__PURE__*/createElement(FormObjectProvider, {
     value: value
   }, children);
 }
