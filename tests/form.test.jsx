@@ -419,6 +419,32 @@ describe('useFormField', () => {
         unmount();
     });
 
+    it('should normalize existing value from form context', () => {
+        const { form, wrapper, unmount } = createFormContext({ foo: 1 });
+        const { result } = renderHook(() => useFormField(TextField, { name: 'foo' }, ''), { wrapper });
+        expect(result.current.value).toBe('1');
+        expect(form.data.foo).toBe('1');
+        unmount();
+    });
+
+    it('should convert object to data object for unbounded field', () => {
+        const Component = ({ name }) => {
+            const { value } = useFormField({ name }, {});
+            return <FormObject value={value} />;
+        };
+        const tryRender = (component) => {
+            expect(() => {
+                const { unmount } = render(component);
+                unmount();
+            }).not.toThrow();
+        };
+        const { form, unmount } = createFormContext();
+        tryRender(<Component />);
+        tryRender(<Component name="foo" />);
+        tryRender(<FormContextProvider value={form}><Component /></FormContextProvider>);
+        unmount();
+    });
+
     it('should set initial error to empty string', () => {
         const { result } = renderHook(() => useFormField({}, ''));
         expect(result.current.error).toBe('');
@@ -662,9 +688,13 @@ describe('useFormField', () => {
     it('should call onChange callback for controlled field', () => {
         let value = '';
         const cb = mockFn(v => (value = v));
-        const { result } = renderHook(() => useFormField({ value, onChange: cb }, ''));
+        const { rerender, result } = renderHook(() => useFormField({ value, onChange: cb }, ''));
         act(() => result.current.setValue('foo'));
         verifyCalls(cb, [['foo']]);
+
+        cb.mockClear();
+        rerender();
+        expect(cb).not.toBeCalled();
     });
 
     it('should call onChange callback with value returned from setValue callback for controlled field', () => {
@@ -943,6 +973,18 @@ describe('useFormField', () => {
         act(() => form.data.foo.foo = 2);
         expect(result.current.version).toBeGreaterThan(version);
         unmount();
+    });
+
+    it('should return a different version number when data change occurs in data object for unbounded field', () => {
+        const { result } = renderHook(() => useFormField({ name: 'foo' }, {}));
+
+        let version = result.current.version;
+        act(() => result.current.setValue({ foo: 1 }));
+        expect(result.current.version).toBeGreaterThan(version);
+
+        version = result.current.version;
+        act(() => result.current.value.foo = 2);
+        expect(result.current.version).toBeGreaterThan(version);
     });
 
     it('should instantiate field type class for each field', () => {
