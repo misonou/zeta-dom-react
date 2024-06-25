@@ -600,8 +600,7 @@ export function useFormContext(persistKey, initialData, options) {
 export function useFormField(type, props, defaultValue, prop) {
     if (typeof type === 'string') {
         type = fieldTypes[type];
-    }
-    if (!isFunction(type)) {
+    } else if (!isFunction(type)) {
         prop = defaultValue;
         defaultValue = props;
         props = type;
