@@ -78,11 +78,11 @@ function getPath(form, obj, name) {
         return name;
     }
     var paths = _(form).paths;
-    var path = [name];
+    var path = name ? [name] : [];
     for (var key = keyFor(obj); key = paths[key]; key = key.slice(0, 8)) {
         path.unshift(key.slice(9));
     }
-    return resolvePathInfo(form, path).parent === obj ? path.join('.') : '';
+    return resolvePathInfo(form, path)[name ? 'parent' : 'value'] === obj ? path.join('.') : '';
 }
 
 function emitDataChangeEvent() {
@@ -275,7 +275,7 @@ function createFieldState(initialValue) {
     watch(field, true);
     defineObservableProperty(field, 'value', initialValue, function (newValue, oldValue) {
         newValue = (field.preset.normalizeValue || pipe).call(field.preset, newValue, field.props);
-        if (newValue !== oldValue && _(oldValue) && newValue !== field.dict[field.name]) {
+        if (field.controlled !== 0 && newValue !== oldValue && _(oldValue) && newValue !== field.dict[field.name]) {
             field.dict[field.name] = newValue;
             return oldValue;
         }
@@ -286,7 +286,9 @@ function createFieldState(initialValue) {
     });
     watch(field, 'value', function (v) {
         field.version++;
-        field.dict[field.name] = v;
+        if (field.controlled !== 0) {
+            field.dict[field.name] = v;
+        }
     });
     watch(field, 'error', function (v) {
         if (field.form) {
@@ -302,7 +304,7 @@ function createFieldState(initialValue) {
 
 function useFormFieldInternal(state, field, preset, props, controlled, dict, name) {
     var form = state.form === rootForm ? null : state.form;
-    var key = keyFor(dict) + '.' + name;
+    var key = name ? keyFor(dict) + '.' + name : state.paths[keyFor(dict)];
     var shouldReset = field.key !== key;
     extend(field, {
         form: form,
@@ -703,10 +705,13 @@ export function FormObject(props) {
     }
     var fieldRef = useRef();
     var value = props.value;
-    if (name) {
+    if ((_(value) || '').state) {
+        dict = value;
+        name = '';
+    } else if (name) {
         value = 'value' in props ? value : isPlainObject(dict[name]) || isArray(dict[name]) || props.defaultValue || {};
         value = _(dict).set(name, value);
-    } else if (!(_(value) || '').state) {
+    } else {
         throws('Value must be a data object or array');
     }
     // field state registered by useFormField has a higher priority

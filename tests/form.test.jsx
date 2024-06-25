@@ -3073,6 +3073,30 @@ describe('FormObject component', () => {
         unmount();
     });
 
+    it('should trigger validation when child property changes when parent context is different', async () => {
+        const { form, unmount } = createFormContext();
+        form.data.foo = {};
+
+        const validate = mockFn();
+        const renderForm = createFormComponent(() => {
+            const innerForm = useFormContext();
+            return (
+                <FormContextProvider value={innerForm}>
+                    <FormObject value={form.data.foo} onValidate={validate} />
+                </FormContextProvider>
+            );
+        });
+        const { unmount: unmountForm } = renderForm();
+        await renderAct(async () => {
+            form.data.foo.bar = 2;
+        });
+        verifyCalls(validate, [
+            [expect.sameObject(form.data.foo), 'foo', form],
+        ]);
+        unmountForm();
+        unmount();
+    });
+
     it('should delete form data when unmounted if clearWhenUnmount is true', async () => {
         const renderForm = createFormComponent(() => (
             <FormObject name="foo" clearWhenUnmount={true} />
