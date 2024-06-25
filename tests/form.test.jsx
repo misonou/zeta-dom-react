@@ -944,6 +944,50 @@ describe('useFormField', () => {
         expect(result.current.version).toBeGreaterThan(version);
         unmount();
     });
+
+    it('should instantiate field type class for each field', () => {
+        class CustomField {
+            postHook(state) {
+                return state;
+            }
+        }
+        const postHook = jest.spyOn(CustomField.prototype, 'postHook');
+        renderHook(() => [
+            useFormField(CustomField, {}, ''),
+            useFormField(CustomField, {}, ''),
+        ], {});
+        expect(postHook).toBeCalledTimes(2);
+        expect(postHook.mock.instances[0]).not.toBe(postHook.mock.instances[1]);
+    });
+
+    it('should invoke field type method correctly', () => {
+        class CustomField {
+            isEmpty(value) {
+                return !value;
+            }
+            normalizeValue(value) {
+                return value;
+            }
+            postHook(state) {
+                return state;
+            }
+        }
+        const [isEmpty, normalizeValue, postHook] = [
+            jest.spyOn(CustomField.prototype, 'isEmpty'),
+            jest.spyOn(CustomField.prototype, 'normalizeValue'),
+            jest.spyOn(CustomField.prototype, 'postHook')
+        ];
+        const { unmount, wrapper } = createFormContext();
+        renderHook(() => useFormField(CustomField, { name: 'foo' }, ''), { wrapper });
+
+        expect(isEmpty).toBeCalled();
+        expect(isEmpty.mock.instances[0]).toBeInstanceOf(CustomField);
+        expect(normalizeValue).toBeCalled();
+        expect(normalizeValue.mock.instances[0]).toBeInstanceOf(CustomField);
+        expect(postHook).toBeCalled();
+        expect(postHook.mock.instances[0]).toBeInstanceOf(CustomField);
+        unmount();
+    });
 });
 
 describe('useFormField - text', () => {

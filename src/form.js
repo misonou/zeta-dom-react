@@ -1,4 +1,4 @@
-import { createContext, createElement, forwardRef, useContext, useEffect, useRef, useState } from "react";
+import { createContext, createElement, forwardRef, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { always, any, createPrivateStore, define, defineObservableProperty, definePrototype, each, exclude, extend, grep, hasOwnProperty, is, isArray, isFunction, isPlainObject, isUndefinedOrNull, keys, makeArray, map, mapGet, mapRemove, noop, pick, pipe, randomId, resolve, resolveAll, sameValueZero, setImmediate, setImmediateOnce, single, throws, watch } from "zeta-dom/util";
 import { ZetaEventContainer } from "zeta-dom/events";
 import dom, { focus } from "zeta-dom/dom";
@@ -10,7 +10,6 @@ import { useViewState } from "./viewState.js";
 
 const _ = createPrivateStore();
 const emitter = new ZetaEventContainer();
-const presets = new WeakMap();
 const instances = new WeakMap();
 const changedProps = new Map();
 const rootForm = new FormContext({}, {}, { get: noop });
@@ -30,13 +29,12 @@ export function ValidationError(kind, message, args) {
     this.message = message;
 }
 
-function isEmpty(field, value) {
-    var fn = field.props.isEmpty || field.preset.isEmpty;
-    return fn ? fn(value) : isUndefinedOrNull(value) || value === '' || (isArray(value) && !value.length);
+function isEmpty(value) {
+    return isUndefinedOrNull(value) || value === '' || (isArray(value) && !value.length);
 }
 
 function hasImplicitError(field) {
-    return field.props.required && isEmpty(field, field.value);
+    return field.props.required && field.isEmpty(field.value);
 }
 
 function cloneValue(value) {
@@ -267,13 +265,16 @@ function createFieldState(initialValue) {
         validate: function () {
             return validateFields(field.key ? field.form : null, [field]);
         },
+        isEmpty: function (value) {
+            return (field.props.isEmpty || (field.preset.isEmpty || isEmpty).bind(field.preset))(value);
+        },
         elementRef: function (v) {
             field.element = v;
         }
     };
     watch(field, true);
     defineObservableProperty(field, 'value', initialValue, function (newValue, oldValue) {
-        newValue = (field.preset.normalizeValue || pipe)(newValue, field.props);
+        newValue = (field.preset.normalizeValue || pipe).call(field.preset, newValue, field.props);
         if (newValue !== oldValue && _(oldValue) && newValue !== field.dict[field.name]) {
             field.dict[field.name] = newValue;
             return oldValue;
@@ -468,7 +469,7 @@ definePrototype(FormContext, {
         var element;
         if (typeof key === 'number') {
             element = map(_(this).fields, function (v) {
-                return (v.error && (key & 1)) || (isEmpty(v, v.value) && (key & 2)) ? v.element : null;
+                return (v.error && (key & 1)) || (v.isEmpty(v.value) && (key & 2)) ? v.element : null;
             }).sort(comparePosition)[0];
         } else {
             element = this.element(key);
@@ -606,7 +607,9 @@ export function useFormField(type, props, defaultValue, prop) {
         props = type;
         type = '';
     }
-    const preset = type ? mapGet(presets, type, type) : {};
+    const preset = useMemo(function () {
+        return type ? new type() : {};
+    }, [type]);
     prop = prop || preset.valueProperty || 'value';
 
     const dict = useContext(FormObjectContext);
@@ -617,7 +620,7 @@ export function useFormField(type, props, defaultValue, prop) {
     const controlled = prop in props;
 
     const field = useState(function () {
-        var initialValue = controlled ? props[prop] : (preset.normalizeValue || pipe)(defaultValue !== undefined ? defaultValue : preset.defaultValue);
+        var initialValue = controlled ? props[prop] : (preset.normalizeValue || pipe).call(preset, defaultValue !== undefined ? defaultValue : preset.defaultValue);
         return createFieldState(initialValue);
     })[0];
     useFormFieldInternal(form, state, field, preset, props, controlled, dict, key);
@@ -638,7 +641,7 @@ export function useFormField(type, props, defaultValue, prop) {
     }
     useObservableProperty(field, 'error');
     useObservableProperty(field, 'version');
-    return (preset.postHook || pipe)({
+    return (preset.postHook || pipe).call(preset, {
         form: form,
         key: key,
         path: field.path,
