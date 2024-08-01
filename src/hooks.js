@@ -199,7 +199,7 @@ export function useAsync(init, deps, debounce) {
                 state.loading = false;
             }
         };
-    }, function () {
+    }, [], function () {
         state.abort();
     });
     deps = [deps !== false].concat(isArray(deps) || []);
@@ -250,11 +250,15 @@ export function isSingletonDisposed(target) {
     return disposedSingletons.has(target);
 }
 
-export function useSingleton(factory, onDispose) {
+export function useSingleton(factory, deps, onDispose) {
+    if (isFunction(deps)) {
+        onDispose = deps;
+        deps = [];
+    }
     var dispose = function (target) {
         (onDispose || target.dispose || noop).call(target);
     };
-    return isFunction(factory) ? useSingletonEffect(factory, dispose, []) : useSingletonEffect(pipe.bind(0, factory), dispose, [factory]);
+    return isFunction(factory) ? useSingletonEffect(factory, dispose, deps || []) : useSingletonEffect(pipe.bind(0, factory), dispose, [factory]);
 }
 
 export function useErrorHandlerRef() {
@@ -344,13 +348,10 @@ export function createDependency(defaultValue) {
 export function useDependency(dependency, value, deps) {
     var values = _(dependency);
     if (dependency === values.Provider) {
-        var wrapper = useMemo(function () {
-            return {};
-        }, [values]);
-        if (values.indexOf(wrapper) < 0) {
-            values.push(wrapper);
-        }
-        useSingleton(wrapper, function () {
+        var wrapper = useSingleton(function () {
+            var obj = {};
+            return values.push(obj) && obj;
+        }, [values], function () {
             arrRemove(values, wrapper);
             values.current = null;
         });

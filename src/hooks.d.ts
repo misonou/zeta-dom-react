@@ -316,17 +316,19 @@ export function useDispose(): DisposeCallback;
 export function isSingletonDisposed(target: any): boolean;
 
 /**
- * Makes sure the dispose callback only gets called once when component is unmounted.
+ * Makes sure side effects from object creation are properly cleaned up.
  *
- * Since React 18 `useEffect` always gets executed twice in development strict mode.
- * This may cause issues for singleton objects that they are cleaned up before actual component life cycle.
- * This hook ensures the cleanup callback will only be invoked exactly once after the component has unmounted.
+ * In React development strict mode, additional diagnotics are done by executing component and hook repeatedly,
+ * meaning that 1) `useState` or `useMemo` will create two copies of objects while one being discarded in each run,
+ * and 2) cleanup function returned to `useEffect` will be invoked once before actual use.
  *
- * In addition, singleton objects discarded in the first execution of factory callback in development strict mode
- * will also get properly disposed.
+ * This can cause issues when 1) there are side effects from object creation, and 2) cleaning up using `useEffect`.
+ * This hook gurantees that, cleanup functions are always executed after object is replaced or parent component is unmounted,
+ * and any discarded objects are also disposed.
  *
- * @param factory A singleton object, or a callback that return a singleton object.
- * @param callback Callback to be invoked when component has unmounted. If unspecified, it will call `dispose` method on the object if there exists such method.
+ * @param factory A callback that return an object.
+ * @param deps Construct a new object when any values in the list changes.
+ * @param onDispose Callback to be invoked when component has unmounted. If unspecified, it will call `dispose` method on the object if there exists such method.
  *
  * @example
  * ```tsx
@@ -343,8 +345,16 @@ export function isSingletonDisposed(target: any): boolean;
  * }, [singleton]);
  *
  * // instead this will be safe
- * const singleton = useSingleton(factory);
+ * const singleton = useSingleton(factory, []);
  * ```
+ */
+export function useSingleton<T>(factory: () => T, deps: React.DependencyList, onDispose?: (this: T) => void): T;
+
+/**
+ * Makes sure side effects from object creation are properly cleaned up.
+ * @param factory An object, or a callback that return an object.
+ * @param onDispose Callback to be invoked when component has unmounted. If unspecified, it will call `dispose` method on the object if there exists such method.
+ * @deprecated Use overload with factory callback and dependency list.
  */
 export function useSingleton<T>(factory: T | (() => T), onDispose?: (this: T) => void): T;
 

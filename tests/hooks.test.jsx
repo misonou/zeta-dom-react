@@ -666,6 +666,22 @@ describe('useSingleton', () => {
         await delay();
         expect(dispose).toBeCalledTimes(times);
     });
+
+    it('should factorize new object and dispose previous one when dependency list changes', async () => {
+        const dispose = mockFn();
+        const getSingleton = mockFn(() => ({ dispose }));
+        const { rerender, unmount } = renderHook(({ deps }) => useSingleton(getSingleton, deps), {
+            initialProps: { deps: [1] }
+        });
+        expect(getSingleton).toBeCalledTimes(1);
+        rerender({ deps: [2] });
+        expect(getSingleton).toBeCalledTimes(2);
+        await 0;
+        expect(dispose).toBeCalledTimes(1);
+        unmount();
+        await 0;
+        expect(dispose).toBeCalledTimes(2);
+    });
 });
 
 describe('isSingletonDisposed', () => {
