@@ -1,6 +1,4 @@
-import { useMemo, useEffect } from "react";
 import { define, definePrototype, extend, isFunction } from "zeta-dom/util";
-import { useMemoizedFunction } from "../hooks.js";
 
 const re = /^-?\d{4,}-\d{2}-\d{2}$/;
 
@@ -63,15 +61,15 @@ definePrototype(DateField, {
     normalizeValue: function (value) {
         return toDateString(normalizeDate(value));
     },
-    postHook: function (state, props) {
+    postHook: function (state, props, hook) {
         var setValue = state.setValue;
         var value = state.value;
         var min = normalizeDate(props.min);
         var max = normalizeDate(props.max);
-        var displayText = useMemo(function () {
+        var displayText = hook.memo(function () {
             return value && props.formatDisplay ? props.formatDisplay(toDateObject(value)) : value;
         }, [value]);
-        useEffect(function () {
+        hook.effect(function () {
             var clamped = value && clampValue(value, min, max);
             if (clamped !== value) {
                 setValue(clamped);
@@ -81,8 +79,8 @@ definePrototype(DateField, {
             min: toDateString(min),
             max: toDateString(max),
             displayText: displayText,
-            setValue: useMemoizedFunction(function (v) {
-                v = isFunction(v) ? v(state.value) : v;
+            setValue: hook.callback(function (v) {
+                v = isFunction(v) ? v(value) : v;
                 if (!v) {
                     setValue('');
                 } else if (/\d{4}/.test(v) && /[^\s\d]/.test(v)) {

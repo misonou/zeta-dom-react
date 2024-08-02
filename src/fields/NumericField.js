@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { definePrototype } from "zeta-dom/util";
 
 export default function NumericField() { }
@@ -8,13 +7,13 @@ definePrototype(NumericField, {
         newValue = +newValue;
         return isNaN(newValue) ? undefined : newValue;
     },
-    postHook: function (state, props) {
+    postHook: function (state, props, hook) {
         var value = state.value;
         var min = props.min;
         var max = props.max;
         var step = props.step;
         var allowEmpty = props.allowEmpty;
-        useEffect(function () {
+        hook.effect(function () {
             var rounded = step > 0 ? Math.round(value / step) * step : value;
             if (rounded < min || (isNaN(rounded) && !allowEmpty)) {
                 rounded = min || 0;

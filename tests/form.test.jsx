@@ -1030,6 +1030,44 @@ describe('useFormField', () => {
         expect(postHook.mock.instances[0]).toBeInstanceOf(CustomField);
         unmount();
     });
+
+    it('should process hook-like utilities correctly', () => {
+        const cb = mockFn();
+        class CustomField {
+            postHook(state, props, hook) {
+                const { memoInput, callback } = props;
+                state.memoResult = hook.memo(() => memoInput * 2, [memoInput]);
+                state.callback = hook.callback(callback);
+                hook.effect(() => cb(memoInput), [memoInput]);
+                return state;
+            }
+        }
+        const { result, rerender, unmount } = renderHook((props) => useFormField(CustomField, props, ''), {
+            initialProps: {
+                memoInput: 21,
+                callback: () => 'foo'
+            }
+        });
+        const resultCallback = result.current.callback;
+        verifyCalls(cb, [[21]]);
+        expect(result.current.memoResult).toBe(42);
+        expect(result.current.callback()).toBe('foo');
+        cb.mockClear();
+
+        act(() => result.current.setValue('foo'));
+        expect(cb).not.toBeCalled();
+        expect(result.current.memoResult).toBe(42);
+
+        rerender({
+            memoInput: 50,
+            callback: () => 'bar'
+        });
+        verifyCalls(cb, [[50]]);
+        expect(result.current.memoResult).toBe(100);
+        expect(result.current.callback()).toBe('bar');
+        expect(result.current.callback).toBe(resultCallback);
+        unmount();
+    });
 });
 
 describe('useFormField - text', () => {

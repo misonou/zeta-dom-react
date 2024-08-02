@@ -1,5 +1,5 @@
 import { createContext, createElement, forwardRef, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { always, any, createPrivateStore, define, defineObservableProperty, definePrototype, each, exclude, extend, grep, hasOwnProperty, is, isArray, isFunction, isPlainObject, isUndefinedOrNull, keys, makeArray, map, mapGet, mapRemove, noop, pick, pipe, randomId, resolve, resolveAll, sameValueZero, setImmediate, setImmediateOnce, single, throws, watch } from "zeta-dom/util";
+import { always, any, combineFn, createPrivateStore, define, defineObservableProperty, definePrototype, each, equal, exclude, extend, grep, hasOwnProperty, is, isArray, isFunction, isPlainObject, isUndefinedOrNull, keys, makeArray, map, mapGet, mapRemove, noop, pick, pipe, randomId, resolve, resolveAll, sameValueZero, setImmediate, setImmediateOnce, single, throwNotFunction, throws, watch } from "zeta-dom/util";
 import { ZetaEventContainer } from "zeta-dom/events";
 import dom, { focus } from "zeta-dom/dom";
 import { preventLeave } from "zeta-dom/domLock";
@@ -27,6 +27,30 @@ export function ValidationError(kind, message, args) {
     this.kind = kind;
     this.args = args;
     this.message = message;
+}
+
+function createHookHelper(effects) {
+    var states = [];
+    var push = function (callback, deps) {
+        var i = effects.i++;
+        states[i] = !deps || !states[i] || !equal(states[i][0], deps) ? [deps, callback()] : states[i];
+        return states[i][1];
+    };
+    return {
+        memo: push,
+        callback: function (callback) {
+            var ref = push(Object, []);
+            ref.current = callback;
+            return ref.cb || (ref.cb = function () {
+                return ref.current.apply(this, arguments);
+            });
+        },
+        effect: function (callback, deps) {
+            push(function () {
+                effects.push(throwNotFunction(callback));
+            }, deps);
+        }
+    };
 }
 
 function isEmpty(value) {
@@ -597,9 +621,11 @@ export function useFormField(type, props, defaultValue, prop) {
     }
     const uniqueId = useState(randomId)[0];
     const context = useContext(FormObjectContext);
-    const preset = useMemo(function () {
-        return type ? new type() : {};
+    const effects = useState([])[0];
+    const hook = useMemo(function () {
+        return type ? [new type(), createHookHelper(effects)] : [{}];
     }, [type]);
+    const preset = hook[0];
     prop = prop || preset.valueProperty || 'value';
 
     var dict = context;
@@ -629,6 +655,11 @@ export function useFormField(type, props, defaultValue, prop) {
     if (!existing) {
         field.version = 0;
     }
+    effects.i = 0;
+    effects.splice(0);
+    useEffect(function () {
+        combineFn(effects)();
+    });
     useObservableProperty(field, 'error');
     useObservableProperty(field, 'version');
     return (preset.postHook || pipe).call(preset, {
@@ -642,7 +673,7 @@ export function useFormField(type, props, defaultValue, prop) {
         setError: field.setError,
         validate: field.validate,
         elementRef: field.elementRef
-    }, props);
+    }, props, hook[1]);
 }
 
 export function combineValidators() {

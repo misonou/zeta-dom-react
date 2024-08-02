@@ -1,5 +1,3 @@
-import { useEffect, useMemo } from "react";
-import { useMemoizedFunction } from "../hooks.js";
 import { definePrototype, either, extend, freeze, isArray, isUndefinedOrNull, makeArray, splice } from "zeta-dom/util";
 import ChoiceField from "./ChoiceField.js";
 
@@ -11,15 +9,17 @@ definePrototype(MultiChoiceField, {
     normalizeValue: function (newValue) {
         return isArray(newValue) || makeArray(newValue);
     },
-    postHook: function (state, props) {
+    postHook: function (state, props, hook) {
         var allowCustomValues = props.allowCustomValues || !props.items;
-        var items = ChoiceField.normalizeItems(props.items);
+        var items = hook.memo(function () {
+            return ChoiceField.normalizeItems(props.items);
+        }, [props.items]);
         var isUnknown = function (value) {
             return !items.some(function (v) {
                 return v.value === value;
             });
         };
-        var toggleValue = useMemoizedFunction(function (value, selected) {
+        var toggleValue = hook.callback(function (value, selected) {
             if (allowCustomValues || !isUnknown(value)) {
                 state.setValue(function (arr) {
                     var index = arr.indexOf(value);
@@ -35,10 +35,10 @@ definePrototype(MultiChoiceField, {
                 });
             }
         });
-        var value = useMemo(function () {
+        var value = hook.memo(function () {
             return makeArray(state.value);
         }, [state.version]);
-        useEffect(() => {
+        hook.effect(function () {
             if (!allowCustomValues) {
                 var cur = makeArray(value);
                 var arr = splice(cur, isUnknown);

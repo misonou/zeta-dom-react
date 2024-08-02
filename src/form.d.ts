@@ -123,6 +123,26 @@ export interface FieldTypeOptions {
     postHook?: FieldPostHookCallback;
 }
 
+export interface FieldHookHelper {
+    /**
+     * Recompute the memoized value when one of the deps has changed.
+     * Similar to {@link React.useMemo}.
+     */
+    memo<T>(factory: () => T, deps: React.DependencyList): T;
+    /**
+     * Creates a stable callback.
+     * @param callback Callback implementation.
+     */
+    callback<T extends Zeta.AnyFunction>(callback: T): T;
+    /**
+     * Accepts a function that contains imperative, possibly effectful code.
+     * Similar to {@link React.useEffect}, but does not accept cleanup function.
+     * @param effect Imperative function.
+     * @param deps If present, effect will only activate if the values in the list change.
+     */
+    effect(effect: () => void, deps?: React.DependencyList): void;
+}
+
 export interface FieldTypeConstructor<P extends FormFieldProps, S extends FormFieldState> {
     new(): FieldType<P, S>;
 }
@@ -153,8 +173,9 @@ export interface FieldType<P extends FormFieldProps, S extends FormFieldState> {
      * Applies additional logic and modification to field state.
      * @param state Untouched field state returned from hook.
      * @param props Props passed to {@link useFormField}.
+     * @param hook A helper object that provides utitlies similar to React hooks.
      */
-    postHook(state: FormFieldState<FieldValueType<P>>, props: P): S;
+    postHook(state: FormFieldState<FieldValueType<P>>, props: P, hook: FieldHookHelper): S;
 }
 
 export interface FormFieldProps<T = any, V = T> {
