@@ -30,7 +30,7 @@ function clearUnusedSingletons() {
     each(singletons, function (i, v) {
         if (clearUnusedSingletons.d & (v.d || 1)) {
             disposedSingletons.add(i);
-            mapRemove(singletons, i)(i, v.d === 2);
+            mapRemove(singletons, i).call(i, i, v.d === 2);
         }
     });
     clearUnusedSingletons.d = 0;
@@ -41,7 +41,7 @@ function useSingletonEffectImpl(factory, dispose, deps) {
     useEffect(function () {
         return function () {
             disposedSingletons.add(target);
-            dispose(target, true);
+            dispose.call(target, target, true);
         };
     }, [target]);
     return target;
@@ -255,10 +255,10 @@ export function useSingleton(factory, deps, onDispose) {
         onDispose = deps;
         deps = [];
     }
-    var dispose = function (target) {
-        (onDispose || target.dispose || noop).call(target);
+    onDispose = onDispose || function (target) {
+        (target.dispose || noop).call(target);
     };
-    return isFunction(factory) ? useSingletonEffect(factory, dispose, deps || []) : useSingletonEffect(pipe.bind(0, factory), dispose, [factory]);
+    return isFunction(factory) ? useSingletonEffect(factory, onDispose, deps || []) : useSingletonEffect(pipe.bind(0, factory), onDispose, [factory]);
 }
 
 export function useErrorHandlerRef() {

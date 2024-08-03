@@ -667,6 +667,22 @@ describe('useSingleton', () => {
         expect(dispose).toBeCalledTimes(times);
     });
 
+    it('should invoke dispose callback instead if present', async () => {
+        const obj = { dispose: mockFn() };
+        const dispose = mockFn();
+        const Component = () => {
+            useSingleton(() => obj, [], dispose);
+            return null;
+        };
+        const { unmount } = render(<Component />);
+        unmount();
+        await delay();
+        verifyCalls(dispose, [
+            [obj, true]
+        ]);
+        expect(obj.dispose).not.toBeCalled();
+    });
+
     it('should factorize new object and dispose previous one when dependency list changes', async () => {
         const dispose = mockFn();
         const getSingleton = mockFn(() => ({ dispose }));

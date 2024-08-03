@@ -328,7 +328,9 @@ export function isSingletonDisposed(target: any): boolean;
  *
  * @param factory A callback that return an object.
  * @param deps Construct a new object when any values in the list changes.
- * @param onDispose Callback to be invoked when component has unmounted. If unspecified, it will call `dispose` method on the object if there exists such method.
+ * @param onDispose Callback to be invoked when target object is being disposed.
+ * The callback will receive the target object and a flag indicating whether it is actually consumed by the component.
+ * If unspecified, the `dispose` method on the target object will be invoked if there exists such method.
  *
  * @example
  * ```tsx
@@ -348,15 +350,17 @@ export function isSingletonDisposed(target: any): boolean;
  * const singleton = useSingleton(factory, []);
  * ```
  */
-export function useSingleton<T>(factory: () => T, deps: React.DependencyList, onDispose?: (this: T) => void): T;
+export function useSingleton<T>(factory: () => T, deps: React.DependencyList, onDispose?: (this: T, target: T, flag: boolean) => void): T;
 
 /**
  * Makes sure side effects from object creation are properly cleaned up.
  * @param factory An object, or a callback that return an object.
- * @param onDispose Callback to be invoked when component has unmounted. If unspecified, it will call `dispose` method on the object if there exists such method.
+ * @param onDispose Callback to be invoked when target object is being disposed.
+ * The callback will receive the target object and a flag indicating whether it is actually consumed by the component.
+ * If unspecified, the `dispose` method on the target object will be invoked if there exists such method.
  * @deprecated Use overload with factory callback and dependency list.
  */
-export function useSingleton<T>(factory: T | (() => T), onDispose?: (this: T) => void): T;
+export function useSingleton<T>(factory: T | (() => T), onDispose?: (this: T, target: T, flag: boolean) => void): T;
 
 /**
  * Returns a ref callback which when given to a React element, error caught from specified sources will be emitted through `error` event and be bubbled up through DOM.
