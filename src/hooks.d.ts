@@ -115,6 +115,10 @@ export interface AsyncContentState<T = any> extends Zeta.ZetaEventDispatcher<Asy
      * The loading state will be set back to `false`, whereas the {@link AsyncContentState.value} is unchanged.
      */
     abort(reason?: any): void;
+    /**
+     * Resets value, as well as loading and error state to initial state.
+     */
+    reset(): void;
 }
 
 export interface Dependency<T> {

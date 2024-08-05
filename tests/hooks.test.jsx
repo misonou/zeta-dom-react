@@ -361,6 +361,27 @@ describe('useAsync', () => {
         });
     });
 
+    it('should reset value to undefined', async () => {
+        const promise = Promise.resolve({});
+        const { result, waitForNextUpdate } = renderHook(() => useAsync(() => promise));
+        await waitForNextUpdate();
+        expect(result.current[0]).not.toBeUndefined();
+
+        act(() => result.current[1].reset());
+        expect(result.current[0]).toBeUndefined();
+    });
+
+    it('should reset error to undefined', async () => {
+        const promise = Promise.reject(new Error());
+        const { result, waitForNextUpdate } = renderHook(() => useAsync(() => promise));
+        catchAsync(result.current[1].promise);
+        await waitForNextUpdate();
+        expect(result.current[1].error).not.toBeUndefined();
+
+        act(() => result.current[1].reset());
+        expect(result.current[1].error).toBeUndefined();
+    });
+
     it('should trigger component updates at the start and end of loading', async () => {
         const promise1 = delay(100).then(() => 'foo');
         const promise2 = delay(500).then(() => 'bar');
@@ -372,8 +393,7 @@ describe('useAsync', () => {
         expect(result.all.length).toBe(2);
         expect(state.loading).toBe(false);
 
-        state.refresh();
-        await waitForNextUpdate();
+        act(() => void state.refresh());
         expect(result.all.length).toBe(3);
         expect(state.loading).toBe(true);
 
@@ -550,6 +570,24 @@ describe('useAsync', () => {
         expect(signal1.aborted).toBe(true);
         expect(signal2.aborted).toBe(false);
         expect(onabort).toBeCalledTimes(1);
+    });
+
+    it('should send abort signal when reset', async () => {
+        const onabort = mockFn();
+        const cb = mockFn((signal) => {
+            signal.onabort = onabort;
+            return delay(500);
+        });
+        const { result } = renderHook(() => useAsync(cb, false));
+
+        result.current[1].refresh();
+        const signal1 = cb.mock.calls[0][0];
+        result.current[1].reset();
+
+        await delay();
+        expect(signal1.aborted).toBe(true);
+        expect(onabort).toBeCalledTimes(1);
+        expect(result.current[1]).toMatchObject({ loading: false });
     });
 
     it('should send abort signal when unmount', async () => {

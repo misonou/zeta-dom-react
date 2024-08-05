@@ -3,7 +3,7 @@ import dom, { reportError } from "zeta-dom/dom";
 import { notifyAsync } from "zeta-dom/domLock";
 import { bind } from "zeta-dom/domUtil";
 import { ZetaEventContainer } from "zeta-dom/events";
-import { always, any, arrRemove, catchAsync, clearImmediateOnce, combineFn, createPrivateStore, deferrable, defineObservableProperty, defineOwnProperty, delay, each, extend, fill, freeze, hasOwnProperty, is, isArray, isErrorWithCode, isFunction, makeArray, makeAsync, map, mapRemove, noop, pipe, resolve, sameValueZero, setAdd, setImmediateOnce, watch } from "zeta-dom/util";
+import { always, any, arrRemove, catchAsync, clearImmediateOnce, combineFn, createPrivateStore, deferrable, defineObservableProperty, defineOwnProperty, delay, each, equal, extend, fill, freeze, hasOwnProperty, is, isArray, isErrorWithCode, isFunction, makeArray, makeAsync, map, mapRemove, noop, pipe, resolve, sameValueZero, setAdd, setImmediateOnce, watch } from "zeta-dom/util";
 import { IS_DEV } from "./env.js";
 
 const _ = /*#__PURE__*/ createPrivateStore();
@@ -143,6 +143,14 @@ export function useAsync(init, deps, debounce) {
         var element;
         var currentController;
         var nextResult;
+        var reset = function (loading, value, error, reason) {
+            if (currentController) {
+                currentController.abort(reason);
+                currentController = null;
+            }
+            extend(state, { loading, value, error });
+            notifyChange([loading, value, error]);
+        };
         return {
             loading: false,
             value: undefined,
@@ -168,35 +176,31 @@ export function useAsync(init, deps, debounce) {
                     })));
                 }
                 var controller = AbortController ? new AbortController() : { abort: noop };
-                if (currentController) {
-                    currentController.abort();
-                }
-                extend(state, { loading: true, error: undefined });
                 var result = makeAsync(init)(controller.signal);
                 var promise = always(result, function (resolved, value) {
                     if (currentController === controller) {
                         currentController = null;
                         if (resolved) {
-                            extend(state, { loading: false, value: value });
+                            reset(false, value);
                             container.emit('load', state, { data: value });
                         } else {
-                            extend(state, { loading: false, value: undefined, error: value });
+                            reset(false, undefined, value);
                             if (!container.emit('error', state, { error: value })) {
                                 throw value;
                             }
                         }
                     }
                 });
+                reset(true, state.value);
                 currentController = controller;
                 notifyAsync(element || dom.root, promise);
                 return result;
             },
             abort: function (reason) {
-                if (currentController) {
-                    currentController.abort(reason);
-                    currentController = null;
-                }
-                state.loading = false;
+                reset(false, state.value, state.error, reason);
+            },
+            reset: function () {
+                reset(false);
             }
         };
     }, [], function () {
@@ -216,7 +220,7 @@ export function useAsync(init, deps, debounce) {
             state.loading = true;
         }
     }, deps);
-    useObservableProperty(state, 'loading');
+    var notifyChange = useValueTrigger([state.loading, state.value, state.error], equal);
     return [state.value, state];
 }
 
