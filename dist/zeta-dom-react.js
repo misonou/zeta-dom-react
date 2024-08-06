@@ -1,4 +1,4 @@
-/*! zeta-dom-react v0.5.8 | (c) misonou | https://misonou.github.io */
+/*! zeta-dom-react v0.5.9 | (c) misonou | https://misonou.github.io */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory(require("zeta-dom"), require("react"), require("react-dom"));
@@ -169,6 +169,7 @@ var _lib$util = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_
   delay = _lib$util.delay,
   each = _lib$util.each,
   either = _lib$util.either,
+  equal = _lib$util.equal,
   exclude = _lib$util.exclude,
   extend = _lib$util.extend,
   fill = _lib$util.fill,
@@ -296,7 +297,7 @@ function clearUnusedSingletons() {
   each(singletons, function (i, v) {
     if (clearUnusedSingletons.d & (v.d || 1)) {
       disposedSingletons.add(i);
-      mapRemove(singletons, i)(i, v.d === 2);
+      mapRemove(singletons, i).call(i, i, v.d === 2);
     }
   });
   clearUnusedSingletons.d = 0;
@@ -306,7 +307,7 @@ function useSingletonEffectImpl(factory, dispose, deps) {
   useEffect(function () {
     return function () {
       disposedSingletons.add(target);
-      dispose(target, true);
+      dispose.call(target, target, true);
     };
   }, [target]);
   return target;
@@ -400,6 +401,18 @@ function useAsync(init, deps, debounce) {
     var element;
     var currentController;
     var nextResult;
+    var _reset = function reset(loading, value, error, reason) {
+      if (currentController) {
+        currentController.abort(reason);
+        currentController = null;
+      }
+      extend(state, {
+        loading: loading,
+        value: value,
+        error: error
+      });
+      notifyChange([loading, value, error]);
+    };
     return {
       loading: false,
       value: undefined,
@@ -427,31 +440,17 @@ function useAsync(init, deps, debounce) {
         var controller = AbortController ? new AbortController() : {
           abort: noop
         };
-        if (currentController) {
-          currentController.abort();
-        }
-        extend(state, {
-          loading: true,
-          error: undefined
-        });
         var result = makeAsync(init)(controller.signal);
         var promise = always(result, function (resolved, value) {
           if (currentController === controller) {
             currentController = null;
             if (resolved) {
-              extend(state, {
-                loading: false,
-                value: value
-              });
+              _reset(false, value);
               container.emit('load', state, {
                 data: value
               });
             } else {
-              extend(state, {
-                loading: false,
-                value: undefined,
-                error: value
-              });
+              _reset(false, undefined, value);
               if (!container.emit('error', state, {
                 error: value
               })) {
@@ -460,19 +459,19 @@ function useAsync(init, deps, debounce) {
             }
           }
         });
+        _reset(true, state.value);
         currentController = controller;
         notifyAsync(element || zeta_dom_dom.root, promise);
         return result;
       },
       abort: function abort(reason) {
-        if (currentController) {
-          currentController.abort(reason);
-          currentController = null;
-        }
-        state.loading = false;
+        _reset(false, state.value, state.error, reason);
+      },
+      reset: function reset() {
+        _reset(false);
       }
     };
-  }, function () {
+  }, [], function () {
     state.abort();
   });
   deps = [deps !== false].concat(isArray(deps) || []);
@@ -489,7 +488,7 @@ function useAsync(init, deps, debounce) {
       state.loading = true;
     }
   }, deps);
-  useObservableProperty(state, 'loading');
+  var notifyChange = useValueTrigger([state.loading, state.value, state.error], equal);
   return [state.value, state];
 }
 function useRefInitCallback(init) {
@@ -519,11 +518,15 @@ function useDispose() {
 function isSingletonDisposed(target) {
   return disposedSingletons.has(target);
 }
-function useSingleton(factory, onDispose) {
-  var dispose = function dispose(target) {
-    (onDispose || target.dispose || noop).call(target);
+function useSingleton(factory, deps, onDispose) {
+  if (isFunction(deps)) {
+    onDispose = deps;
+    deps = [];
+  }
+  onDispose = onDispose || function (target) {
+    (target.dispose || noop).call(target);
   };
-  return isFunction(factory) ? useSingletonEffect(factory, dispose, []) : useSingletonEffect(pipe.bind(0, factory), dispose, [factory]);
+  return isFunction(factory) ? useSingletonEffect(factory, onDispose, deps || []) : useSingletonEffect(pipe.bind(0, factory), onDispose, [factory]);
 }
 function useErrorHandlerRef() {
   return useErrorHandler.apply(this, arguments).ref;
@@ -614,13 +617,10 @@ function createDependency(defaultValue) {
 function useDependency(dependency, value, deps) {
   var values = _(dependency);
   if (dependency === values.Provider) {
-    var wrapper = useMemo(function () {
-      return {};
-    }, [values]);
-    if (values.indexOf(wrapper) < 0) {
-      values.push(wrapper);
-    }
-    useSingleton(wrapper, function () {
+    var wrapper = useSingleton(function () {
+      var obj = {};
+      return values.push(obj) && obj;
+    }, [values], function () {
       arrRemove(values, wrapper);
       values.current = null;
     });
@@ -690,15 +690,16 @@ function createBreakpointContext(breakpoints) {
 
 /** @type {React.Context<import("./viewState").ViewStateProvider | null>} */
 var ViewStateProviderContext = /*#__PURE__*/createContext(null);
-var noopStorage = Object.freeze({
-  get: noop,
-  set: noop
-});
 var ViewStateProvider = ViewStateProviderContext.Provider;
 function useViewState(key) {
   var uniqueId = useState(randomId)[0];
   var provider = useContext(ViewStateProviderContext);
-  return useSingleton(provider && key && provider.getState(uniqueId, key) || noopStorage);
+  return useSingleton(function () {
+    return provider && key && provider.getState(uniqueId, key) || {
+      get: noop,
+      set: noop
+    };
+  }, [provider, key, uniqueId]);
 }
 ;// CONCATENATED MODULE: ./src/dataView.js
 
@@ -990,29 +991,28 @@ function withSuspense(factory, fallback) {
 ;// CONCATENATED MODULE: ./src/fields/ChoiceField.js
 function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (o) { return typeof o; } : function (o) { return o && "function" == typeof Symbol && o.constructor === Symbol && o !== Symbol.prototype ? "symbol" : typeof o; }, _typeof(o); }
 
-
 function ChoiceField() {}
 function normalizeChoiceItems(items) {
-  return useMemo(function () {
-    return (items || []).map(function (v) {
-      return _typeof(v) === 'object' ? v : {
-        label: String(v),
-        value: v
-      };
-    });
-  }, [items]);
+  return (items || []).map(function (v) {
+    return _typeof(v) === 'object' ? v : {
+      label: String(v),
+      value: v
+    };
+  });
 }
 util_define(ChoiceField, {
   normalizeItems: normalizeChoiceItems
 });
 definePrototype(ChoiceField, {
   defaultValue: '',
-  postHook: function postHook(state, props) {
-    var items = normalizeChoiceItems(props.items);
+  postHook: function postHook(state, props, hook) {
+    var items = hook.memo(function () {
+      return normalizeChoiceItems(props.items);
+    }, [props.items]);
     var selectedIndex = items.findIndex(function (v) {
       return v.value === state.value;
     });
-    useEffect(function () {
+    hook.effect(function () {
       if (selectedIndex < 0) {
         selectedIndex = props.allowUnselect || !items[0] ? -1 : 0;
         state.setValue(selectedIndex < 0 ? '' : items[0].value);
@@ -1026,8 +1026,6 @@ definePrototype(ChoiceField, {
   }
 });
 ;// CONCATENATED MODULE: ./src/fields/DateField.js
-
-
 
 var re = /^-?\d{4,}-\d{2}-\d{2}$/;
 
@@ -1082,15 +1080,15 @@ definePrototype(DateField, {
   normalizeValue: function normalizeValue(value) {
     return toDateString(normalizeDate(value));
   },
-  postHook: function postHook(state, props) {
+  postHook: function postHook(state, props, hook) {
     var setValue = state.setValue;
     var value = state.value;
     var min = normalizeDate(props.min);
     var max = normalizeDate(props.max);
-    var displayText = useMemo(function () {
+    var displayText = hook.memo(function () {
       return value && props.formatDisplay ? props.formatDisplay(toDateObject(value)) : value;
     }, [value]);
-    useEffect(function () {
+    hook.effect(function () {
       var clamped = value && clampValue(value, min, max);
       if (clamped !== value) {
         setValue(clamped);
@@ -1100,8 +1098,8 @@ definePrototype(DateField, {
       min: toDateString(min),
       max: toDateString(max),
       displayText: displayText,
-      setValue: useMemoizedFunction(function (v) {
-        v = isFunction(v) ? v(state.value) : v;
+      setValue: hook.callback(function (v) {
+        v = isFunction(v) ? v(value) : v;
         if (!v) {
           setValue('');
         } else if (/\d{4}/.test(v) && /[^\s\d]/.test(v)) {
@@ -1117,8 +1115,6 @@ definePrototype(DateField, {
 ;// CONCATENATED MODULE: ./src/fields/MultiChoiceField.js
 
 
-
-
 function MultiChoiceField() {}
 definePrototype(MultiChoiceField, {
   /** @type {any} */
@@ -1126,15 +1122,17 @@ definePrototype(MultiChoiceField, {
   normalizeValue: function normalizeValue(newValue) {
     return isArray(newValue) || makeArray(newValue);
   },
-  postHook: function postHook(state, props) {
+  postHook: function postHook(state, props, hook) {
     var allowCustomValues = props.allowCustomValues || !props.items;
-    var items = ChoiceField.normalizeItems(props.items);
+    var items = hook.memo(function () {
+      return ChoiceField.normalizeItems(props.items);
+    }, [props.items]);
     var isUnknown = function isUnknown(value) {
       return !items.some(function (v) {
         return v.value === value;
       });
     };
-    var toggleValue = useMemoizedFunction(function (value, selected) {
+    var toggleValue = hook.callback(function (value, selected) {
       if (allowCustomValues || !isUnknown(value)) {
         state.setValue(function (arr) {
           var index = arr.indexOf(value);
@@ -1150,10 +1148,10 @@ definePrototype(MultiChoiceField, {
         });
       }
     });
-    var value = useMemo(function () {
+    var value = hook.memo(function () {
       return makeArray(state.value);
     }, [state.version]);
-    useEffect(function () {
+    hook.effect(function () {
       if (!allowCustomValues) {
         var cur = makeArray(value);
         var arr = splice(cur, isUnknown);
@@ -1171,20 +1169,19 @@ definePrototype(MultiChoiceField, {
 });
 ;// CONCATENATED MODULE: ./src/fields/NumericField.js
 
-
 function NumericField() {}
 definePrototype(NumericField, {
   normalizeValue: function normalizeValue(newValue) {
     newValue = +newValue;
     return isNaN(newValue) ? undefined : newValue;
   },
-  postHook: function postHook(state, props) {
+  postHook: function postHook(state, props, hook) {
     var value = state.value;
     var min = props.min;
     var max = props.max;
     var step = props.step;
     var allowEmpty = props.allowEmpty;
-    useEffect(function () {
+    hook.effect(function () {
       var rounded = step > 0 ? Math.round(value / step) * step : value;
       if (rounded < min || isNaN(rounded) && !allowEmpty) {
         rounded = min || 0;
@@ -1221,7 +1218,6 @@ definePrototype(TextField, {
 });
 ;// CONCATENATED MODULE: ./src/fields/ToggleField.js
 
-
 function ToggleField() {}
 definePrototype(ToggleField, {
   defaultValue: false,
@@ -1232,14 +1228,13 @@ definePrototype(ToggleField, {
   isEmpty: function isEmpty(value) {
     return !value;
   },
-  postHook: function postHook(state) {
-    var toggleValue = useCallback(function () {
-      state.setValue(function (v) {
-        return !v;
-      });
-    }, []);
+  postHook: function postHook(state, props, hook) {
     return extend(state, {
-      toggleValue: toggleValue
+      toggleValue: hook.callback(function () {
+        state.setValue(function (v) {
+          return !v;
+        });
+      })
     });
   }
 });
@@ -1273,6 +1268,29 @@ function ValidationError(kind, message, args) {
   this.kind = kind;
   this.args = args;
   this.message = message;
+}
+function createHookHelper(effects) {
+  var states = [];
+  var push = function push(callback, deps) {
+    var i = effects.i++;
+    states[i] = !deps || !states[i] || !equal(states[i][0], deps) ? [deps, callback()] : states[i];
+    return states[i][1];
+  };
+  return {
+    memo: push,
+    callback: function callback(_callback) {
+      var ref = push(Object, []);
+      ref.current = _callback;
+      return ref.cb || (ref.cb = function () {
+        return ref.current.apply(this, arguments);
+      });
+    },
+    effect: function effect(callback, deps) {
+      push(function () {
+        effects.push(throwNotFunction(callback));
+      }, deps);
+    }
+  };
 }
 function _isEmpty(value) {
   return isUndefinedOrNull(value) || value === '' || isArray(value) && !value.length;
@@ -1824,9 +1842,11 @@ function useFormField(type, props, defaultValue, prop) {
   }
   var uniqueId = useState(randomId)[0];
   var context = useContext(FormObjectContext);
-  var preset = useMemo(function () {
-    return type ? new type() : {};
+  var effects = useState([])[0];
+  var hook = useMemo(function () {
+    return type ? [new type(), createHookHelper(effects)] : [{}];
   }, [type]);
+  var preset = hook[0];
   prop = prop || preset.valueProperty || 'value';
   var dict = context;
   var name = props.name;
@@ -1854,6 +1874,11 @@ function useFormField(type, props, defaultValue, prop) {
   if (!existing) {
     field.version = 0;
   }
+  effects.i = 0;
+  effects.splice(0);
+  useEffect(function () {
+    combineFn(effects)();
+  });
   useObservableProperty(field, 'error');
   useObservableProperty(field, 'version');
   return (preset.postHook || pipe).call(preset, {
@@ -1867,7 +1892,7 @@ function useFormField(type, props, defaultValue, prop) {
     setError: field.setError,
     validate: field.validate,
     elementRef: field.elementRef
-  }, props);
+  }, props, hook[1]);
 }
 function combineValidators() {
   var validators = grep(makeArray(arguments), isFunction);
