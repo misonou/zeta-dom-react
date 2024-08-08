@@ -533,7 +533,11 @@ describe('useAsync', () => {
         const cb = mockFn().mockImplementation(() => Promise.resolve(Date.now()));
         const { result } = renderHook(() => useAsync(cb, false, 500));
 
-        const t1 = Date.now();
+        const t0 = Date.now();
+        const t1 = await result.current[1].refresh();
+        expect(t1 - t0).toBeLessThan(100);
+        cb.mockClear();
+
         const promise = result.current[1].refresh();
         expect(result.current[1].loading).toBe(false);
         expect(cb).not.toBeCalled();

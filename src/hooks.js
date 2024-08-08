@@ -141,6 +141,7 @@ export function useObservableProperty(obj, key) {
 
 export function useAsync(init, deps, debounce) {
     const state = useSingleton(function () {
+        var lastTime = 0;
         var element;
         var currentController;
         var nextResult;
@@ -171,6 +172,7 @@ export function useAsync(init, deps, debounce) {
                 }
             });
             reset(true, state.value);
+            lastTime = Date.now();
             currentController = controller;
             notifyAsync(element || dom.root, promise);
             return result;
@@ -199,7 +201,7 @@ export function useAsync(init, deps, debounce) {
                             reject(reason || errorWithCode(ErrorCode.cancelled));
                         }
                     };
-                    (debounce ? delay(debounce) : Promise.resolve()).then(resolve);
+                    (Date.now() - lastTime < debounce ? delay(debounce) : Promise.resolve()).then(resolve);
                 }).then(refresh)));
             },
             abort: function (reason) {
@@ -207,6 +209,7 @@ export function useAsync(init, deps, debounce) {
             },
             reset: function () {
                 reset(false);
+                lastTime = 0;
             }
         };
     }, [], function () {
