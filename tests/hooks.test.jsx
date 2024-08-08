@@ -1,5 +1,5 @@
 import React, { useEffect, useReducer, useRef, useState } from "react";
-import { act as reactAct, render, screen } from "@testing-library/react";
+import { act as reactAct, render, screen, waitFor } from "@testing-library/react";
 import { act, renderHook } from '@testing-library/react-hooks'
 import { catchAsync, errorWithCode } from "zeta-dom/util";
 import { ZetaEventContainer } from "zeta-dom/events";
@@ -393,7 +393,7 @@ describe('useAsync', () => {
         expect(result.all.length).toBe(2);
         expect(state.loading).toBe(false);
 
-        act(() => void state.refresh());
+        await act(() => void state.refresh());
         expect(result.all.length).toBe(3);
         expect(state.loading).toBe(true);
 
@@ -420,8 +420,23 @@ describe('useAsync', () => {
             initialProps: { value: 1 }
         });
         rerender({ value: 2 });
-        await 0;
+
+        await waitFor(() => expect(cb).toBeCalled());
         verifyCalls(cb, [[2]]);
+    });
+
+    it('should invoke callback only once after consecutive reset and refresh', async () => {
+        const cb = mockFn().mockResolvedValue(42);
+        const { result } = renderHook(() => useAsync(cb));
+        const state = result.current[1];
+
+        state.reset();
+        state.refresh();
+        state.reset();
+        state.refresh();
+
+        await waitFor(() => expect(cb).toBeCalled());
+        expect(cb).toBeCalledTimes(1);
     });
 
     it('should return result from latest call', async () => {
@@ -536,13 +551,14 @@ describe('useAsync', () => {
     it('should send abort signal and keep current value', async () => {
         const cb = mockFn()
             .mockResolvedValueOnce(42)
-            .mockResolvedValueOnce(43)
+            .mockImplementationOnce(() => delay(100).then(() => 43))
         const { result } = renderHook(() => useAsync(cb, []));
 
         await delay();
         expect(result.current[0]).toBe(42);
 
         result.current[1].refresh();
+        await waitFor(() => expect(cb).toBeCalledTimes(2));
         const signal1 = cb.mock.calls[1][0];
 
         result.current[1].abort('reason');
@@ -562,9 +578,11 @@ describe('useAsync', () => {
         const { result } = renderHook(() => useAsync(cb, false));
 
         result.current[1].refresh();
+        await waitFor(() => expect(cb).toBeCalled());
         const signal1 = cb.mock.calls[0][0];
 
         result.current[1].refresh();
+        await waitFor(() => expect(cb).toBeCalledTimes(2));
         const signal2 = cb.mock.calls[1][0];
 
         expect(signal1.aborted).toBe(true);
@@ -581,6 +599,7 @@ describe('useAsync', () => {
         const { result } = renderHook(() => useAsync(cb, false));
 
         result.current[1].refresh();
+        await waitFor(() => expect(cb).toBeCalled());
         const signal1 = cb.mock.calls[0][0];
         result.current[1].reset();
 
@@ -599,6 +618,7 @@ describe('useAsync', () => {
         const { result, unmount } = renderHook(() => useAsync(cb, false));
 
         result.current[1].refresh();
+        await waitFor(() => expect(cb).toBeCalled());
         const signal1 = cb.mock.calls[0][0];
         unmount();
 

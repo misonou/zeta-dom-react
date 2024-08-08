@@ -3,7 +3,8 @@ import dom, { reportError } from "zeta-dom/dom";
 import { notifyAsync } from "zeta-dom/domLock";
 import { bind } from "zeta-dom/domUtil";
 import { ZetaEventContainer } from "zeta-dom/events";
-import { always, any, arrRemove, catchAsync, clearImmediateOnce, combineFn, createPrivateStore, deferrable, defineObservableProperty, defineOwnProperty, delay, each, equal, extend, fill, freeze, hasOwnProperty, is, isArray, isErrorWithCode, isFunction, makeArray, makeAsync, map, mapRemove, noop, pipe, resolve, sameValueZero, setAdd, setImmediateOnce, watch } from "zeta-dom/util";
+import { always, any, arrRemove, catchAsync, clearImmediateOnce, combineFn, createPrivateStore, defineObservableProperty, defineOwnProperty, delay, each, equal, errorWithCode, extend, fill, freeze, hasOwnProperty, is, isArray, isErrorWithCode, isFunction, isUndefinedOrNull, makeArray, makeAsync, map, mapRemove, noop, pipe, resolve, sameValueZero, setAdd, setImmediateOnce, watch } from "zeta-dom/util";
+import * as ErrorCode from "zeta-dom/errorCode";
 import { IS_DEV } from "./env.js";
 
 const _ = /*#__PURE__*/ createPrivateStore();
@@ -148,8 +149,31 @@ export function useAsync(init, deps, debounce) {
                 currentController.abort(reason);
                 currentController = null;
             }
+            nextResult = null;
             extend(state, { loading, value, error });
             notifyChange([loading, value, error]);
+        };
+        var refresh = function () {
+            var controller = AbortController ? new AbortController() : { abort: noop };
+            var result = makeAsync(init)(controller.signal);
+            var promise = always(result, function (resolved, value) {
+                if (currentController === controller) {
+                    currentController = null;
+                    if (resolved) {
+                        reset(false, value);
+                        container.emit('load', state, { data: value });
+                    } else {
+                        reset(false, undefined, value);
+                        if (!container.emit('error', state, { error: value })) {
+                            throw value;
+                        }
+                    }
+                }
+            });
+            reset(true, state.value);
+            currentController = controller;
+            notifyAsync(element || dom.root, promise);
+            return result;
         };
         return {
             loading: false,
@@ -166,35 +190,17 @@ export function useAsync(init, deps, debounce) {
                     return handler.call(state, e.error);
                 });
             },
-            refresh: function (force) {
-                if (debounce && !force) {
-                    nextResult = nextResult || deferrable();
-                    nextResult.waitFor(delay(debounce));
-                    return nextResult.d || (nextResult.d = muteRejection(nextResult.then(function () {
-                        nextResult = null;
-                        return state.refresh(true);
-                    })));
-                }
-                var controller = AbortController ? new AbortController() : { abort: noop };
-                var result = makeAsync(init)(controller.signal);
-                var promise = always(result, function (resolved, value) {
-                    if (currentController === controller) {
-                        currentController = null;
-                        if (resolved) {
-                            reset(false, value);
-                            container.emit('load', state, { data: value });
-                        } else {
-                            reset(false, undefined, value);
-                            if (!container.emit('error', state, { error: value })) {
-                                throw value;
-                            }
+            refresh: function () {
+                return nextResult || (nextResult = muteRejection(new Promise(function (resolve, reject) {
+                    var previousController = currentController || { abort: noop };
+                    currentController = {
+                        abort: function (reason) {
+                            previousController.abort(reason);
+                            reject(reason || errorWithCode(ErrorCode.cancelled));
                         }
-                    }
-                });
-                reset(true, state.value);
-                currentController = controller;
-                notifyAsync(element || dom.root, promise);
-                return result;
+                    };
+                    (debounce ? delay(debounce) : Promise.resolve()).then(resolve);
+                }).then(refresh)));
             },
             abort: function (reason) {
                 reset(false, state.value, state.error, reason);
@@ -212,7 +218,7 @@ export function useAsync(init, deps, debounce) {
         if (deps[0]) {
             // keep call to refresh in useEffect to avoid double invocation
             // in strict mode in development environment
-            setImmediateOnce(state.refresh);
+            state.refresh();
         }
     }, deps);
     useMemo(function () {
