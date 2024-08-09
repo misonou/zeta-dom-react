@@ -1,5 +1,5 @@
 import React, { createRef, useEffect, useRef, useState } from "react";
-import { act as renderAct, render } from "@testing-library/react";
+import { act as renderAct, render, screen } from "@testing-library/react";
 import { act, renderHook } from '@testing-library/react-hooks'
 import { ViewStateProvider } from "src/viewState";
 import { ChoiceField, combineValidators, DateField, Form, FormArray, FormContext, FormContextProvider, FormObject, HiddenField, MultiChoiceField, NumericField, TextField, ToggleField, useFormContext, useFormField, ValidationError } from "src/form";
@@ -1067,6 +1067,19 @@ describe('useFormField', () => {
         expect(result.current.callback()).toBe('bar');
         expect(result.current.callback).toBe(resultCallback);
         unmount();
+    });
+
+    it('should expose element on elementRef callback', () => {
+        let ref;
+        const Field = function (props) {
+            const { value, elementRef } = useFormField(props, '');
+            ref = elementRef;
+            return (<div data-testid="container" ref={elementRef}>{value}</div>);
+        };
+        const { unmount } = render(<Field />);
+        expect(ref.current).toBe(screen.getByTestId('container'));
+        unmount();
+        expect(ref.current).toBe(null);
     });
 });
 

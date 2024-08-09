@@ -296,9 +296,11 @@ export interface FormFieldState<T = any> {
     readonly setError: React.Dispatch<React.SetStateAction<null | undefined | string | Stringifiable | ValidationError>>;
     /**
      * A callback to be passed to `ref` attribute to capture the rendered DOM element.
-     * The element can be retrieved by {@link FormContext.element}.
+     *
+     * The element can be retrieved by the `current` property on the callback or {@link FormContext.element}
+     * if the field is named and is associated to a {@link FormContext} instance.
      */
-    readonly elementRef: React.RefCallback<HTMLElement>;
+    readonly elementRef: React.RefCallback<HTMLElement> & React.RefObject<HTMLElement>;
     /**
      * A callback to trigger validation of the field.
      * @returns A promise that resolves to `true if validation is passed and `false` otherwise.

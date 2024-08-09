@@ -1,5 +1,5 @@
 import { createContext, createElement, forwardRef, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { always, any, combineFn, createPrivateStore, define, defineObservableProperty, definePrototype, each, equal, exclude, extend, grep, hasOwnProperty, is, isArray, isFunction, isPlainObject, isUndefinedOrNull, keys, makeArray, map, mapGet, mapRemove, noop, pick, pipe, randomId, resolve, resolveAll, sameValueZero, setImmediate, setImmediateOnce, single, throwNotFunction, throws, watch } from "zeta-dom/util";
+import { always, any, combineFn, createPrivateStore, define, defineGetterProperty, defineObservableProperty, definePrototype, each, equal, exclude, extend, grep, hasOwnProperty, is, isArray, isFunction, isPlainObject, isUndefinedOrNull, keys, makeArray, map, mapGet, mapRemove, noop, pick, pipe, randomId, resolve, resolveAll, sameValueZero, setImmediate, setImmediateOnce, single, throwNotFunction, throws, watch } from "zeta-dom/util";
 import { ZetaEventContainer } from "zeta-dom/events";
 import dom, { focus } from "zeta-dom/dom";
 import { preventLeave } from "zeta-dom/domLock";
@@ -316,6 +316,9 @@ function createFieldState(initialValue) {
                 message: String(v)
             });
         }
+    });
+    defineGetterProperty(field.elementRef, 'current', function () {
+        return field.element || null;
     });
     return field;
 }
