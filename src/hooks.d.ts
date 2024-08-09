@@ -1,3 +1,5 @@
+import { θDependencyConsumer, θDependencyProvider } from "./types";
+
 type EventsOf<T> = T extends Zeta.ZetaEventDispatcher<infer M, unknown> ? keyof M : string;
 type EventType<T, E extends string> =
     T extends Zeta.ZetaEventDispatcher<infer M, infer T> ? Zeta.ZetaEventType<E, M, T> :
@@ -123,16 +125,19 @@ export interface AsyncContentState<T = any> extends Zeta.ZetaEventDispatcher<Asy
 
 export interface Dependency<T> {
     /**
+     * Gets the consumer object to be passed to {@link useDependency} for receiving data from producer.
+     */
+    readonly Consumer: DependencyConsumer<T>;
+    /**
      * Gets the provider object to be passed to {@link useDependency} for sending data to consumer.
      */
     readonly Provider: DependencyProvider<T>;
 }
 
-export interface DependencyProvider<T> {
-    /**
-     * @private Type inference purpose only.
-     */
-    θ1: T;
+export interface DependencyConsumer<T> extends θDependencyConsumer<T> {
+}
+
+export interface DependencyProvider<T> extends θDependencyProvider<T> {
 }
 
 export interface DependencyProviderContext<T> {
@@ -404,9 +409,9 @@ export function createDependency<T>(defaultValue: T): Dependency<T>;
 
 /**
  * Gets data sent from producer.
- * @param dependency A dependency object returned from {@link createDependency}.
+ * @param dependency A dependency consumer object returned from {@link Dependency.Consumer}, or dependency object returned from {@link createDependency}.
  */
-export function useDependency<T>(dependency: Dependency<T>): T;
+export function useDependency<T>(dependency: DependencyConsumer<T> | Dependency<T>): T;
 
 /**
  * Provides data to consumer.

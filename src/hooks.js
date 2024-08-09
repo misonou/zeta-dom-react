@@ -349,12 +349,14 @@ export function useUnloadEffect(callback) {
 
 export function createDependency(defaultValue) {
     var Provider = freeze({});
-    var dependency = { Provider };
+    var Consumer = freeze({});
+    var dependency = { Provider, Consumer };
     var values = _(dependency, extend([], dependency));
     defineObservableProperty(values, 'current', defaultValue, function () {
         return values[0] ? values[0].value : defaultValue;
     });
     _(Provider, values);
+    _(Consumer, values);
     return freeze(dependency);
 }
 

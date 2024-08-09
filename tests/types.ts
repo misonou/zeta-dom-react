@@ -1,6 +1,6 @@
 import { expectTypeOf } from "expect-type";
 import { Dispatch, DispatchWithoutAction, SetStateAction } from "react";
-import { createDependency, useDependency, useEagerReducer, useEagerState, useEventTrigger } from "../src/hooks";
+import { createDependency, Dependency, DependencyConsumer, DependencyProvider, useDependency, useEagerReducer, useEagerState, useEventTrigger } from "../src/hooks";
 import { ChoiceField, ChoiceFieldProps, ChoiceFieldState, ChoiceItem, DateField, DateFieldState, FieldType, FormContext, FormFieldProps, FormFieldState, FormObject, FormValidateEvent, FormValidationChangeEvent, MultiChoiceField, MultiChoiceFieldProps, MultiChoiceFieldState, NumericField, NumericFieldState, TextField, TextFieldState, ToggleField, ToggleFieldState, ValidationError, useFormContext, useFormField } from "../src/form";
 
 const _: unknown = {};
@@ -34,12 +34,46 @@ const dep1 = createDependency(0);
 const dep2 = createDependency<number>();
 expectTypeOf(useDependency(dep1)).toEqualTypeOf<number>();
 expectTypeOf(useDependency(dep2)).toEqualTypeOf<number | undefined>();
+expectTypeOf(useDependency(dep1.Consumer)).toEqualTypeOf<number>();
+expectTypeOf(useDependency(dep2.Consumer)).toEqualTypeOf<number | undefined>();
+
+expectTypeOf(<DependencyConsumer<number>>_).not.toMatchTypeOf<DependencyProvider<number>>();
+expectTypeOf(<DependencyProvider<number>>_).not.toMatchTypeOf<DependencyConsumer<number>>();
+
+// consumer is covariant
+expectTypeOf(<DependencyConsumer<number>>_).toMatchTypeOf<DependencyConsumer<number | undefined>>();
+expectTypeOf(<DependencyConsumer<number>>_).toMatchTypeOf<DependencyConsumer<number | string>>();
+expectTypeOf(<DependencyConsumer<{ a: number, b: number }>>_).toMatchTypeOf<DependencyConsumer<{ a: number }>>();
+expectTypeOf(<DependencyConsumer<number | undefined>>_).not.toMatchTypeOf<DependencyConsumer<number>>();
+expectTypeOf(<DependencyConsumer<number | string>>_).not.toMatchTypeOf<DependencyConsumer<number>>();
+expectTypeOf(<DependencyConsumer<{ a: number }>>_).not.toMatchTypeOf<DependencyConsumer<{ a: number, b: number }>>();
+
+// provider is contravariant
+expectTypeOf(<DependencyProvider<number | undefined>>_).toMatchTypeOf<DependencyProvider<number>>();
+expectTypeOf(<DependencyProvider<number | string>>_).toMatchTypeOf<DependencyProvider<number>>();
+expectTypeOf(<DependencyProvider<{ a: number }>>_).toMatchTypeOf<DependencyProvider<{ a: number, b: number }>>();
+expectTypeOf(<DependencyProvider<number>>_).not.toMatchTypeOf<DependencyProvider<number | undefined>>();
+expectTypeOf(<DependencyProvider<number>>_).not.toMatchTypeOf<DependencyProvider<number | string>>();
+expectTypeOf(<DependencyProvider<{ a: number, b: number }>>_).not.toMatchTypeOf<DependencyProvider<{ a: number }>>();
+
+// depedency is bivariant
+expectTypeOf(<Dependency<number>>_).not.toMatchTypeOf<Dependency<number | undefined>>();
+expectTypeOf(<Dependency<number>>_).not.toMatchTypeOf<Dependency<number | string>>();
+expectTypeOf(<Dependency<{ a: number }>>_).not.toMatchTypeOf<Dependency<{ a: number, b: number }>>();
+expectTypeOf(<Dependency<number | undefined>>_).not.toMatchTypeOf<Dependency<number>>();
+expectTypeOf(<Dependency<number | string>>_).not.toMatchTypeOf<Dependency<number>>();
+expectTypeOf(<Dependency<{ a: number, b: number }>>_).not.toMatchTypeOf<Dependency<{ a: number }>>();
+
 // @ts-expect-error
 useDependency(dep1, 1);
 // @ts-expect-error
 useDependency(dep1.Provider);
 // @ts-expect-error
 useDependency(dep1.Provider, true);
+// @ts-expect-error
+useDependency({});
+// @ts-expect-error
+useDependency({}, 1);
 
 // -------------------------------------
 // form.d.ts

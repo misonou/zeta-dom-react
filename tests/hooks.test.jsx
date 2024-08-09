@@ -1094,7 +1094,7 @@ describe('useUnloadEffect', () => {
 describe('useDependency', () => {
     it('should return default value if there is no mounted producer', () => {
         const dep = createDependency(1);
-        const { result } = renderHook(() => useDependency(dep));
+        const { result } = renderHook(() => useDependency(dep.Consumer));
         expect(result.current).toBe(1);
     });
 
@@ -1112,7 +1112,7 @@ describe('useDependency', () => {
                 {children}
             </>);
         };
-        const { result, rerender } = renderHook(() => useDependency(dep), {
+        const { result, rerender } = renderHook(() => useDependency(dep.Consumer), {
             wrapper: Wrapper,
             initialProps: { value: 1 }
         });
@@ -1120,6 +1120,12 @@ describe('useDependency', () => {
 
         rerender({ value: 3 });
         expect(result.current).toBe(3);
+    });
+
+    it('should treat dependency object as consumer', () => {
+        const dep = createDependency(1);
+        const { result } = renderHook(() => useDependency(dep));
+        expect(result.current).toBe(1);
     });
 
     it('should notify consumer if value changes', async () => {
@@ -1136,7 +1142,7 @@ describe('useDependency', () => {
             </>);
         };
 
-        const { result, rerender, waitForNextUpdate } = renderHook(() => useDependency(dep), {
+        const { result, rerender, waitForNextUpdate } = renderHook(() => useDependency(dep.Consumer), {
             wrapper: Wrapper,
             initialProps: { values: [] }
         });
@@ -1166,7 +1172,7 @@ describe('useDependency', () => {
     it('should throw if first argument changed from consumer to provider', () => {
         const dep = createDependency();
         const { result, rerender } = renderHook(({ val }) => useDependency(val), {
-            initialProps: { val: dep }
+            initialProps: { val: dep.Consumer }
         });
         expect(result.error).toBeUndefined();
 
@@ -1187,7 +1193,7 @@ describe('useDependency', () => {
         expect(result.error).toBeUndefined();
 
         try {
-            rerender({ val: dep })
+            rerender({ val: dep.Consumer })
             expect(result.error).not.toBeUndefined();
         } catch (e) {
             expect(e).toBeInstanceOf(Error);
@@ -1207,7 +1213,7 @@ describe('useDependency', () => {
             <Producer dep={dep2.Provider} value={2} />
             {children}
         </>)
-        const { result, rerender } = renderHook(({ dep }) => useDependency(dep), {
+        const { result, rerender } = renderHook(({ dep }) => useDependency(dep.Consumer), {
             wrapper: Wrapper,
             initialProps: { dep: dep1 }
         });
@@ -1225,7 +1231,7 @@ describe('useDependency', () => {
             useDependency(dep.Provider, 1);
             return children;
         };
-        const { result, rerender, waitForNextUpdate } = renderHook(() => [useDependency(dep1), useDependency(dep2)], {
+        const { result, rerender, waitForNextUpdate } = renderHook(() => [useDependency(dep1.Consumer), useDependency(dep2.Consumer)], {
             wrapper: Wrapper,
             initialProps: { dep: dep1 }
         });
