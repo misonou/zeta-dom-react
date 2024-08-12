@@ -1,4 +1,4 @@
-/*! zeta-dom-react v0.5.9 | (c) misonou | https://misonou.github.io */
+/*! zeta-dom-react v0.5.10 | (c) misonou | https://misonou.github.io */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory(require("zeta-dom"), require("react"), require("react-dom"));
@@ -160,7 +160,6 @@ var _lib$util = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_
   clearImmediateOnce = _lib$util.clearImmediateOnce,
   combineFn = _lib$util.combineFn,
   createPrivateStore = _lib$util.createPrivateStore,
-  deferrable = _lib$util.deferrable,
   util_define = _lib$util.define,
   defineGetterProperty = _lib$util.defineGetterProperty,
   defineObservableProperty = _lib$util.defineObservableProperty,
@@ -170,6 +169,7 @@ var _lib$util = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_
   each = _lib$util.each,
   either = _lib$util.either,
   equal = _lib$util.equal,
+  errorWithCode = _lib$util.errorWithCode,
   exclude = _lib$util.exclude,
   extend = _lib$util.extend,
   fill = _lib$util.fill,
@@ -248,6 +248,11 @@ var _lib$dom = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_z
 
 var EventContainer = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_zeta_.EventContainer;
 
+;// CONCATENATED MODULE: ./|umd|/zeta-dom/errorCode.js
+
+var errorCode = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_zeta_.ErrorCode;
+var cancelled = errorCode.cancelled;
+
 // EXTERNAL MODULE: external {"commonjs":"react-dom","commonjs2":"react-dom","amd":"react-dom","root":"ReactDOM"}
 var external_commonjs_react_dom_commonjs2_react_dom_amd_react_dom_root_ReactDOM_ = __webpack_require__(33);
 ;// CONCATENATED MODULE: ./src/env.umd.js
@@ -269,6 +274,7 @@ external_commonjs_react_dom_commonjs2_react_dom_amd_react_dom_root_ReactDOM_.flu
 });
 var IS_DEV = extraRender;
 ;// CONCATENATED MODULE: ./src/hooks.js
+
 
 
 
@@ -398,6 +404,7 @@ function useObservableProperty(obj, key) {
 }
 function useAsync(init, deps, debounce) {
   var state = useSingleton(function () {
+    var lastTime = 0;
     var element;
     var currentController;
     var nextResult;
@@ -406,12 +413,42 @@ function useAsync(init, deps, debounce) {
         currentController.abort(reason);
         currentController = null;
       }
+      nextResult = null;
       extend(state, {
         loading: loading,
         value: value,
         error: error
       });
       notifyChange([loading, value, error]);
+    };
+    var _refresh = function refresh() {
+      var controller = AbortController ? new AbortController() : {
+        abort: noop
+      };
+      var result = makeAsync(init)(controller.signal);
+      var promise = always(result, function (resolved, value) {
+        if (currentController === controller) {
+          currentController = null;
+          if (resolved) {
+            _reset(false, value);
+            container.emit('load', state, {
+              data: value
+            });
+          } else {
+            _reset(false, undefined, value);
+            if (!container.emit('error', state, {
+              error: value
+            })) {
+              throw value;
+            }
+          }
+        }
+      });
+      _reset(true, state.value);
+      lastTime = Date.now();
+      currentController = controller;
+      notifyAsync(element || zeta_dom_dom.root, promise);
+      return result;
     };
     return {
       loading: false,
@@ -428,47 +465,26 @@ function useAsync(init, deps, debounce) {
           return handler.call(state, e.error);
         });
       },
-      refresh: function refresh(force) {
-        if (debounce && !force) {
-          nextResult = nextResult || deferrable();
-          nextResult.waitFor(delay(debounce));
-          return nextResult.d || (nextResult.d = muteRejection(nextResult.then(function () {
-            nextResult = null;
-            return state.refresh(true);
-          })));
-        }
-        var controller = AbortController ? new AbortController() : {
-          abort: noop
-        };
-        var result = makeAsync(init)(controller.signal);
-        var promise = always(result, function (resolved, value) {
-          if (currentController === controller) {
-            currentController = null;
-            if (resolved) {
-              _reset(false, value);
-              container.emit('load', state, {
-                data: value
-              });
-            } else {
-              _reset(false, undefined, value);
-              if (!container.emit('error', state, {
-                error: value
-              })) {
-                throw value;
-              }
+      refresh: function refresh() {
+        return nextResult || (nextResult = muteRejection(new Promise(function (resolve, reject) {
+          var previousController = currentController || {
+            abort: noop
+          };
+          currentController = {
+            abort: function abort(reason) {
+              previousController.abort(reason);
+              reject(reason || errorWithCode(cancelled));
             }
-          }
-        });
-        _reset(true, state.value);
-        currentController = controller;
-        notifyAsync(element || zeta_dom_dom.root, promise);
-        return result;
+          };
+          (Date.now() - lastTime < debounce ? delay(debounce) : Promise.resolve()).then(resolve);
+        }).then(_refresh)));
       },
       abort: function abort(reason) {
         _reset(false, state.value, state.error, reason);
       },
       reset: function reset() {
         _reset(false);
+        lastTime = 0;
       }
     };
   }, [], function () {
@@ -480,7 +496,7 @@ function useAsync(init, deps, debounce) {
     if (deps[0]) {
       // keep call to refresh in useEffect to avoid double invocation
       // in strict mode in development environment
-      setImmediateOnce(state.refresh);
+      state.refresh();
     }
   }, deps);
   useMemo(function () {
@@ -604,14 +620,17 @@ function useUnloadEffect(callback) {
 }
 function createDependency(defaultValue) {
   var Provider = freeze({});
+  var Consumer = freeze({});
   var dependency = {
-    Provider: Provider
+    Provider: Provider,
+    Consumer: Consumer
   };
   var values = _(dependency, extend([], dependency));
   defineObservableProperty(values, 'current', defaultValue, function () {
     return values[0] ? values[0].value : defaultValue;
   });
   _(Provider, values);
+  _(Consumer, values);
   return freeze(dependency);
 }
 function useDependency(dependency, value, deps) {
