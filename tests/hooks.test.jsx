@@ -5,7 +5,7 @@ import { catchAsync, errorWithCode } from "zeta-dom/util";
 import { ZetaEventContainer } from "zeta-dom/events";
 import dom, { reportError } from "zeta-dom/dom";
 import { combineRef } from "src/util";
-import { createDependency, createErrorHandler, isSingletonDisposed, useAsync, useDependency, useDispose, useEagerReducer, useEagerState, useErrorHandler, useEventTrigger, useMemoizedFunction, useObservableProperty, useRefInitCallback, useSingleton, useUnloadEffect, useUpdateTrigger, useValueTrigger } from "src/hooks";
+import { createAsyncScope, createDependency, createErrorHandler, isSingletonDisposed, useAsync, useDependency, useDispose, useEagerReducer, useEagerState, useErrorHandler, useEventTrigger, useMemoizedFunction, useObservableProperty, useRefInitCallback, useSingleton, useUnloadEffect, useUpdateTrigger, useValueTrigger } from "src/hooks";
 import { delay, mockFn, verifyCalls, _, after, cleanup, root } from "@misonou/test-utils";
 
 describe('useEagerReducer', () => {
@@ -508,6 +508,46 @@ describe('useAsync', () => {
         expect(cb).toBeCalledTimes(1);
     });
 
+    it('should emit unhandled error event to root element by default', async () => {
+        const cb = mockFn();
+        const promise = Promise.reject(new Error());
+        const Component = function () {
+            useAsync(() => promise);
+            return (<div></div>);
+        };
+        cleanup(dom.on(dom.root, 'error', cb));
+        render(<Component />);
+
+        await reactAct(async () => void await catchAsync(promise));
+        expect(cb).toBeCalledTimes(1);
+    });
+
+    it('should emit unhandled error event to error handler from provider', async () => {
+        const container = document.createElement('div');
+        document.body.appendChild(container);
+
+        const { Provider, errorHandler } = createAsyncScope(container);
+        const domErrorCb = mockFn();
+        const handlerCb = mockFn(() => true);
+        const promise = Promise.reject(new Error());
+        const Parent = function ({ children }) {
+            useEffect(() => {
+                return errorHandler.catch(handlerCb);
+            }, []);
+            return <Provider>{children}</Provider>
+        };
+        const Component = function () {
+            useAsync(() => promise);
+            return (<div></div>);
+        };
+        cleanup(dom.on(dom.root, 'error', domErrorCb));
+        render(<Component />, { wrapper: Parent, container });
+
+        await reactAct(async () => void await catchAsync(promise));
+        expect(handlerCb).toBeCalledTimes(1);
+        expect(domErrorCb).not.toBeCalled();
+    });
+
     it('should not emit error event when error is handled by onError handler', async () => {
         const cb = mockFn().mockReturnValue(true);
         const error = new Error();
@@ -527,6 +567,74 @@ describe('useAsync', () => {
 
         await reactAct(async () => void await catchAsync(promise));
         expect(cb).not.toBeCalled();
+    });
+
+    it('should emit async events to root element by default', async () => {
+        const cb = mockFn();
+        const promise = delay(10);
+        const Component = function () {
+            useAsync(() => promise);
+            return (<div></div>);
+        };
+        cleanup(dom.on(dom.root, {
+            asyncStart: cb,
+            asyncEnd: cb
+        }));
+        render(<Component />);
+
+        await waitFor(() => expect(cb).toBeCalledTimes(2));
+        verifyCalls(cb, [
+            [expect.objectContaining({ type: 'asyncStart' }), _],
+            [expect.objectContaining({ type: 'asyncEnd' }), _],
+        ]);
+    });
+
+    it('should emit async events to element from elementRef', async () => {
+        const cb = mockFn();
+        const promise = delay(10);
+        const Component = function () {
+            const [, state] = useAsync(() => promise);
+            return (<div ref={state.elementRef} data-testid="target"></div>);
+        };
+        render(<Component />);
+
+        const target = screen.getByTestId('target');
+        cleanup(dom.on(target, {
+            asyncStart: cb,
+            asyncEnd: cb
+        }));
+
+        await waitFor(() => expect(cb).toBeCalledTimes(2));
+        verifyCalls(cb, [
+            [expect.objectContaining({ type: 'asyncStart' }), _],
+            [expect.objectContaining({ type: 'asyncEnd' }), _],
+        ]);
+    });
+
+    it('should emit async events to element from error handler', async () => {
+        const container = document.createElement('div');
+        document.body.appendChild(container);
+
+        const { Provider } = createAsyncScope(container);
+        const cb = mockFn();
+        const Parent = function ({ children }) {
+            return <Provider>{children}</Provider>
+        };
+        const Component = function () {
+            useAsync(() => delay(10));
+            return (<div></div>);
+        };
+        cleanup(dom.on(container, {
+            asyncStart: cb,
+            asyncEnd: cb
+        }));
+        render(<Component />, { wrapper: Parent, container });
+
+        await waitFor(() => expect(cb).toBeCalledTimes(2));
+        verifyCalls(cb, [
+            [expect.objectContaining({ type: 'asyncStart' }), _],
+            [expect.objectContaining({ type: 'asyncEnd' }), _],
+        ]);
     });
 
     it('should delay callback invocation and return same result when debounce interval is specified', async () => {

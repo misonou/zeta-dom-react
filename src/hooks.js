@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
+import { createContext, createElement, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import dom, { reportError } from "zeta-dom/dom";
 import { notifyAsync } from "zeta-dom/domLock";
 import { bind } from "zeta-dom/domUtil";
@@ -12,6 +12,7 @@ const container = new ZetaEventContainer();
 const singletons = new Map();
 const disposedSingletons = new WeakSet();
 const unloadCallbacks = new Set();
+const AsyncScopeContext = createContext(null);
 const AbortController = window.AbortController;
 const useSingletonEffect = IS_DEV ? useSingletonEffectImplDev : useSingletonEffectImpl;
 const sameValue = Object.is || function (a, b) {
@@ -75,6 +76,15 @@ function createRefInitCallback(set, init, args) {
         if (v && setAdd(set, v)) {
             args[0] = v;
             init.apply(null, args);
+        }
+    };
+}
+
+export function createAsyncScope(element) {
+    return {
+        errorHandler: createErrorHandler(element),
+        Provider: function (props) {
+            return createElement(AsyncScopeContext.Provider, { value: element }, props.children);
         }
     };
 }
@@ -149,6 +159,7 @@ export function useObservableProperty(obj, key) {
 }
 
 export function useAsync(init, deps, debounce) {
+    const scopeElement = useContext(AsyncScopeContext);
     const state = useSingleton(function () {
         var lastTime = 0;
         var element;
@@ -183,7 +194,7 @@ export function useAsync(init, deps, debounce) {
             reset(true, state.value);
             lastTime = Date.now();
             currentController = controller;
-            notifyAsync(element || dom.root, promise);
+            notifyAsync(element || scopeElement || dom.root, promise);
             return result;
         };
         return {

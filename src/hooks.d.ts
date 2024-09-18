@@ -75,6 +75,18 @@ export interface ErrorHandlerWithRef<T = Element> extends ErrorHandler {
     readonly ref: React.RefCallback<T>;
 }
 
+export interface AsyncScope {
+    /**
+     * A provider component that when rendered, {@link useAsync} in descendant components
+     * will notify loading state and emit unhandled error to the associated element by default.
+     */
+    Provider: React.FC<React.PropsWithChildren<{}>>;
+    /**
+     * A handler that catches errors emitted from descendant elements.
+     */
+    errorHandler: ErrorHandler;
+}
+
 export interface AsyncContentEventMap<T> {
     load: AsyncContentLoadEvent<T>;
     error: Zeta.ZetaErrorEvent;
@@ -146,6 +158,12 @@ export interface DependencyProviderContext<T> {
      */
     readonly value: T;
 }
+
+/**
+ * Creates utilities that handles asynchronous operations in descendant components and associated DOM elements.
+ * @param element A DOM element.
+ */
+export function createAsyncScope(element: Element): AsyncScope;
 
 /**
  * Similar to but unlike {@link React.useRef}, the given value is automatically set on each render.
