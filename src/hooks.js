@@ -70,6 +70,15 @@ function useSingletonEffectImplDev(factory, dispose, deps) {
     return target;
 }
 
+function createRefInitCallback(set, init, args) {
+    return function (v) {
+        if (v && setAdd(set, v)) {
+            args[0] = v;
+            init.apply(null, args);
+        }
+    };
+}
+
 export function useAutoSetRef(value) {
     const ref = useRef();
     ref.current = value;
@@ -233,15 +242,10 @@ export function useAsync(init, deps, debounce) {
     return [state.value, state];
 }
 
-export function useRefInitCallback(init) {
+export function useRefInitCallback() {
     const args = makeArray(arguments);
     const set = useState(new WeakSet())[0];
-    return function (v) {
-        if (v && setAdd(set, v)) {
-            args[0] = v;
-            init.apply(null, args);
-        }
-    };
+    return createRefInitCallback(set, args[0], args);
 }
 
 export function useDispose() {
@@ -278,58 +282,60 @@ export function useErrorHandlerRef() {
     return useErrorHandler.apply(this, arguments).ref;
 }
 
-export function useErrorHandler() {
-    const reemitting = useRef(false);
-    const ref = useRef(null);
-    const args = makeArray(arguments);
-    const handler = useState(function () {
-        return {
-            ref: function (element) {
-                ref.current = element;
-                init(element);
-            },
-            emit: function (error) {
-                return catchError(error) || reemitError(error) || resolve();
-            },
-            catch: function (filter, callback) {
-                var isErrorOf;
-                if (!callback) {
-                    callback = filter;
-                } else if (!isArray(filter)) {
-                    isErrorOf = isFunction(filter) ? is : isErrorWithCode;
-                } else {
-                    isErrorOf = function (error, filter) {
-                        return any(filter, function (filter) {
-                            return (isFunction(filter) ? is : isErrorWithCode)(error, filter);
-                        });
-                    };
-                }
-                return container.add(handler, isErrorOf ? 'error' : 'default', function (e) {
-                    if ((isErrorOf || pipe)(e.error, filter)) {
-                        return callback(e.error);
-                    }
-                });
-            }
-        };
-    })[0];
-    const reemitError = useCallback(function (error) {
+export function createErrorHandler(element) {
+    var reemitting;
+    var reemitError = function (error) {
         try {
-            reemitting.current = true;
-            return reportError(error, ref.current);
+            reemitting = true;
+            return reportError(error, element);
         } finally {
-            reemitting.current = false;
+            reemitting = false;
         }
-    }, []);
-    const catchError = useCallback(function (error) {
+    };
+    var catchError = function (error) {
         return container.emit('error', handler, { error }) || container.emit('default', handler, { error });
-    }, []);
-    const init = useRefInitCallback(function (element) {
-        dom.on(element, 'error', function (e) {
-            if (!reemitting.current) {
-                return catchError(e.error);
-            }
+    };
+    var initElement = function (current) {
+        element = current;
+        return dom.on(current, 'error', function (e) {
+            return reemitting ? undefined : catchError(e.error);
         });
-    });
+    };
+    var handler = {
+        emit: function (error) {
+            return catchError(error) || reemitError(error) || resolve();
+        },
+        catch: function (filter, callback) {
+            var isErrorOf = pipe;
+            if (!callback) {
+                callback = filter;
+            } else if (!isArray(filter)) {
+                isErrorOf = isFunction(filter) ? is : isErrorWithCode;
+            } else {
+                isErrorOf = function (error, filter) {
+                    return any(filter, function (filter) {
+                        return (isFunction(filter) ? is : isErrorWithCode)(error, filter);
+                    });
+                };
+            }
+            return container.add(handler, isErrorOf === pipe ? 'default' : 'error', function (e) {
+                if (isErrorOf(e.error, filter)) {
+                    return callback(e.error);
+                }
+            });
+        }
+    };
+    if (element) {
+        initElement(element);
+    } else {
+        handler.ref = createRefInitCallback(new WeakSet(), initElement, []);
+    }
+    return handler;
+}
+
+export function useErrorHandler() {
+    const args = makeArray(arguments);
+    const handler = useState(createErrorHandler)[0];
     useEffect(function () {
         return combineFn(map(args, function (v) {
             return v.onError(handler.emit);

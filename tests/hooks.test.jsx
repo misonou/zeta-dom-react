@@ -3,10 +3,10 @@ import { act as reactAct, render, screen, waitFor } from "@testing-library/react
 import { act, renderHook } from '@testing-library/react-hooks'
 import { catchAsync, errorWithCode } from "zeta-dom/util";
 import { ZetaEventContainer } from "zeta-dom/events";
-import dom from "zeta-dom/dom";
+import dom, { reportError } from "zeta-dom/dom";
 import { combineRef } from "src/util";
-import { createDependency, isSingletonDisposed, useAsync, useDependency, useDispose, useEagerReducer, useEagerState, useErrorHandler, useEventTrigger, useMemoizedFunction, useObservableProperty, useRefInitCallback, useSingleton, useUnloadEffect, useUpdateTrigger, useValueTrigger } from "src/hooks";
-import { delay, mockFn, verifyCalls, _, after } from "@misonou/test-utils";
+import { createDependency, createErrorHandler, isSingletonDisposed, useAsync, useDependency, useDispose, useEagerReducer, useEagerState, useErrorHandler, useEventTrigger, useMemoizedFunction, useObservableProperty, useRefInitCallback, useSingleton, useUnloadEffect, useUpdateTrigger, useValueTrigger } from "src/hooks";
+import { delay, mockFn, verifyCalls, _, after, cleanup, root } from "@misonou/test-utils";
 
 describe('useEagerReducer', () => {
     it('should act like useReducer', () => {
@@ -775,6 +775,38 @@ describe('isSingletonDisposed', () => {
         expect(isSingletonDisposed(obj)).toBe(false);
         await after(async () => unmount());
         expect(isSingletonDisposed(obj)).toBe(true);
+    });
+});
+
+describe('createErrorHandler', () => {
+    it('should create error handler mounted on the specified element', async () => {
+        const div = document.createElement('div');
+        document.body.appendChild(div);
+
+        const domCb = mockFn();
+        const handlerCb = mockFn();
+        cleanup(
+            dom.on(div, 'error', domCb),
+            dom.on(root, 'error', domCb));
+
+        const errorHandler = createErrorHandler(div);
+        errorHandler.catch(handlerCb);
+
+        handlerCb.mockReturnValueOnce(true);
+        reportError(new Error(), div);
+        expect(handlerCb).toBeCalledTimes(1);
+        verifyCalls(domCb, [
+            [_, div]
+        ]);
+        handlerCb.mockClear();
+        domCb.mockClear();
+
+        errorHandler.emit(new Error());
+        expect(handlerCb).toBeCalledTimes(1);
+        verifyCalls(domCb, [
+            [_, div],
+            [_, root]
+        ]);
     });
 });
 

@@ -372,6 +372,13 @@ export function useSingleton<T>(factory: () => T, deps: React.DependencyList, on
 export function useSingleton<T>(factory: T | (() => T), onDispose?: (this: T, target: T, flag: boolean) => void): T;
 
 /**
+ * Creates an {@link ErrorHandler} object that allows capturing errors from descendant elements
+ * or emitting errors to parent elements of a specified container element.
+ * @param element A DOM element.
+ */
+export function createErrorHandler(element: Element): ErrorHandler;
+
+/**
  * Returns a ref callback which when given to a React element, error caught from specified sources will be emitted through `error` event and be bubbled up through DOM.
  * @param args A list of error sources. Error source must implement an `onError` method.
  * @deprecated Use {@link useErrorHandler} for richer functionalities.
