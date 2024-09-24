@@ -1,4 +1,4 @@
-/*! zeta-dom-react v0.5.10 | (c) misonou | https://misonou.github.io */
+/*! zeta-dom-react v0.5.11 | (c) misonou | https://misonou.github.io */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory(require("zeta-dom"), require("react"), require("react-dom"));
@@ -116,8 +116,10 @@ __webpack_require__.d(__webpack_exports__, {
   classNames: () => (/* reexport */ classNames),
   combineRef: () => (/* reexport */ combineRef),
   combineValidators: () => (/* reexport */ combineValidators),
+  createAsyncScope: () => (/* reexport */ createAsyncScope),
   createBreakpointContext: () => (/* reexport */ createBreakpointContext),
   createDependency: () => (/* reexport */ createDependency),
+  createErrorHandler: () => (/* reexport */ createErrorHandler),
   domEventRef: () => (/* reexport */ domEventRef),
   innerTextOrHTML: () => (/* reexport */ innerTextOrHTML),
   isSingletonDisposed: () => (/* reexport */ isSingletonDisposed),
@@ -287,6 +289,7 @@ var container = new EventContainer();
 var singletons = new Map();
 var disposedSingletons = new WeakSet();
 var unloadCallbacks = new Set();
+var AsyncScopeContext = /*#__PURE__*/createContext(null);
 var AbortController = window.AbortController;
 var useSingletonEffect = IS_DEV ? useSingletonEffectImplDev : useSingletonEffectImpl;
 var sameValue = Object.is || function (a, b) {
@@ -338,6 +341,24 @@ function useSingletonEffectImplDev(factory, dispose, deps) {
     return cb;
   }, [target]);
   return target;
+}
+function createRefInitCallback(set, init, args) {
+  return function (v) {
+    if (v && setAdd(set, v)) {
+      args[0] = v;
+      init.apply(null, args);
+    }
+  };
+}
+function createAsyncScope(element) {
+  return {
+    errorHandler: createErrorHandler(element),
+    Provider: function Provider(props) {
+      return /*#__PURE__*/createElement(AsyncScopeContext.Provider, {
+        value: element
+      }, props.children);
+    }
+  };
 }
 function useAutoSetRef(value) {
   var ref = useRef();
@@ -403,6 +424,7 @@ function useObservableProperty(obj, key) {
   return value;
 }
 function useAsync(init, deps, debounce) {
+  var scopeElement = useContext(AsyncScopeContext);
   var state = useSingleton(function () {
     var lastTime = 0;
     var element;
@@ -447,7 +469,7 @@ function useAsync(init, deps, debounce) {
       _reset(true, state.value);
       lastTime = Date.now();
       currentController = controller;
-      notifyAsync(element || zeta_dom_dom.root, promise);
+      notifyAsync(element || scopeElement || zeta_dom_dom.root, promise);
       return result;
     };
     return {
@@ -507,15 +529,10 @@ function useAsync(init, deps, debounce) {
   var notifyChange = useValueTrigger([state.loading, state.value, state.error], equal);
   return [state.value, state];
 }
-function useRefInitCallback(init) {
+function useRefInitCallback() {
   var args = makeArray(arguments);
   var set = useState(new WeakSet())[0];
-  return function (v) {
-    if (v && setAdd(set, v)) {
-      args[0] = v;
-      init.apply(null, args);
-    }
-  };
+  return createRefInitCallback(set, args[0], args);
 }
 function useDispose() {
   var dispose = useState(function () {
@@ -547,62 +564,63 @@ function useSingleton(factory, deps, onDispose) {
 function useErrorHandlerRef() {
   return useErrorHandler.apply(this, arguments).ref;
 }
-function useErrorHandler() {
-  var reemitting = useRef(false);
-  var _ref = useRef(null);
-  var args = makeArray(arguments);
-  var handler = useState(function () {
-    return {
-      ref: function ref(element) {
-        _ref.current = element;
-        init(element);
-      },
-      emit: function emit(error) {
-        return catchError(error) || reemitError(error) || resolve();
-      },
-      "catch": function _catch(filter, callback) {
-        var isErrorOf;
-        if (!callback) {
-          callback = filter;
-        } else if (!isArray(filter)) {
-          isErrorOf = isFunction(filter) ? is : isErrorWithCode;
-        } else {
-          isErrorOf = function isErrorOf(error, filter) {
-            return any(filter, function (filter) {
-              return (isFunction(filter) ? is : isErrorWithCode)(error, filter);
-            });
-          };
-        }
-        return container.add(handler, isErrorOf ? 'error' : 'default', function (e) {
-          if ((isErrorOf || pipe)(e.error, filter)) {
-            return callback(e.error);
-          }
-        });
-      }
-    };
-  })[0];
-  var reemitError = useCallback(function (error) {
+function createErrorHandler(element) {
+  var reemitting;
+  var reemitError = function reemitError(error) {
     try {
-      reemitting.current = true;
-      return reportError(error, _ref.current);
+      reemitting = true;
+      return reportError(error, element);
     } finally {
-      reemitting.current = false;
+      reemitting = false;
     }
-  }, []);
-  var catchError = useCallback(function (error) {
+  };
+  var catchError = function catchError(error) {
     return container.emit('error', handler, {
       error: error
     }) || container.emit('default', handler, {
       error: error
     });
-  }, []);
-  var init = useRefInitCallback(function (element) {
-    zeta_dom_dom.on(element, 'error', function (e) {
-      if (!reemitting.current) {
-        return catchError(e.error);
-      }
+  };
+  var initElement = function initElement(current) {
+    element = current;
+    return zeta_dom_dom.on(current, 'error', function (e) {
+      return reemitting ? undefined : catchError(e.error);
     });
-  });
+  };
+  var handler = {
+    emit: function emit(error) {
+      return catchError(error) || reemitError(error) || resolve();
+    },
+    "catch": function _catch(filter, callback) {
+      var isErrorOf = pipe;
+      if (!callback) {
+        callback = filter;
+      } else if (!isArray(filter)) {
+        isErrorOf = isFunction(filter) ? is : isErrorWithCode;
+      } else {
+        isErrorOf = function isErrorOf(error, filter) {
+          return any(filter, function (filter) {
+            return (isFunction(filter) ? is : isErrorWithCode)(error, filter);
+          });
+        };
+      }
+      return container.add(handler, isErrorOf === pipe ? 'default' : 'error', function (e) {
+        if (isErrorOf(e.error, filter)) {
+          return callback(e.error);
+        }
+      });
+    }
+  };
+  if (element) {
+    initElement(element);
+  } else {
+    handler.ref = createRefInitCallback(new WeakSet(), initElement, []);
+  }
+  return handler;
+}
+function useErrorHandler() {
+  var args = makeArray(arguments);
+  var handler = useState(createErrorHandler)[0];
   useEffect(function () {
     return combineFn(map(args, function (v) {
       return v.onError(handler.emit);
@@ -1564,6 +1582,9 @@ function createFieldState(initialValue) {
         message: String(v)
       });
     }
+  });
+  defineGetterProperty(field.elementRef, 'current', function () {
+    return field.element || null;
   });
   return field;
 }
