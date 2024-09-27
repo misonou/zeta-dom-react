@@ -987,6 +987,30 @@ describe('useFormField', () => {
         expect(result.current.version).toBeGreaterThan(version);
     });
 
+    it('should return a different version number when data change for controlled field', () => {
+        const { wrapper, unmount } = createFormContext();
+        const { result, rerender } = renderHook(({ value }) => useFormField({ name: 'foo', value }, {}), {
+            wrapper,
+            initialProps: { value: 1 }
+        });
+
+        const version = result.current.version;
+        rerender({ value: 2 });
+        expect(result.current.version).toBeGreaterThan(version);
+        unmount();
+    });
+
+    it('should return a different version number when data change for unbounded controlled field', () => {
+        const { result, rerender, unmount } = renderHook(({ value }) => useFormField({ value }, {}), {
+            initialProps: { value: 1 }
+        });
+
+        const version = result.current.version;
+        rerender({ value: 2 });
+        expect(result.current.version).toBeGreaterThan(version);
+        unmount();
+    });
+
     it('should instantiate field type class for each field', () => {
         class CustomField {
             postHook(state) {
@@ -1346,6 +1370,27 @@ describe('useFormField - multiChoice', () => {
 
         act(() => result.current.setValue(null));
         expect(result.current.value).toEqual([]);
+    });
+
+    it('should return the same array if items has not changed', () => {
+        {
+            const { result, rerender } = renderHook(({ label }) => useFormField(MultiChoiceField, { label }, ['foo']), {
+                initialProps: { label: '' }
+            });
+            const current = result.current.value;
+            rerender({ label: 'xxx' });
+            expect(result.current.value).toBe(current);
+        }
+        {
+            const { result, rerender } = renderHook(({ value }) => useFormField(MultiChoiceField, { value }), {
+                initialProps: { value: ['foo'] }
+            });
+            const current = result.current.value;
+            rerender({ value: ['foo'] });
+            expect(result.current.value).toBe(current);
+            rerender({ value: ['bar'] });
+            expect(result.current.value).not.toBe(current);
+        }
     });
 });
 

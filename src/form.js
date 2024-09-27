@@ -148,7 +148,7 @@ function handleDataChange(callback) {
     } finally {
         if (map === local) {
             each(local, function (i, v) {
-                v.onChange(v.value);
+                v.onChange(v.value, true);
             });
             handleDataChange.d = null;
         }
@@ -271,11 +271,11 @@ function createFieldState(initialValue) {
         initialValue: initialValue,
         error: '',
         preset: {},
-        onChange: function (v) {
-            if (!field.controlled) {
+        onChange: function (v, committed) {
+            if (!field.controlled || committed) {
                 field.version++;
             }
-            if (field.props.onChange) {
+            if (field.props.onChange && (!field.controlled || !committed)) {
                 field.props.onChange(cloneValue(v));
             }
         },
@@ -649,7 +649,7 @@ export function useFormField(type, props, defaultValue, prop) {
     if (previousKey !== field.key) {
         value = field.normalizeValue(value);
     }
-    if (!field.form || (!existing && field.isEmpty(value))) {
+    if (!existing && field.isEmpty(value)) {
         _(dict).set(name, value);
     } else {
         dict[name] = value;
