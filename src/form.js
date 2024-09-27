@@ -289,7 +289,6 @@ function createFieldState(initialValue) {
         },
         setError: function (v) {
             field.error = isFunction(v) ? v(field.error) : v;
-            (field.form || {}).isValid = null;
         },
         validate: function () {
             return validateFields(field.form, [field]);
@@ -400,10 +399,7 @@ function validateFields(form, fields) {
                 v.error = result[i];
             }
         });
-        var state = _(form);
-        if (state) {
-            state.setValid();
-        }
+        (form || {}).isValid = null;
         return !any(result);
     });
 }
@@ -450,7 +446,7 @@ export function FormContext(initialData, options, viewState) {
         viewState: viewState,
         paths: {},
         initialData: initialData,
-        setValid: defineObservableProperty(this, 'isValid', true, function () {
+        setValid: defineObservableProperty(self, 'isValid', true, function () {
             return !any(fields, function (v) {
                 return !v.props.disabled && (v.error || hasImplicitError(v));
             });
@@ -463,7 +459,6 @@ export function FormContext(initialData, options, viewState) {
             instances.set(element, self);
         }
     };
-    self.isValid = true;
     self.data = createDataObject(self, viewState.get() || state.initialData);
 }
 

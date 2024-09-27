@@ -57,9 +57,8 @@ export function DataView(filters, sortBy, sortOrder, pageSize) {
         }
     };
     var filters = extend(self, defaults).filters;
-    state.callback = watch(filters, false);
     watch(self, onUpdated);
-    watch(self.filters, onUpdated);
+    watch(filters, onUpdated);
     for (var i in filters) {
         defineObservableProperty(filters, i);
     }
@@ -145,11 +144,7 @@ definePrototype(DataView, {
         var self = this;
         var state = _(self);
         delete state.itemCount;
-        values = values || state.defaults;
-        state.callback(function () {
-            extend(self.filters, values.filters);
-        });
-        return extend(self, values);
+        return extend(self, values || state.defaults);
     }
 });
 

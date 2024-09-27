@@ -427,6 +427,30 @@ describe('useFormField', () => {
         unmount();
     });
 
+    it('should normalize value when new property being created on data object', () => {
+        const { form, wrapper, unmount } = createFormContext({ foo: '' });
+        const { result, rerender } = renderHook(({ name, value }) => useFormField(TextField, { name, value }, ''), {
+            wrapper,
+            initialProps: { name: 'foo', value: '' }
+        });
+        expect(form.data.foo).toBe('');
+
+        rerender({ name: 'bar', value: undefined });
+        expect(form.data.bar).toBe('');
+        expect(result.current.value).toBe('');
+        unmount();
+    });
+
+    it('should normalize value for controlled field', () => {
+        const { result, rerender, unmount } = renderHook(({ value }) => useFormField(TextField, { value }, ''), {
+            initialProps: { value: 1 }
+        });
+        expect(result.current.value).toBe('1');
+        rerender({ value: 2 });
+        expect(result.current.value).toBe('2');
+        unmount();
+    });
+
     it('should convert object to data object for unbounded field', () => {
         const Component = ({ name }) => {
             const { value } = useFormField({ name }, {});
