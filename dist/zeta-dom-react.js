@@ -1,4 +1,4 @@
-/*! zeta-dom-react v0.5.11 | (c) misonou | https://misonou.github.io */
+/*! zeta-dom-react v0.5.12 | (c) misonou | https://misonou.github.io */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory(require("zeta-dom"), require("react"), require("react-dom"));
@@ -1416,7 +1416,7 @@ function handleDataChange(callback) {
   } finally {
     if (map === local) {
       each(local, function (i, v) {
-        v.onChange(v.value);
+        v.onChange(v.value, true);
       });
       handleDataChange.d = null;
     }
@@ -1537,11 +1537,11 @@ function createFieldState(initialValue) {
     initialValue: initialValue,
     error: '',
     preset: {},
-    onChange: function onChange(v) {
-      if (!field.controlled) {
+    onChange: function onChange(v, committed) {
+      if (!field.controlled || committed) {
         field.version++;
       }
-      if (field.props.onChange) {
+      if (field.props.onChange && (!field.controlled || !committed)) {
         field.props.onChange(cloneValue(v));
       }
     },
@@ -1905,7 +1905,7 @@ function useFormField(type, props, defaultValue, prop) {
   if (previousKey !== field.key) {
     value = field.normalizeValue(value);
   }
-  if (!field.form || !existing && field.isEmpty(value)) {
+  if (!existing && field.isEmpty(value)) {
     form_(dict).set(name, value);
   } else {
     dict[name] = value;
