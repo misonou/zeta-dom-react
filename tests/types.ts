@@ -81,6 +81,7 @@ useDependency({}, 1);
 type A = {
     a: string;
     b: number;
+    c: { d: string }[];
 };
 
 interface DropdownItem<T> {
@@ -102,6 +103,8 @@ declare class CustomField implements FieldType<FormFieldProps<string[]>, CustomF
     postHook(state: FormFieldState<string[]>, props: FormFieldProps<string[], string[]>): CustomFieldState;
 }
 
+declare const formContext: FormContext<A>;
+
 expectTypeOf(useFormContext().data).toEqualTypeOf<Partial<Zeta.Dictionary<any>>>();
 expectTypeOf(useFormContext(<A>_).data).toEqualTypeOf<Partial<A>>();
 expectTypeOf(useFormContext(<A>_, {}).data).toEqualTypeOf<Partial<A>>();
@@ -114,6 +117,30 @@ expectTypeOf(useFormContext('key', <A>_, {}).data).toEqualTypeOf<Partial<A>>();
 expectTypeOf(useFormContext('key', () => <A>_).data).toEqualTypeOf<Partial<A>>();
 expectTypeOf(useFormContext('key', () => <A>_, {}).data).toEqualTypeOf<Partial<A>>();
 expectTypeOf(useFormContext('key', { autoPersist: true }).data).toEqualTypeOf<Partial<{ autoPersist: boolean }>>();
+
+// FormContext
+
+expectTypeOf(formContext.getValue('a')).toEqualTypeOf<string | undefined>();
+expectTypeOf(formContext.getValue('c')).toEqualTypeOf<{ d: string }[] | undefined>();
+expectTypeOf(formContext.getValue('c.0')).toEqualTypeOf<{ d: string } | undefined>();
+expectTypeOf(formContext.getValue('c.0.d')).toEqualTypeOf<string | undefined>();
+expectTypeOf(formContext.getValue('c.1.d')).toEqualTypeOf<string | undefined>();
+expectTypeOf(formContext.getValue('x')).toBeAny();
+
+expectTypeOf(formContext.setValue('a', '')).toBeVoid();
+expectTypeOf(formContext.setValue('c', [{ d: '' }])).toBeVoid();
+expectTypeOf(formContext.setValue('c.0', { d: '' })).toBeVoid();
+expectTypeOf(formContext.setValue('c.0.d', '')).toBeVoid();
+expectTypeOf(formContext.setValue('c.1.d', '')).toBeVoid();
+expectTypeOf(formContext.setValue('x', _)).toBeVoid();
+// @ts-expect-error: incorrect value type
+expectTypeOf(formContext.setValue('a', 0)).toBeVoid();
+
+expectTypeOf(formContext.getError('x')).toEqualTypeOf<string>();
+expectTypeOf(formContext.setError('x', <ValidateResult>_)).toBeVoid();
+expectTypeOf(formContext.focus('x')).toEqualTypeOf<boolean>();
+expectTypeOf(formContext.element('x')).toEqualTypeOf<HTMLElement | undefined>();
+expectTypeOf(formContext.validate('x')).toEqualTypeOf<Promise<boolean>>();
 
 // Value and specific members
 

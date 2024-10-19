@@ -17,6 +17,14 @@ type LegacyFieldPropsType<K extends keyof Zeta.ReactFieldTypes, T = any> = Param
 /** @deprecated */
 type FieldPostHookCallback = <S extends FormFieldState, P extends FormFieldProps>(state: S, props: P) => S;
 
+type HintableProperty<T> =
+    Zeta.IsAnyOrUnknown<T> extends true ? never :
+    T extends number | boolean | symbol | string | null | undefined ? never :
+    T extends readonly any[] ? 0 : Exclude<keyof T, symbol | number>;
+type HintablePath<T> = `${HintableProperty<T>}` | { [P in HintableProperty<T>]: P extends keyof T ? `${P}.${HintablePath<T[P]>}` : never }[HintableProperty<T>];
+type PropertyType<T, P> = T extends readonly any[] ? P extends `${number}` ? T[0] : any : Zeta.PropertyTypeOrAny<T, P>;
+type PropertyTypeFromPath<T, P> = P extends `${infer A}.${infer B}` ? PropertyTypeFromPath<PropertyType<T, A>, B> : PropertyType<T, P>;
+
 export interface Stringifiable {
     toString(): string;
     [Symbol.toPrimitive](): string;
@@ -423,7 +431,7 @@ export class FormContext<T extends object = Zeta.Dictionary<any>> implements Zet
      * This method only works when {@link FormFieldState.elementRef} is passed to HTML elements.
      * @param path A string containing dot-separated property names or an array containing property names.
      */
-    element(path: string | string[]): HTMLElement | undefined;
+    element(path: Zeta.HintedString<HintablePath<T>> | string[]): HTMLElement | undefined;
 
     /**
      * Focus the form element.
@@ -445,7 +453,7 @@ export class FormContext<T extends object = Zeta.Dictionary<any>> implements Zet
      * @param path A string containing dot-separated property names or an array containing property names.
      * @returns Whether the given element is set focused.
      */
-    focus(path: string | string[]): boolean;
+    focus(path: Zeta.HintedString<HintablePath<T>> | string[]): boolean;
 
     /**
      * Registers event handlers.
@@ -488,16 +496,29 @@ export class FormContext<T extends object = Zeta.Dictionary<any>> implements Zet
 
     /**
      * Gets the value accessible by the specified path.
-     * @param path A string containing dot-separated property names or an array containing property names.
+     * @param path A string containing dot-separated property names.
      */
-    getValue(path: string | string[]): any;
+    getValue<P extends Zeta.HintedString<HintablePath<T>>>(path: P): PropertyTypeFromPath<T, P> | undefined;
+
+    /**
+     * Gets the value accessible by the specified path.
+     * @param path An array containing property names.
+     */
+    getValue(path: string[]): any;
 
     /**
      * Sets the value to the specified path.
-     * @param path A string containing dot-separated property names or an array containing property names.
+     * @param path A string containing dot-separated property names.
      * @param value Any value.
      */
-    setValue(path: string | string[], value: any): void;
+    setValue<P extends Zeta.HintedString<HintablePath<T>>>(path: P, value: PropertyTypeFromPath<T, P>): void;
+
+    /**
+     * Sets the value to the specified path.
+     * @param path An array containing property names.
+     * @param value Any value.
+     */
+    setValue(path: string[], value: any): void;
 
     /**
      * Gets all validation errors.
@@ -510,7 +531,7 @@ export class FormContext<T extends object = Zeta.Dictionary<any>> implements Zet
      * If there is no error, an empty string is returned.
      * @param path A string containing dot-separated property names or an array containing property names.
      */
-    getError(path: string | string[]): string;
+    getError(path: Zeta.HintedString<HintablePath<T>> | string[]): string;
 
     /**
      * Updates validation error for a specific field.
@@ -518,7 +539,7 @@ export class FormContext<T extends object = Zeta.Dictionary<any>> implements Zet
      * @param path A string containing dot-separated property names or an array containing property names.
      * @param error A non-empty string or stringifiable object indicating error; or a falsy value to clear previous error.
      */
-    setError(path: string | string[], error: ValidateResult): void;
+    setError(path: Zeta.HintedString<HintablePath<T>> | string[], error: ValidateResult): void;
 
     /**
      * Validates all fields.
@@ -529,7 +550,7 @@ export class FormContext<T extends object = Zeta.Dictionary<any>> implements Zet
      * Validates specific fields.
      * @param props Fields to be validated.
      */
-    validate(...props: string[]): Promise<boolean>;
+    validate(...props: Zeta.HintedString<HintablePath<T>>[]): Promise<boolean>;
 
     /**
      * Returns a raw value object.
