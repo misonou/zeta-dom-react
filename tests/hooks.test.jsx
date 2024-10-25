@@ -936,7 +936,7 @@ describe('useErrorHandler', () => {
         };
         const { unmount } = render(<Component />);
         verifyCalls(cb, [
-            [expect.sameObject(error)]
+            [expect.sameObject(error), expect.objectContaining({ sourceElement: null })]
         ]);
         unmount();
     });
@@ -956,9 +956,10 @@ describe('useErrorHandler', () => {
         };
         const { unmount } = render(<Component />);
         const error = new Error();
-        dom.emit('error', screen.getByRole('button'), { error }, true);
+        const button = screen.getByRole('button');
+        dom.emit('error', button, { error }, true);
         verifyCalls(cb, [
-            [expect.sameObject(error)]
+            [expect.sameObject(error), expect.objectContaining({ sourceElement: button })]
         ]);
         unmount();
     });
@@ -1094,7 +1095,7 @@ describe('useErrorHandler', () => {
 
         source.callback(error);
         verifyCalls(cb, [
-            [expect.sameObject(error)]
+            [expect.sameObject(error), _]
         ]);
         unmount();
     });

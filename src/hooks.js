@@ -3,7 +3,7 @@ import dom, { reportError } from "zeta-dom/dom";
 import { notifyAsync } from "zeta-dom/domLock";
 import { bind } from "zeta-dom/domUtil";
 import { ZetaEventContainer } from "zeta-dom/events";
-import { always, any, arrRemove, catchAsync, clearImmediateOnce, combineFn, createPrivateStore, defineObservableProperty, defineOwnProperty, delay, each, equal, errorWithCode, extend, fill, freeze, hasOwnProperty, is, isArray, isErrorWithCode, isFunction, isUndefinedOrNull, makeArray, makeAsync, map, mapRemove, noop, pipe, resolve, sameValueZero, setAdd, setImmediateOnce, watch } from "zeta-dom/util";
+import { always, any, arrRemove, catchAsync, clearImmediateOnce, combineFn, createPrivateStore, defineObservableProperty, defineOwnProperty, delay, each, equal, errorWithCode, extend, fill, freeze, hasOwnProperty, is, isArray, isErrorWithCode, isFunction, makeArray, makeAsync, map, mapRemove, noop, pick, pipe, resolve, sameValueZero, setAdd, setImmediateOnce, watch } from "zeta-dom/util";
 import * as ErrorCode from "zeta-dom/errorCode";
 import { IS_DEV } from "./env.js";
 
@@ -303,13 +303,17 @@ export function createErrorHandler(element) {
             reemitting = false;
         }
     };
-    var catchError = function (error) {
-        return container.emit('error', handler, { error }) || container.emit('default', handler, { error });
+    var catchError = function (error, source) {
+        var data = {
+            error: error,
+            sourceElement: source ? source.target : null
+        };
+        return container.emit('error', handler, data, { source }) || container.emit('default', handler, data, { source });
     };
     var initElement = function (current) {
         element = current;
         return dom.on(current, 'error', function (e) {
-            return reemitting ? undefined : catchError(e.error);
+            return reemitting ? undefined : catchError(e.error, e);
         });
     };
     var handler = {
@@ -331,7 +335,7 @@ export function createErrorHandler(element) {
             }
             return container.add(handler, isErrorOf === pipe ? 'default' : 'error', function (e) {
                 if (isErrorOf(e.error, filter)) {
-                    return callback(e.error);
+                    return callback(e.error, pick(e, ['source', 'sourceKeyName', 'sourceElement']));
                 }
             });
         }

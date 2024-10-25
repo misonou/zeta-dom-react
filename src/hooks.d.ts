@@ -21,6 +21,21 @@ export interface ErrorSource {
     onError(handler: (error: any) => any): Zeta.UnregisterCallback;
 }
 
+export interface ErrorContext {
+    /**
+     * Gets the type of user interaction that triggers the event.
+     */
+    readonly source: Zeta.ZetaEventSourceName;
+    /**
+     * Gets the keystroke that triggers the event, or `null` if the event is not triggered by keyboard.
+     */
+    readonly sourceKeyName: Zeta.KeyNameSingleCharacter | Zeta.KeyNameSpecial | null;
+    /**
+     * Gets the element that has error dispatched on.
+     */
+    readonly sourceElement: Element | null;
+}
+
 export interface ErrorHandler {
     /**
      * Emits error to handlers registered by {@link ErrorHandler.catch}.
@@ -38,7 +53,7 @@ export interface ErrorHandler {
      * the error is marked as handled and no further handlers are called nor will be propagated up the DOM tree.
      * @param handler Callback to be invoked.
      */
-    catch(handler: (e: any) => any): Zeta.UnregisterCallback;
+    catch(handler: (e: any, context: ErrorContext) => any): Zeta.UnregisterCallback;
 
     /**
      * Catches errors with property `code` matching the specified code, from promises registered to descandant elements by {@link dom.lock}.
@@ -48,7 +63,7 @@ export interface ErrorHandler {
      * @param code Value to be matched against.
      * @param handler Callback to be invoked when the criteria matches.
      */
-    catch(code: string, handler: (e: Error) => any): Zeta.UnregisterCallback;
+    catch(code: string, handler: (e: Error, context: ErrorContext) => any): Zeta.UnregisterCallback;
 
     /**
      * Catches errors that are instances of the specified error type, from promises registered to descandant elements by {@link dom.lock}.
@@ -58,7 +73,7 @@ export interface ErrorHandler {
      * @param type Constructor of a specific error type.
      * @param handler Callback to be invoked when the criteria matches.
      */
-    catch<T extends Zeta.AnyConstructorOrClass>(type: T, handler: (e: InstanceType<T>) => any): Zeta.UnregisterCallback;
+    catch<T extends Zeta.AnyConstructorOrClass>(type: T, handler: (e: InstanceType<T>, context: ErrorContext) => any): Zeta.UnregisterCallback;
 
     /**
      * Catches errors with property `code` matching any of the specified codes, or are instances of one of the specified error types, from promises registered to descandant elements by {@link dom.lock}.
@@ -68,7 +83,7 @@ export interface ErrorHandler {
      * @param type A list of constructor of specific error types.
      * @param handler Callback to be invoked when the criteria matches.
      */
-    catch(type: readonly (string | Function)[], handler: (e: Error) => any): Zeta.UnregisterCallback;
+    catch(type: readonly (string | Function)[], handler: (e: Error, context: ErrorContext) => any): Zeta.UnregisterCallback;
 }
 
 export interface ErrorHandlerWithRef<T = Element> extends ErrorHandler {
