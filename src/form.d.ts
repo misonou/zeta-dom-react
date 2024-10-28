@@ -320,24 +320,24 @@ export interface FormProps<T extends object = any> extends React.ComponentPropsW
     context: FormContext<T>;
 }
 
-export interface FormEventMap {
-    reset: Zeta.ZetaEventBase;
-    dataChange: DataChangeEvent;
-    validate: FormValidateEvent;
-    validationChange: FormValidationChangeEvent;
-    beforeLeave: Zeta.ZetaAsyncHandleableEvent;
+export interface FormEventMap<T extends object = Zeta.Dictionary<any>> {
+    reset: Zeta.ZetaEventBase<FormContext<T>>;
+    dataChange: DataChangeEvent<T>;
+    validate: FormValidateEvent<T>;
+    validationChange: FormValidationChangeEvent<T>;
+    beforeLeave: Zeta.ZetaAsyncHandleableEvent<any, FormContext<T>>;
 }
 
-export interface DataChangeEvent extends Zeta.ZetaEventBase {
+export interface DataChangeEvent<T extends object = Zeta.Dictionary<any>> extends Zeta.ZetaEventBase<FormContext<T>> {
     readonly data: string[];
 }
 
-export interface FormValidateEvent extends Zeta.ZetaAsyncHandleableEvent {
+export interface FormValidateEvent<T extends object = Zeta.Dictionary<any>> extends Zeta.ZetaAsyncHandleableEvent<any, FormContext<T>> {
     readonly name: string;
     readonly value: any;
 }
 
-export interface FormValidationChangeEvent extends Zeta.ZetaEventBase {
+export interface FormValidationChangeEvent<T extends object = Zeta.Dictionary<any>> extends Zeta.ZetaEventBase<FormContext<T>> {
     readonly name: string;
     readonly isValid: boolean;
     readonly message: string;
@@ -371,7 +371,7 @@ export interface FormContextOptions {
     formatError?: FormatErrorCallback;
 }
 
-export class FormContext<T extends object = Zeta.Dictionary<any>> implements Zeta.ZetaEventDispatcher<FormEventMap, FormContext<T>> {
+export class FormContext<T extends object = Zeta.Dictionary<any>> implements Zeta.ZetaEventDispatcher<FormEventMap<T>, FormContext<T>> {
     static readonly ERROR_FIELD = 1;
     static readonly EMPTY_FIELD = 2;
 
@@ -461,7 +461,7 @@ export class FormContext<T extends object = Zeta.Dictionary<any>> implements Zet
      * @returns A function that will unregister the handlers when called.
      * @see {@link FormEventMap}
      */
-    on(handlers: Zeta.ZetaEventHandlers<FormEventMap, FormContext<T>>): Zeta.UnregisterCallback;
+    on(handlers: Zeta.ZetaEventHandlers<FormEventMap<T>, FormContext<T>>): Zeta.UnregisterCallback;
 
     /**
      * Registers event handlers.
@@ -470,7 +470,7 @@ export class FormContext<T extends object = Zeta.Dictionary<any>> implements Zet
      * @returns A function that will unregister the handlers when called.
      * @see {@link FormEventMap}
      */
-    on<E extends keyof FormEventMap>(event: E, handler: Zeta.ZetaEventHandler<E, FormEventMap, FormContext<T>>): Zeta.UnregisterCallback;
+    on<E extends keyof FormEventMap<any>>(event: E, handler: Zeta.ZetaEventHandler<E, FormEventMap<T>, FormContext<T>>): Zeta.UnregisterCallback;
 
     /**
      * Persists form data to view state.

@@ -5,7 +5,7 @@ type EventType<T, E extends string> =
     T extends Zeta.ZetaEventDispatcher<infer M, infer T> ? Zeta.ZetaEventType<E, M, T> :
     T extends EventTarget ? Zeta.DOMEventType<T, E> : any;
 type EventHandlerThis<T> = T extends Zeta.ZetaEventDispatcher<any, infer T> ? T : T;
-type EventStateSelector<T, E extends string, V> = (this: EventHandlerThis<T>, e: EventType<T, E>, previousState: V | undefined) => V;
+type EventStateSelector<T, E extends string, V> = (this: EventHandlerThis<T>, e: EventType<T, E>, previousState: V) => V;
 
 export type DisposeCallback = Zeta.UnregisterCallback & {
     /**
@@ -242,7 +242,7 @@ export function useEventTrigger<T extends EventTarget, E extends Zeta.HintedStri
  * @param selector A callback that derives state.
  * @returns Derived state from the callback, or `undefined` if the event has never been fired.
  */
-export function useEventTrigger<T extends EventTarget, E extends Zeta.HintedString<Zeta.DOMEventsOf<T>>, V>(obj: T, event: E, selector: EventStateSelector<T, Zeta.WhitespaceDelimited<E>, V>): V | undefined;
+export function useEventTrigger<T extends EventTarget, E extends Zeta.HintedString<Zeta.DOMEventsOf<T>>, V>(obj: T, event: E, selector: EventStateSelector<T, Zeta.WhitespaceDelimited<E>, V | undefined>): V | undefined;
 
 /**
  * Triggers re-render when derived state from specific event is changed.
@@ -268,7 +268,7 @@ export function useEventTrigger<T extends Zeta.ZetaEventDispatcher<any, any>, E 
  * @param selector A callback that derives state.
  * @returns Derived state from the callback, or `undefined` if the event has never been fired.
  */
-export function useEventTrigger<T extends Zeta.ZetaEventDispatcher<any, any>, E extends Zeta.HintedString<EventsOf<T>>, V>(obj: T, event: E, selector: EventStateSelector<T, Zeta.WhitespaceDelimited<E>, V>): V | undefined;
+export function useEventTrigger<T extends Zeta.ZetaEventDispatcher<any, any>, E extends Zeta.HintedString<EventsOf<T>>, V>(obj: T, event: E, selector: EventStateSelector<T, Zeta.WhitespaceDelimited<E>, V | undefined>): V | undefined;
 
 /**
  * Triggers re-render when derived state from specific event is changed.
@@ -328,7 +328,7 @@ export function useAsync<T>(init: (signal: AbortSignal) => T | Promise<T>, deps:
  * @param init A callback that is invoked for new DOM elements or objects.
  * @param args Extra arguments to be passed to the init callback.
  */
-export function useRefInitCallback<T = any, F extends (instance: T) => void = (instance: T) => void>(init: F, ...args: F extends (instance: T, ...args: infer P) => void ? P : never): React.RefCallback<T>;
+export function useRefInitCallback<T = any, U extends any[] = any[]>(init: (instance: T, ...args: U) => void, ...args: U): React.RefCallback<T>;
 
 /**
  * Creates a cleanup callback collector.

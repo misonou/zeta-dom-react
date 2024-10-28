@@ -21,14 +21,14 @@ export interface DataViewProps<P extends object> {
     pageSize: number;
 }
 
-interface DataViewEventMap {
-    viewChange: Zeta.ZetaEventBase;
+export interface DataViewEventMap<P extends object = {}> {
+    viewChange: Zeta.ZetaEventBase<DataView<P>>;
 }
 
 /**
  * Represents a filterable, sortable and paged context of list of items.
  */
-export class DataView<P extends object> implements Zeta.ZetaEventDispatcher<DataViewEventMap, DataView<P>> {
+export class DataView<P extends object> implements Zeta.ZetaEventDispatcher<DataViewEventMap<P>, DataView<P>> {
     /**
      * Gets the filter object.
      * Updating its property will trigger a component update.
@@ -83,7 +83,7 @@ export class DataView<P extends object> implements Zeta.ZetaEventDispatcher<Data
      * @param handlers A dictionary which the keys are event names and values are the callback for each event.
      * @returns A function that will unregister the handlers when called.
      */
-    on(handlers: Zeta.ZetaEventHandlers<DataViewEventMap, DataView<P>>): Zeta.UnregisterCallback;
+    on(handlers: Zeta.ZetaEventHandlers<DataViewEventMap<P>, DataView<P>>): Zeta.UnregisterCallback;
 
     /**
      * Registers event handlers.
@@ -91,7 +91,7 @@ export class DataView<P extends object> implements Zeta.ZetaEventDispatcher<Data
      * @param handler A callback function to be fired when the specified event is triggered.
      * @returns A function that will unregister the handlers when called.
      */
-    on<E extends keyof DataViewEventMap>(event: E, handler: Zeta.ZetaEventHandler<E, DataViewEventMap, DataView<P>>): Zeta.UnregisterCallback;
+    on<E extends keyof DataViewEventMap<any>>(event: E, handler: Zeta.ZetaEventHandler<E, DataViewEventMap<P>, DataView<P>>): Zeta.UnregisterCallback;
 
     /**
      * Performs filtering and sorting of items.

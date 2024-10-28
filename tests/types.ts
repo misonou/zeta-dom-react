@@ -1,7 +1,9 @@
 import { expectTypeOf } from "expect-type";
 import { Dispatch, DispatchWithoutAction, SetStateAction } from "react";
-import { createDependency, Dependency, DependencyConsumer, DependencyProvider, useDependency, useEagerReducer, useEagerState, useEventTrigger } from "../src/hooks";
-import { ChoiceField, ChoiceFieldProps, ChoiceFieldState, ChoiceItem, DateField, DateFieldState, FieldType, FormContext, FormFieldProps, FormFieldState, FormObject, FormValidateEvent, FormValidationChangeEvent, MultiChoiceField, MultiChoiceFieldProps, MultiChoiceFieldState, NumericField, NumericFieldState, TextField, TextFieldState, ToggleField, ToggleFieldState, ValidationError, useFormContext, useFormField } from "../src/form";
+import { createDependency, Dependency, DependencyConsumer, DependencyProvider, useDependency, useEagerReducer, useEagerState, useEventTrigger, useRefInitCallback } from "../src/hooks";
+import { ChoiceField, ChoiceFieldProps, ChoiceFieldState, ChoiceItem, DateField, DateFieldState, FieldType, FormContext, FormFieldProps, FormFieldState, FormObject, FormValidateEvent, FormValidationChangeEvent, MultiChoiceField, MultiChoiceFieldProps, MultiChoiceFieldState, NumericField, NumericFieldState, TextField, TextFieldState, ToggleField, ToggleFieldState, ValidateResult, ValidationError, useFormContext, useFormField } from "../src/form";
+import { DataView } from "../src/dataView";
+import React from "react";
 
 const _: unknown = {};
 
@@ -29,6 +31,37 @@ expectTypeOf(useEventTrigger(<FormContext>_, 'validate', (_1: FormValidateEvent)
 expectTypeOf(useEventTrigger(<FormContext>_, 'validate', (_1: FormValidateEvent) => 1, 1)).toEqualTypeOf<number>();
 expectTypeOf(useEventTrigger(<FormContext>_, 'validate validationChange', (_1: FormValidateEvent | FormValidationChangeEvent) => 1)).toEqualTypeOf<number | undefined>();
 expectTypeOf(useEventTrigger(<FormContext>_, 'validate validationChange', (_1: FormValidateEvent | FormValidationChangeEvent) => 1, 1)).toEqualTypeOf<number>();
+
+useEventTrigger(<Window>_, 'animationstart keydown', e => expectTypeOf(e).toEqualTypeOf<AnimationEvent | KeyboardEvent>());
+useEventTrigger(<Window>_, 'animationstart', e => expectTypeOf(e).toEqualTypeOf<AnimationEvent>());
+useEventTrigger(<Window>_, 'validate', (_, v) => expectTypeOf(v).toEqualTypeOf<boolean>(), true);
+
+useEventTrigger(<FormContext>_, 'validate validationChange', e => expectTypeOf(e).toEqualTypeOf<FormValidateEvent | FormValidationChangeEvent>());
+useEventTrigger(<FormContext>_, 'validate', e => expectTypeOf(e).toEqualTypeOf<FormValidateEvent>());
+useEventTrigger(<FormContext>_, 'validate', (_, v) => expectTypeOf(v).toEqualTypeOf<boolean>(), true);
+
+useEventTrigger(<FormContext>_, 'validate', (_1, _2: boolean | undefined) => true, true);
+useEventTrigger(<FormContext>_, 'validate', (_1, _2: boolean | undefined) => true);
+useEventTrigger(<FormContext>_, 'validate', (_1, _2: boolean) => true, true);
+// @ts-expect-error: second args must have undefined
+useEventTrigger(<FormContext>_, 'validate', (_1, _2: boolean) => true);
+
+expectTypeOf(useRefInitCallback((_1: Element) => _)).toEqualTypeOf<React.RefCallback<Element>>();
+expectTypeOf(useRefInitCallback((_1: Element, _2: boolean) => _, true)).toEqualTypeOf<React.RefCallback<Element>>();
+expectTypeOf(useRefInitCallback((_1: Element, _2: boolean, _3: string) => _, true, "")).toEqualTypeOf<React.RefCallback<Element>>();
+// @ts-expect-error: argument type mismatch
+expectTypeOf(useRefInitCallback((_1: Element, _2: boolean) => _, "")).toEqualTypeOf<React.RefCallback<Element>>();
+// @ts-expect-error: argument count mismatch
+expectTypeOf(useRefInitCallback((_1: Element, _2: boolean, _3: string) => _, true)).toEqualTypeOf<React.RefCallback<Element>>();
+
+useRefInitCallback((_1: Element, _2) => {
+    expectTypeOf(_2).toEqualTypeOf<boolean>();
+}, true);
+
+// will not infer types for extra arguments when given only first type argument
+useRefInitCallback<Element>((_1, _2) => {
+    expectTypeOf(_2).toBeAny();
+}, true);
 
 const dep1 = createDependency(0);
 const dep2 = createDependency<number>();
@@ -269,3 +302,12 @@ expectTypeOf(useFormField(ToggleField, {}, '').value).toEqualTypeOf<boolean>();
 expectTypeOf(useFormField(ToggleField, {}).setValue('')).toBeVoid();
 // @ts-expect-error
 expectTypeOf(useFormField(ToggleField, {}).setValue((_1: string) => true)).toBeVoid();
+
+// FormContext with specific type can be assigned to unspecific form
+expectTypeOf<FormContext<{ a: string }>>().toMatchTypeOf<FormContext>();
+
+// -------------------------------------
+// dataView.d.ts
+
+// DataView with specific type can be assigned to unspecific form
+expectTypeOf<DataView<{ a: string }>>().toMatchTypeOf<DataView<{}>>();
