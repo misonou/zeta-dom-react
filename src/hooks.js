@@ -3,7 +3,7 @@ import dom, { reportError } from "zeta-dom/dom";
 import { notifyAsync } from "zeta-dom/domLock";
 import { bind } from "zeta-dom/domUtil";
 import { ZetaEventContainer } from "zeta-dom/events";
-import { always, any, arrRemove, catchAsync, clearImmediateOnce, combineFn, createPrivateStore, defineObservableProperty, defineOwnProperty, delay, each, equal, errorWithCode, extend, fill, freeze, hasOwnProperty, is, isArray, isErrorWithCode, isFunction, makeArray, makeAsync, map, mapRemove, noop, pick, pipe, resolve, sameValueZero, setAdd, setImmediateOnce, watch } from "zeta-dom/util";
+import { always, any, arrRemove, catchAsync, clearImmediateOnce, combineFn, createPrivateStore, defineObservableProperty, defineOwnProperty, delay, each, equal, errorWithCode, extend, fill, freeze, hasOwnProperty, is, isArray, isErrorWithCode, isFunction, makeArray, makeAsync, map, mapRemove, noop, pick, pipe, resolve, sameValue, sameValueZero, setAdd, setImmediateOnce, watch } from "zeta-dom/util";
 import * as ErrorCode from "zeta-dom/errorCode";
 import { IS_DEV } from "./env.js";
 
@@ -15,9 +15,6 @@ const unloadCallbacks = new Set();
 const AsyncScopeContext = createContext(null);
 const AbortController = window.AbortController;
 const useSingletonEffect = IS_DEV ? useSingletonEffectImplDev : useSingletonEffectImpl;
-const sameValue = Object.is || function (a, b) {
-    return sameValueZero(a, b) && (a !== 0 || 1 / a === 1 / b);
-};
 
 bind(window, 'pagehide', function (e) {
     combineFn(makeArray(unloadCallbacks))(e.persisted);
