@@ -1,4 +1,4 @@
-/*! zeta-dom-react v0.5.12 | (c) misonou | https://misonou.github.io */
+/*! zeta-dom-react v0.5.13 | (c) misonou | https://misonou.github.io */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory(require("zeta-dom"), require("react"), require("react-dom"));
@@ -197,6 +197,7 @@ var _lib$util = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_
   randomId = _lib$util.randomId,
   resolve = _lib$util.resolve,
   resolveAll = _lib$util.resolveAll,
+  sameValue = _lib$util.sameValue,
   sameValueZero = _lib$util.sameValueZero,
   setAdd = _lib$util.setAdd,
   setImmediate = _lib$util.setImmediate,
@@ -292,9 +293,6 @@ var unloadCallbacks = new Set();
 var AsyncScopeContext = /*#__PURE__*/createContext(null);
 var AbortController = window.AbortController;
 var useSingletonEffect = IS_DEV ? useSingletonEffectImplDev : useSingletonEffectImpl;
-var sameValue = Object.is || function (a, b) {
-  return sameValueZero(a, b) && (a !== 0 || 1 / a === 1 / b);
-};
 bind(window, 'pagehide', function (e) {
   combineFn(makeArray(unloadCallbacks))(e.persisted);
 });
@@ -574,17 +572,21 @@ function createErrorHandler(element) {
       reemitting = false;
     }
   };
-  var catchError = function catchError(error) {
-    return container.emit('error', handler, {
-      error: error
-    }) || container.emit('default', handler, {
-      error: error
+  var catchError = function catchError(error, source) {
+    var data = {
+      error: error,
+      sourceElement: source ? source.target : null
+    };
+    return container.emit('error', handler, data, {
+      source: source
+    }) || container.emit('default', handler, data, {
+      source: source
     });
   };
   var initElement = function initElement(current) {
     element = current;
     return zeta_dom_dom.on(current, 'error', function (e) {
-      return reemitting ? undefined : catchError(e.error);
+      return reemitting ? undefined : catchError(e.error, e);
     });
   };
   var handler = {
@@ -606,7 +608,7 @@ function createErrorHandler(element) {
       }
       return container.add(handler, isErrorOf === pipe ? 'default' : 'error', function (e) {
         if (isErrorOf(e.error, filter)) {
-          return callback(e.error);
+          return callback(e.error, pick(e, ['source', 'sourceKeyName', 'sourceElement']));
         }
       });
     }
@@ -796,9 +798,8 @@ function DataView(filters, sortBy, sortOrder, pageSize) {
     }
   };
   var filters = extend(self, defaults).filters;
-  state.callback = watch(filters, false);
   watch(self, onUpdated);
-  watch(self.filters, onUpdated);
+  watch(filters, onUpdated);
   for (var i in filters) {
     defineObservableProperty(filters, i);
   }
@@ -882,11 +883,7 @@ definePrototype(DataView, {
     var self = this;
     var state = dataView_(self);
     delete state.itemCount;
-    values = values || state.defaults;
-    state.callback(function () {
-      extend(self.filters, values.filters);
-    });
-    return extend(self, values);
+    return extend(self, values || state.defaults);
   }
 });
 defineObservableProperty(proto, 'sortBy');
@@ -1555,7 +1552,6 @@ function createFieldState(initialValue) {
     },
     setError: function setError(v) {
       field.error = isFunction(v) ? v(field.error) : v;
-      (field.form || {}).isValid = null;
     },
     validate: function validate() {
       return validateFields(field.form, [field]);
@@ -1667,10 +1663,7 @@ function validateFields(form, fields) {
         v.error = result[i];
       }
     });
-    var state = form_(form);
-    if (state) {
-      state.setValid();
-    }
+    (form || {}).isValid = null;
     return !any(result);
   });
 }
@@ -1713,7 +1706,7 @@ function FormContext(initialData, options, viewState) {
     viewState: viewState,
     paths: {},
     initialData: initialData,
-    setValid: defineObservableProperty(this, 'isValid', true, function () {
+    setValid: defineObservableProperty(self, 'isValid', true, function () {
       return !any(fields, function (v) {
         return !v.props.disabled && (v.error || hasImplicitError(v));
       });
@@ -1726,7 +1719,6 @@ function FormContext(initialData, options, viewState) {
       instances.set(element, self);
     }
   };
-  self.isValid = true;
   self.data = createDataObject(self, viewState.get() || state.initialData);
 }
 util_define(FormContext, {
