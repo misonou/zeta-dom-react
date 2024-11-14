@@ -138,8 +138,8 @@ function emitDataChangeEvent() {
                     resolve();
                 };
             });
-            preventLeave(element, promise, function () {
-                return emitter.emit('beforeLeave', form) || resolve();
+            preventLeave(element, promise, function (reason) {
+                return emitter.emit('beforeLeave', form, { reason }) || resolve();
             });
         }
     });

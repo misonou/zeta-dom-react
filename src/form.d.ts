@@ -325,7 +325,7 @@ export interface FormEventMap<T extends object = Zeta.Dictionary<any>> {
     dataChange: DataChangeEvent<T>;
     validate: FormValidateEvent<T>;
     validationChange: FormValidationChangeEvent<T>;
-    beforeLeave: Zeta.ZetaAsyncHandleableEvent<any, FormContext<T>>;
+    beforeLeave: FormBeforeLeaveEvent<T>;
 }
 
 export interface DataChangeEvent<T extends object = Zeta.Dictionary<any>> extends Zeta.ZetaEventBase<FormContext<T>> {
@@ -341,6 +341,10 @@ export interface FormValidationChangeEvent<T extends object = Zeta.Dictionary<an
     readonly name: string;
     readonly isValid: boolean;
     readonly message: string;
+}
+
+export interface FormBeforeLeaveEvent<T extends object = Zeta.Dictionary<any>> extends Zeta.ZetaAsyncHandleableEvent<any, FormContext<T>> {
+    readonly reason: CancellationRequest;
 }
 
 export interface FormContextOptions {
@@ -637,6 +641,7 @@ declare global {
     }
 }
 
+import { CancellationRequest } from "zeta-dom/domLock";
 import ChoiceField, { ChoiceFieldState, ChoiceFieldProps, ChoiceItem, ChoiceItemType } from "./fields/ChoiceField";
 import DateField, { DateFieldState } from "./fields/DateField";
 import MultiChoiceField, { MultiChoiceFieldProps, MultiChoiceFieldState } from "./fields/MultiChoiceField";

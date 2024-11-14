@@ -3,9 +3,9 @@ import { act as renderAct, render, screen, waitFor } from "@testing-library/reac
 import { act, renderHook } from '@testing-library/react-hooks'
 import { ViewStateProvider } from "src/viewState";
 import { ChoiceField, combineValidators, DateField, Form, FormArray, FormContext, FormContextProvider, FormObject, HiddenField, MultiChoiceField, NumericField, TextField, ToggleField, useFormContext, useFormField, ValidationError } from "src/form";
-import { body, delay, mockFn, verifyCalls, _ } from "@misonou/test-utils";
+import { body, delay, mockFn, verifyCalls, _, root } from "@misonou/test-utils";
 import dom from "zeta-dom/dom";
-import { cancelLock, locked } from "zeta-dom/domLock";
+import { CancellationRequest, cancelLock, locked } from "zeta-dom/domLock";
 import { catchAsync, combineFn, setImmediate } from "zeta-dom/util";
 import { jest } from "@jest/globals";
 
@@ -2227,10 +2227,13 @@ describe('FormContext', () => {
         });
         expect(locked(formElement)).toBe(true);
 
+        const reason = new CancellationRequest('custom');
         await renderAct(async () => {
-            catchAsync(cancelLock());
+            catchAsync(cancelLock(root, reason));
         });
-        expect(beforeLeave).toBeCalledTimes(1);
+        verifyCalls(beforeLeave, [
+            [expect.objectContaining({ reason: expect.sameObject(reason) }), _]
+        ])
         unmount();
     });
 
