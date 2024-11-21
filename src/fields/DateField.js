@@ -66,9 +66,10 @@ definePrototype(DateField, {
         var value = state.value;
         var min = normalizeDate(props.min);
         var max = normalizeDate(props.max);
+        var formatDisplay = props.formatDisplay;
         var displayText = hook.memo(function () {
-            return value && props.formatDisplay ? props.formatDisplay(toDateObject(value)) : value;
-        }, [value]);
+            return value && formatDisplay ? formatDisplay(toDateObject(value)) : value;
+        }, [value, formatDisplay]);
         hook.memo(function () {
             var clamped = value && clampValue(value, min, max);
             if (clamped !== value) {

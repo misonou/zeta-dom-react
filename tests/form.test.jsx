@@ -1593,6 +1593,17 @@ describe('useFormField - date', () => {
         expect(result.current.displayText).toBe(DateField.toDateObject(result.current.value).toDateString());
     });
 
+    it('should return new formatted text when formatDate callback is changed', () => {
+        const { result, rerender } = renderHook(({ formatDisplay }) => useFormField(DateField, { formatDisplay }, '2020-01-02'), {
+            initialProps: { formatDisplay: v => v.toDateString() }
+        });
+        const date = DateField.toDateObject('2020-01-02');
+        expect(result.current.displayText).toBe(date.toDateString());
+
+        rerender({ formatDisplay: v => v.toISOString() })
+        expect(result.current.displayText).toBe(date.toISOString());
+    });
+
     it('should normalize value to standard format', () => {
         const { result } = renderHook(() => useFormField(DateField, {}));
         expect(result.current.value).toBe('');
