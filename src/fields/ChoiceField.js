@@ -18,15 +18,15 @@ definePrototype(ChoiceField, {
         var items = hook.memo(function () {
             return normalizeChoiceItems(props.items);
         }, [props.items]);
+        var allowUnselect = props.allowUnselect || !items[0];
         var selectedIndex = items.findIndex(function (v) {
             return v.value === state.value;
         });
-        hook.effect(function () {
+        hook.memo(function () {
             if (selectedIndex < 0) {
-                selectedIndex = props.allowUnselect || !items[0] ? -1 : 0;
-                state.setValue(selectedIndex < 0 ? '' : items[0].value);
+                state.setValue(allowUnselect ? '' : items[0].value);
             }
-        });
+        }, [state.version, selectedIndex, allowUnselect]);
         return extend(state, {
             items: items,
             selectedIndex: selectedIndex,

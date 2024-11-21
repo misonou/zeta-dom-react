@@ -13,7 +13,7 @@ definePrototype(NumericField, {
         var max = props.max;
         var step = props.step;
         var allowEmpty = props.allowEmpty;
-        hook.effect(function () {
+        hook.memo(function () {
             var rounded = step > 0 ? Math.round(value / step) * step : value;
             if (rounded < min || (isNaN(rounded) && !allowEmpty)) {
                 rounded = min || 0;

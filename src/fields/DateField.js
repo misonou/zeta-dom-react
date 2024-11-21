@@ -69,7 +69,7 @@ definePrototype(DateField, {
         var displayText = hook.memo(function () {
             return value && props.formatDisplay ? props.formatDisplay(toDateObject(value)) : value;
         }, [value]);
-        hook.effect(function () {
+        hook.memo(function () {
             var clamped = value && clampValue(value, min, max);
             if (clamped !== value) {
                 setValue(clamped);

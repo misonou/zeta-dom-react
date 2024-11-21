@@ -38,7 +38,7 @@ definePrototype(MultiChoiceField, {
         var value = hook.memo(function () {
             return makeArray(state.value);
         }, [state.version]);
-        hook.effect(function () {
+        hook.memo(function () {
             if (!allowCustomValues) {
                 var cur = makeArray(value);
                 var arr = splice(cur, isUnknown);
@@ -46,7 +46,7 @@ definePrototype(MultiChoiceField, {
                     state.setValue(cur);
                 }
             }
-        });
+        }, [value, items, allowCustomValues]);
         return extend(state, {
             value: value,
             items: items,
