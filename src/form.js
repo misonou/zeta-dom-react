@@ -654,9 +654,8 @@ export function useFormField(type, props, defaultValue, prop) {
         field.version = 0;
     }
     effects.i = 0;
-    effects.splice(0);
     useEffect(function () {
-        combineFn(effects)();
+        combineFn(effects.splice(0))();
     });
     useObservableProperty(field, 'error');
     useObservableProperty(field, 'version');

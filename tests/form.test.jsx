@@ -1,4 +1,4 @@
-import React, { createRef, useEffect, useRef, useState } from "react";
+import React, { createRef, StrictMode, useEffect, useRef, useState } from "react";
 import { act as renderAct, render, screen } from "@testing-library/react";
 import { act, renderHook } from '@testing-library/react-hooks'
 import { ViewStateProvider } from "src/viewState";
@@ -1163,6 +1163,43 @@ describe('useFormField', () => {
         expect(result.current.memoResult).toBe(100);
         expect(result.current.callback()).toBe('bar');
         expect(result.current.callback).toBe(resultCallback);
+        unmount();
+    });
+
+    it('should process hook-like utilities correctly in strict mode', () => {
+        let state;
+        const cb = mockFn();
+        class CustomField {
+            postHook(state, props, hook) {
+                const { memoInput, callback } = props;
+                state.memoResult = hook.memo(() => memoInput * 2, [memoInput]);
+                state.callback = hook.callback(callback);
+                hook.effect(() => cb(memoInput), [memoInput]);
+                return state;
+            }
+        }
+        const Component = (props) => {
+            state = useFormField(CustomField, props, '');
+            return <></>;
+        };
+        const { rerender, unmount } = render(<Component memoInput={21} callback={() => 'foo'} />, {
+            wrapper: StrictMode
+        });
+        const resultCallback = state.callback;
+        verifyCalls(cb, [[21]]);
+        expect(state.memoResult).toBe(42);
+        expect(state.callback()).toBe('foo');
+        cb.mockClear();
+
+        act(() => state.setValue('foo'));
+        expect(cb).not.toBeCalled();
+        expect(state.memoResult).toBe(42);
+
+        rerender(<Component memoInput={50} callback={() => 'bar'} />);
+        verifyCalls(cb, [[50]]);
+        expect(state.memoResult).toBe(100);
+        expect(state.callback()).toBe('bar');
+        expect(state.callback).toBe(resultCallback);
         unmount();
     });
 
