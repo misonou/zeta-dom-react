@@ -755,6 +755,18 @@ describe('useFormField', () => {
         verifyCalls(cb, [['bar']]);
     });
 
+    it('should call onChange callback with normalized value for controlled field', async () => {
+        const onChange = mockFn();
+        class CustomField {
+            normalizeValue(v) {
+                return String(v);
+            }
+        }
+        const { result } = renderHook(() => useFormField(CustomField, { value: '1', onChange }, ''));
+        await act(async () => result.current.setValue(2));
+        verifyCalls(onChange, [['2']]);
+    });
+
     it('should call onChange callback for uncontrolled field', async () => {
         const cb = mockFn();
         const { wrapper, unmount } = createFormContext();
@@ -1621,6 +1633,20 @@ describe('useFormField - date', () => {
 
         act(() => result.current.setValue(NaN));
         expect(result.current.value).toBe('');
+    });
+
+    it('should call onChange callback with normalized value', async () => {
+        const onChange = mockFn();
+        const { result, rerender } = renderHook(props => useFormField(DateField, { onChange, ...props }), {
+            initialProps: { max: '', value: '2020-01-02' }
+        });
+        rerender({ max: '2020-01-01', value: '2020-01-02' });
+        await 0;
+        expect(onChange).toBeCalledWith('2020-01-01');
+        onChange.mockClear();
+
+        await act(async () => result.current.setValue('2019/12/31'));
+        expect(onChange).toBeCalledWith('2019-12-31');
     });
 });
 

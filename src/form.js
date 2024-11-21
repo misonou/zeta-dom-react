@@ -273,7 +273,7 @@ function createFieldState(initialValue) {
             if (!field.controlled) {
                 field.dict[field.name] = v;
             } else {
-                field.nextValue = v;
+                field.nextValue = field.normalizeValue(v);
                 changedFields.delete(field);
                 setImmediate(function () {
                     if ('nextValue' in field && !sameValueZero(field.nextValue, field.lastValue)) {
