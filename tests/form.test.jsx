@@ -261,12 +261,14 @@ describe('useFormContext', () => {
     it('should trigger validation for updated fields if validateOnChange is set to true', async () => {
         const cb = mockFn();
         const { form, wrapper, unmount } = createFormContext();
-        let barValue = 'bar';
-        const { result } = renderHook(() => [
+        const { result, rerender } = renderHook(({ barValue }) => [
             useFormField({ name: 'foo', onValidate: cb }, 'foo'),
             useFormField({ name: 'baz', onValidate: cb }, 'baz'),
-            useFormField({ name: 'bar', onValidate: cb, value: barValue, onChange: v => barValue = v }, 'bar'),
-        ], { wrapper });
+            useFormField({ name: 'bar', onValidate: cb, value: barValue, onChange: v => rerender({ barValue: v }) }, 'bar'),
+        ], {
+            wrapper,
+            initialProps: { barValue: 'bar' }
+        });
 
         expect(form.validateOnChange).toBe(true);
         await act(async () => {
@@ -709,11 +711,35 @@ describe('useFormField', () => {
         verifyCalls(cb, [['foo']]);
     });
 
-    it('should call onChange callback for controlled field', () => {
+    it('should call setValue callback with pending value for controlled field', async () => {
+        const onChange = mockFn();
+        const setValue = mockFn();
+        const { result, unmount } = renderHook(() => useFormField({ value: 'foo', onChange }, ''));
+
+        setValue.mockReturnValueOnce('bar');
+        setValue.mockReturnValueOnce('baz');
+        await act(async () => {
+            result.current.setValue(setValue);
+            result.current.setValue(setValue);
+        });
+        verifyCalls(setValue, [
+            ['foo'],
+            ['bar']
+        ]);
+        expect(onChange).toHaveBeenLastCalledWith('baz');
+        setValue.mockClear();
+
+        // pending value is discarded after current loop
+        await act(async () => result.current.setValue(setValue));
+        verifyCalls(setValue, [['foo']]);
+        unmount();
+    });
+
+    it('should call onChange callback for controlled field', async () => {
         let value = '';
         const cb = mockFn(v => (value = v));
         const { rerender, result } = renderHook(() => useFormField({ value, onChange: cb }, ''));
-        act(() => result.current.setValue('foo'));
+        await act(async () => result.current.setValue('foo'));
         verifyCalls(cb, [['foo']]);
 
         cb.mockClear();
@@ -721,11 +747,11 @@ describe('useFormField', () => {
         expect(cb).not.toBeCalled();
     });
 
-    it('should call onChange callback with value returned from setValue callback for controlled field', () => {
+    it('should call onChange callback with value returned from setValue callback for controlled field', async () => {
         let value = 'foo';
         const cb = mockFn(v => (value = v));
         const { result } = renderHook(() => useFormField({ value, onChange: cb }, ''));
-        act(() => result.current.setValue(() => 'bar'));
+        await act(async () => result.current.setValue(() => 'bar'));
         verifyCalls(cb, [['bar']]);
     });
 
@@ -788,6 +814,17 @@ describe('useFormField', () => {
             result.current.setValue(v);
             expect(cb).not.toBeCalled();
         }
+    });
+
+    it('should not call onChange callback after controlled field is unmounted', async () => {
+        const cb = mockFn();
+        const { result, unmount } = renderHook(() => useFormField({ value: 'foo', onChange: cb }, ''));
+        act(() => {
+            result.current.setValue(() => 'bar');
+            unmount();
+        });
+        await 0;
+        expect(cb).not.toBeCalled();
     });
 
     it('should not overwrite changes through data object', async () => {
@@ -1599,6 +1636,22 @@ describe('DateField.toDateString', () => {
 });
 
 describe('FormContext', () => {
+    it('should trigger onChange callback on controlled field', async () => {
+        const onChange = mockFn();
+        const { form, wrapper, unmount } = createFormContext({});
+        const { result } = renderHook(({ value }) => useFormField({ name: 'foo', value, onChange }, ''), {
+            wrapper,
+            initialProps: { value: 'foo' }
+        });
+        expect(form.data.foo).toBe('foo');
+
+        await act(async () => {
+            form.data.foo = 'bar';
+        });
+        expect(onChange).toBeCalledWith('bar');
+        unmount();
+    });
+
     it('should fire dataChange event when property is added manually', async () => {
         const { form, wrapper, unmount } = createFormContext({});
         const { result } = renderHook(() => useFormField({ name: 'foo' }, ''), { wrapper });
@@ -2858,13 +2911,16 @@ describe('FormContext#reset', () => {
         let value = 'foo';
         const onChange = mockFn(v => (value = v));
         const { form, wrapper, unmount } = createFormContext();
-        const { rerender } = renderHook(() => useFormField({ name: 'foo', value, onChange }, ''), { wrapper });
+        const { result, rerender } = renderHook(() => useFormField({ name: 'foo', value, onChange }, ''), { wrapper });
 
         value = 'bar';
         rerender();
         onChange.mockClear();
 
-        act(() => form.reset());
+        act(() => {
+            result.current.setValue('baz');
+            form.reset();
+        });
         verifyCalls(onChange, [['foo']]);
         unmount();
     });

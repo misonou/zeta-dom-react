@@ -12,6 +12,7 @@ const _ = createPrivateStore();
 const emitter = new ZetaEventContainer();
 const instances = new WeakMap();
 const changedProps = new Map();
+const changedFields = new Set();
 const rootForm = new FormContext({}, {}, { get: noop });
 const fieldTypes = {
     text: TextField,
@@ -110,6 +111,10 @@ function getPath(form, obj, name) {
 }
 
 function emitDataChangeEvent() {
+    each(changedFields, function (i, v) {
+        v.onChange(v.value, true);
+    });
+    changedFields.clear();
     each(changedProps, function (form) {
         var state = _(form);
         var props = mapRemove(changedProps, form);
@@ -140,21 +145,14 @@ function emitDataChangeEvent() {
     });
 }
 
-function handleDataChange(callback) {
-    var local;
-    var map = handleDataChange.d || (handleDataChange.d = local = new Set());
-    try {
-        callback();
-    } finally {
-        if (map === local) {
-            each(local, function (i, v) {
-                v.onChange(v.value, true);
-            });
-            handleDataChange.d = null;
-        }
+function handleDataChange(field) {
+    field.version++;
+    if (!field.controlled || !('nextValue' in field) || sameValueZero(field.value, field.nextValue)) {
+        changedFields.add(field);
+    } else {
+        field.onChange(field.value);
     }
 }
-handleDataChange.d = null;
 
 function createDataObject(context, initialData) {
     var state = _(context);
@@ -168,25 +166,22 @@ function createDataObject(context, initialData) {
                 if (!sameValueZero(value, target[p])) {
                     setValue(p, value);
                 }
-                if (!sameValueZero(field.value, value)) {
-                    field.value = value;
-                    field.version++;
-                }
+                field.value = value;
                 if (value === oldValue) {
                     return;
                 }
-                handleDataChange.d.add(field);
+                handleDataChange(field);
             }
             // ensure field associated with parent data object got notified
             for (var key = uniqueId; key = state.paths[key]; key = key.slice(0, 8)) {
                 if (state.fields[key]) {
-                    handleDataChange.d.add(state.fields[key]);
+                    handleDataChange(state.fields[key]);
                 }
             }
             if (context !== rootForm) {
                 mapGet(changedProps, context, Object)[path] = true;
-                setImmediateOnce(emitDataChangeEvent);
             }
+            setImmediateOnce(emitDataChangeEvent);
             return true;
         }
     };
@@ -208,47 +203,43 @@ function createDataObject(context, initialData) {
     var proxy = new Proxy(target, {
         set: function (t, p, v) {
             if (typeof p === 'string' && (!sameValueZero(t[p], v) || !(p in t))) {
-                handleDataChange(function () {
-                    var prev = t[p];
-                    if (isArray(t)) {
-                        if (p === 'length') {
-                            // check for truncated indexes that would be deleted without calling the trap
-                            for (var index = prev - 1; index >= v; index--) {
-                                onChange(index);
-                            }
-                            t[p] = v;
-                            return true;
+                var prev = t[p];
+                if (isArray(t)) {
+                    if (p === 'length') {
+                        // check for truncated indexes that would be deleted without calling the trap
+                        for (var index = prev - 1; index >= v; index--) {
+                            onChange(index);
                         }
-                    } else {
-                        if (_(v)) {
-                            throws("Cannot assign proxied data object");
-                        }
-                        // apply changes to existing object or array when assigning new object or array
-                        // so that fields of the same path can have consistent key and state
-                        if (isArray(v) && isArray(prev)) {
-                            prev.splice.apply(prev, [0, prev.length].concat(v));
-                            return true;
-                        }
-                        if (isPlainObject(v) && _(prev)) {
-                            for (var i in exclude(prev, v)) {
-                                delete prev[i];
-                            }
-                            extend(prev, v);
-                            return true;
-                        }
+                        t[p] = v;
+                        return true;
                     }
-                    setValue(p, v);
-                    onChange(p, state.fields[uniqueId + '.' + p], prev);
-                });
+                } else {
+                    if (_(v)) {
+                        throws("Cannot assign proxied data object");
+                    }
+                    // apply changes to existing object or array when assigning new object or array
+                    // so that fields of the same path can have consistent key and state
+                    if (isArray(v) && isArray(prev)) {
+                        prev.splice.apply(prev, [0, prev.length].concat(v));
+                        return true;
+                    }
+                    if (isPlainObject(v) && _(prev)) {
+                        for (var i in exclude(prev, v)) {
+                            delete prev[i];
+                        }
+                        extend(prev, v);
+                        return true;
+                    }
+                }
+                setValue(p, v);
+                onChange(p, state.fields[uniqueId + '.' + p], prev);
             }
             return true;
         },
         deleteProperty: function (t, p) {
             if (typeof p === 'string' && p in t) {
-                handleDataChange(function () {
-                    deleteValue(p);
-                    onChange(p);
-                });
+                deleteValue(p);
+                onChange(p);
             }
             return true;
         }
@@ -272,19 +263,23 @@ function createFieldState(initialValue) {
         error: '',
         preset: {},
         onChange: function (v, committed) {
-            if (!field.controlled || committed) {
-                field.version++;
-            }
+            delete field.nextValue;
             if (field.props.onChange && (!field.controlled || !committed)) {
                 field.props.onChange(cloneValue(v));
             }
         },
         setValue: function (v) {
-            v = isFunction(v) ? v(field.value) : v;
+            v = isFunction(v) ? v('nextValue' in field ? field.nextValue : field.value) : v;
             if (!field.controlled) {
                 field.dict[field.name] = v;
-            } else if (!sameValueZero(v, field.value)) {
-                field.onChange(v);
+            } else {
+                field.nextValue = v;
+                changedFields.delete(field);
+                setImmediate(function () {
+                    if ('nextValue' in field && !sameValueZero(field.nextValue, field.lastValue)) {
+                        field.onChange(field.nextValue);
+                    }
+                });
             }
         },
         setError: function (v) {
@@ -345,6 +340,7 @@ function useFormFieldInternal(state, field, preset, props, controlled, dict, nam
         return function () {
             if (state.fields[key] === field) {
                 delete state.fields[key];
+                delete field.nextValue;
                 if (field.props.clearWhenUnmount || !form) {
                     setImmediate(function () {
                         if (!state.fields[key]) {
@@ -647,8 +643,12 @@ export function useFormField(type, props, defaultValue, prop) {
     if (!existing && field.isEmpty(value)) {
         _(dict).set(name, value);
     } else {
+        if (controlled && (!sameValueZero(value, field.lastValue) || !('nextValue' in field))) {
+            field.nextValue = value;
+        }
         dict[name] = value;
     }
+    field.lastValue = value;
     field.value = dict[name];
     if (!existing) {
         field.version = 0;
