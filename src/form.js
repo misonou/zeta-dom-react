@@ -675,10 +675,10 @@ export function useFormField(type, props, defaultValue, prop) {
 
 export function combineValidators() {
     var validators = grep(makeArray(arguments), isFunction);
-    return function (value, name) {
+    return function (value, name, form) {
         return validators.reduce(function (prev, next) {
             return prev.then(function (result) {
-                return result || next(value, name);
+                return result || next(value, name, form);
             });
         }, resolve());
     };

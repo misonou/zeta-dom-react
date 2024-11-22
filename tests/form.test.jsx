@@ -3617,6 +3617,15 @@ describe('HiddenField component', () => {
 });
 
 describe('combineValidators', () => {
+    it('should pass arguments to validator', async () => {
+        const cb = mockFn();
+        const { form, wrapper } = createFormContext();
+        const { result } = renderHook(() => useFormField({ name: 'foo', onValidate: combineValidators(cb) }, ''), { wrapper });
+
+        await result.current.validate();
+        verifyCalls(cb, [['', 'foo', expect.sameObject(form)]]);
+    });
+
     it('should execute validators sequentially', async () => {
         let resolve;
         const promise = new Promise(resolve_ => resolve = resolve_);
