@@ -158,18 +158,11 @@ function createDataObject(context, initialData) {
     var state = _(context);
     var target = isArray(initialData) ? [] : {};
     var uniqueId = randomId();
-    var onChange = function (p, field, oldValue) {
+    var onChange = function (p, field) {
         var path = getPath(context, proxy, p);
         if (path) {
             if (field) {
-                var value = field.normalizeValue(target[p]);
-                if (!sameValueZero(value, target[p])) {
-                    setValue(p, value);
-                }
-                field.value = value;
-                if (value === oldValue) {
-                    return;
-                }
+                field.value = target[p];
                 handleDataChange(field);
             }
             // ensure field associated with parent data object got notified
@@ -182,7 +175,6 @@ function createDataObject(context, initialData) {
                 mapGet(changedProps, context, Object)[path] = true;
             }
             setImmediateOnce(emitDataChangeEvent);
-            return true;
         }
     };
     var setValue = function (p, v) {
@@ -204,6 +196,13 @@ function createDataObject(context, initialData) {
         set: function (t, p, v) {
             if (typeof p === 'string' && (!sameValueZero(t[p], v) || !(p in t))) {
                 var prev = t[p];
+                var field = state.fields[uniqueId + '.' + p];
+                if (field) {
+                    v = field.normalizeValue(v);
+                    if (sameValueZero(v, prev)) {
+                        return true;
+                    }
+                }
                 if (isArray(t)) {
                     if (p === 'length') {
                         // check for truncated indexes that would be deleted without calling the trap
@@ -232,7 +231,7 @@ function createDataObject(context, initialData) {
                     }
                 }
                 setValue(p, v);
-                onChange(p, state.fields[uniqueId + '.' + p], prev);
+                onChange(p, field);
             }
             return true;
         },

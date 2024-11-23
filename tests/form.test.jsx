@@ -1953,6 +1953,28 @@ describe('FormContext', () => {
         unmount();
     });
 
+    it('should not replace object when assigning non-object before normalizing', async () => {
+        const dataChange = mockFn();
+        const { form, wrapper, unmount } = createFormContext({ obj: { foo: 1 } });
+        form.on('dataChange', dataChange);
+
+        class CustomField {
+            normalizeValue(v) {
+                return typeof v === 'object' ? v : { foo: v };
+            };
+        }
+        renderHook(() => useFormField(CustomField, { name: 'obj' }, {}), { wrapper });
+
+        const arr = form.data.obj;
+        await act(async () => {
+            form.data.obj = 2;
+        });
+        expect(form.data.obj).toEqual({ foo: 2 });
+        expect(form.data.obj).toBe(arr);
+        verifyCalls(dataChange, [[expect.objectContaining({ data: ['obj.foo', 'obj'] }), _]]);
+        unmount();
+    });
+
     it('should throw when assigning proxy object to form data', async () => {
         const { form, unmount } = createFormContext({ foo: {} });
         expect(() => {
