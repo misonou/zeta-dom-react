@@ -1,4 +1,4 @@
-/*! zeta-dom-react v0.5.13 | (c) misonou | https://misonou.github.io */
+/*! zeta-dom-react v0.5.14 | (c) misonou | https://misonou.github.io */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory(require("zeta-dom"), require("react"), require("react-dom"));
@@ -1043,15 +1043,15 @@ definePrototype(ChoiceField, {
     var items = hook.memo(function () {
       return normalizeChoiceItems(props.items);
     }, [props.items]);
+    var allowUnselect = props.allowUnselect || !items[0];
     var selectedIndex = items.findIndex(function (v) {
       return v.value === state.value;
     });
-    hook.effect(function () {
+    hook.memo(function () {
       if (selectedIndex < 0) {
-        selectedIndex = props.allowUnselect || !items[0] ? -1 : 0;
-        state.setValue(selectedIndex < 0 ? '' : items[0].value);
+        state.setValue(allowUnselect ? '' : items[0].value);
       }
-    });
+    }, [state.version, selectedIndex, allowUnselect]);
     return extend(state, {
       items: items,
       selectedIndex: selectedIndex,
@@ -1119,10 +1119,11 @@ definePrototype(DateField, {
     var value = state.value;
     var min = normalizeDate(props.min);
     var max = normalizeDate(props.max);
+    var formatDisplay = props.formatDisplay;
     var displayText = hook.memo(function () {
-      return value && props.formatDisplay ? props.formatDisplay(toDateObject(value)) : value;
-    }, [value]);
-    hook.effect(function () {
+      return value && formatDisplay ? formatDisplay(toDateObject(value)) : value;
+    }, [value, formatDisplay]);
+    hook.memo(function () {
       var clamped = value && clampValue(value, min, max);
       if (clamped !== value) {
         setValue(clamped);
@@ -1185,7 +1186,7 @@ definePrototype(MultiChoiceField, {
     var value = hook.memo(function () {
       return makeArray(state.value);
     }, [state.version]);
-    hook.effect(function () {
+    hook.memo(function () {
       if (!allowCustomValues) {
         var cur = makeArray(value);
         var arr = splice(cur, isUnknown);
@@ -1193,7 +1194,7 @@ definePrototype(MultiChoiceField, {
           state.setValue(cur);
         }
       }
-    });
+    }, [value, items, allowCustomValues]);
     return extend(state, {
       value: value,
       items: items,
@@ -1215,7 +1216,7 @@ definePrototype(NumericField, {
     var max = props.max;
     var step = props.step;
     var allowEmpty = props.allowEmpty;
-    hook.effect(function () {
+    hook.memo(function () {
       var rounded = step > 0 ? Math.round(value / step) * step : value;
       if (rounded < min || isNaN(rounded) && !allowEmpty) {
         rounded = min || 0;
@@ -1286,6 +1287,7 @@ var form_ = createPrivateStore();
 var form_emitter = new EventContainer();
 var instances = new WeakMap();
 var changedProps = new Map();
+var changedFields = new Set();
 var rootForm = new FormContext({}, {}, {
   get: noop
 });
@@ -1376,6 +1378,10 @@ function getPath(form, obj, name) {
   return resolvePathInfo(form, path)[name ? 'parent' : 'value'] === obj ? path.join('.') : '';
 }
 function emitDataChangeEvent() {
+  each(changedFields, function (i, v) {
+    v.onChange(v.value, true);
+  });
+  changedFields.clear();
   each(changedProps, function (form) {
     var state = form_(form);
     var props = mapRemove(changedProps, form);
@@ -1405,53 +1411,35 @@ function emitDataChangeEvent() {
     }
   });
 }
-function handleDataChange(callback) {
-  var local;
-  var map = handleDataChange.d || (handleDataChange.d = local = new Set());
-  try {
-    callback();
-  } finally {
-    if (map === local) {
-      each(local, function (i, v) {
-        v.onChange(v.value, true);
-      });
-      handleDataChange.d = null;
-    }
+function handleDataChange(field) {
+  field.version++;
+  if (!field.controlled || !('nextValue' in field) || sameValueZero(field.value, field.nextValue)) {
+    changedFields.add(field);
+  } else {
+    field.onChange(field.value);
   }
 }
-handleDataChange.d = null;
 function createDataObject(context, initialData) {
   var state = form_(context);
   var target = isArray(initialData) ? [] : {};
   var uniqueId = randomId();
-  var onChange = function onChange(p, field, oldValue) {
+  var onChange = function onChange(p, field) {
     var path = getPath(context, proxy, p);
     if (path) {
       if (field) {
-        var value = field.normalizeValue(target[p]);
-        if (!sameValueZero(value, target[p])) {
-          setValue(p, value);
-        }
-        if (!sameValueZero(field.value, value)) {
-          field.value = value;
-          field.version++;
-        }
-        if (value === oldValue) {
-          return;
-        }
-        handleDataChange.d.add(field);
+        field.value = target[p];
+        handleDataChange(field);
       }
       // ensure field associated with parent data object got notified
       for (var key = uniqueId; key = state.paths[key]; key = key.slice(0, 8)) {
         if (state.fields[key]) {
-          handleDataChange.d.add(state.fields[key]);
+          handleDataChange(state.fields[key]);
         }
       }
       if (context !== rootForm) {
         mapGet(changedProps, context, Object)[path] = true;
-        setImmediateOnce(emitDataChangeEvent);
       }
-      return true;
+      setImmediateOnce(emitDataChangeEvent);
     }
   };
   var setValue = function setValue(p, v) {
@@ -1472,47 +1460,50 @@ function createDataObject(context, initialData) {
   var proxy = new Proxy(target, {
     set: function set(t, p, v) {
       if (typeof p === 'string' && (!sameValueZero(t[p], v) || !(p in t))) {
-        handleDataChange(function () {
-          var prev = t[p];
-          if (isArray(t)) {
-            if (p === 'length') {
-              // check for truncated indexes that would be deleted without calling the trap
-              for (var index = prev - 1; index >= v; index--) {
-                onChange(index);
-              }
-              t[p] = v;
-              return true;
-            }
-          } else {
-            if (form_(v)) {
-              _throws("Cannot assign proxied data object");
-            }
-            // apply changes to existing object or array when assigning new object or array
-            // so that fields of the same path can have consistent key and state
-            if (isArray(v) && isArray(prev)) {
-              prev.splice.apply(prev, [0, prev.length].concat(v));
-              return true;
-            }
-            if (isPlainObject(v) && form_(prev)) {
-              for (var i in exclude(prev, v)) {
-                delete prev[i];
-              }
-              extend(prev, v);
-              return true;
-            }
+        var prev = t[p];
+        var field = state.fields[uniqueId + '.' + p];
+        if (field) {
+          v = field.normalizeValue(v);
+          if (sameValueZero(v, prev)) {
+            return true;
           }
-          setValue(p, v);
-          onChange(p, state.fields[uniqueId + '.' + p], prev);
-        });
+        }
+        if (isArray(t)) {
+          if (p === 'length') {
+            // check for truncated indexes that would be deleted without calling the trap
+            for (var index = prev - 1; index >= v; index--) {
+              onChange(index);
+            }
+            t[p] = v;
+            return true;
+          }
+        } else {
+          if (form_(v)) {
+            _throws("Cannot assign proxied data object");
+          }
+          // apply changes to existing object or array when assigning new object or array
+          // so that fields of the same path can have consistent key and state
+          if (isArray(v) && isArray(prev)) {
+            prev.splice.apply(prev, [0, prev.length].concat(v));
+            return true;
+          }
+          if (isPlainObject(v) && form_(prev)) {
+            for (var i in exclude(prev, v)) {
+              delete prev[i];
+            }
+            extend(prev, v);
+            return true;
+          }
+        }
+        setValue(p, v);
+        onChange(p, field);
       }
       return true;
     },
     deleteProperty: function deleteProperty(t, p) {
       if (typeof p === 'string' && p in t) {
-        handleDataChange(function () {
-          deleteValue(p);
-          onChange(p);
-        });
+        deleteValue(p);
+        onChange(p);
       }
       return true;
     }
@@ -1535,19 +1526,23 @@ function createFieldState(initialValue) {
     error: '',
     preset: {},
     onChange: function onChange(v, committed) {
-      if (!field.controlled || committed) {
-        field.version++;
-      }
+      delete field.nextValue;
       if (field.props.onChange && (!field.controlled || !committed)) {
         field.props.onChange(cloneValue(v));
       }
     },
     setValue: function setValue(v) {
-      v = isFunction(v) ? v(field.value) : v;
+      v = isFunction(v) ? v('nextValue' in field ? field.nextValue : field.value) : v;
       if (!field.controlled) {
         field.dict[field.name] = v;
-      } else if (!sameValueZero(v, field.value)) {
-        field.onChange(v);
+      } else {
+        field.nextValue = field.normalizeValue(v);
+        changedFields["delete"](field);
+        setImmediate(function () {
+          if ('nextValue' in field && !sameValueZero(field.nextValue, field.lastValue)) {
+            field.onChange(field.nextValue);
+          }
+        });
       }
     },
     setError: function setError(v) {
@@ -1607,6 +1602,7 @@ function useFormFieldInternal(state, field, preset, props, controlled, dict, nam
     return function () {
       if (state.fields[key] === field) {
         delete state.fields[key];
+        delete field.nextValue;
         if (field.props.clearWhenUnmount || !form) {
           setImmediate(function () {
             if (!state.fields[key]) {
@@ -1900,16 +1896,19 @@ function useFormField(type, props, defaultValue, prop) {
   if (!existing && field.isEmpty(value)) {
     form_(dict).set(name, value);
   } else {
+    if (controlled && (!sameValueZero(value, field.lastValue) || !('nextValue' in field))) {
+      field.nextValue = value;
+    }
     dict[name] = value;
   }
+  field.lastValue = value;
   field.value = dict[name];
   if (!existing) {
     field.version = 0;
   }
   effects.i = 0;
-  effects.splice(0);
   useEffect(function () {
-    combineFn(effects)();
+    combineFn(effects.splice(0))();
   });
   useObservableProperty(field, 'error');
   useObservableProperty(field, 'version');
@@ -1928,10 +1927,10 @@ function useFormField(type, props, defaultValue, prop) {
 }
 function combineValidators() {
   var validators = grep(makeArray(arguments), isFunction);
-  return function (value, name) {
+  return function (value, name, form) {
     return validators.reduce(function (prev, next) {
       return prev.then(function (result) {
-        return result || next(value, name);
+        return result || next(value, name, form);
       });
     }, resolve());
   };
