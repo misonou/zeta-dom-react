@@ -1709,6 +1709,37 @@ describe('DateField.toDateString', () => {
     });
 });
 
+describe('DateField.getDate', () => {
+    it('should return relative time from today', () => {
+        expect(DateField.getDate('+1y1m1w1d')).toBe(DateField.toDateString(fromRelativeDate(1, 1, 1, 1)));
+        expect(DateField.getDate('-1y1m1w1d')).toBe(DateField.toDateString(fromRelativeDate(-1, -1, -1, -1)));
+        expect(DateField.getDate('-1y+1m1w+1d')).toBe(DateField.toDateString(fromRelativeDate(-1, 1, -1, 1)));
+    });
+
+    it('should return relative time from specified date', () => {
+        expect(DateField.getDate('+1m', '2020-02-02')).toBe('2020-03-02');
+        expect(DateField.getDate('+1m', '2020/02/02 12:34:56')).toBe('2020-03-02');
+        expect(DateField.getDate('+1m', new Date(2020, 1, 2, 12, 34, 56))).toBe('2020-03-02');
+        expect(DateField.getDate('+1m', 1580618096000)).toBe('2020-03-02');
+    });
+
+    it('should return empty string for invalid base date', () => {
+        expect(DateField.getDate('+1m', new Date('Invalid'))).toBe('');
+        expect(DateField.getDate('+1m', NaN)).toBe('');
+        expect(DateField.getDate('+1m', 'Invalid')).toBe('');
+    });
+
+    it('should return empty string for invalid relative date', () => {
+        expect(DateField.getDate('dummy')).toBe('');
+        expect(DateField.getDate('+1m  ')).toBe('');
+    });
+
+    it('should return absolute date if first argument is a valid date', () => {
+        expect(DateField.getDate('2020-02-02')).toBe('2020-02-02');
+        expect(DateField.getDate('2020/02/02 12:34:56')).toBe('2020-02-02');
+    });
+});
+
 describe('FormContext', () => {
     it('should trigger onChange callback on controlled field', async () => {
         const onChange = mockFn();

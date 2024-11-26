@@ -3,17 +3,14 @@ import type { FieldType, FormFieldProps, FormFieldState } from "../form";
 export interface DateFieldProps extends FormFieldProps<string> {
     /**
      * Specifies the earliest date allowed.
-     *
-     * Supports relative dates in the following format:
-     * - A `+` or `-` sign, then number and unit (`y`, `m`, `w` and `d` for years, months, weeks and days), e.g. `+1d` or `-1y`.
-     * - Multiple number and unit pairs can be specified, e.g. `+1y1d` or `-1y1d` which is evaluated from left to right
-     * (order matters because the months unit may result in different date due to various days in different month).
-     * - Different signs can also be specified for each number and unit pair, e.g. `+1y-1d`.
+     * It accepts `Date` object, timestamp in milliseconds, any parsable date string, or relative date from today.
+     * @see {@link DateField.getDate} for relative date format.
      */
     min?: string | number | Date;
     /**
      * Specifies the latest date allowed.
-     * For relative dates, see {@link DateFieldProps.min}.
+     * It accepts `Date` object, timestamp in milliseconds, any parsable date string, or relative date from today.
+     * @see {@link DateField.getDate} for relative dates format.
      */
     max?: string | number | Date;
     /**
@@ -56,6 +53,20 @@ export default class DateField implements FieldType<DateFieldProps, DateFieldSta
      * @returns A `Date` object or `null` if the input string was invalid.
      */
     static toDateObject(str: string): Date | null;
+    /**
+     * Returns a date relative to another date.
+     * @param str A string specifying the relative date.
+     * @param base An optional base date which calculation is based on. Default to today.
+     * @returns A string in standard format (YYYY-MM-DD), or an empty string if the base date is invalid.
+     *
+     * @description
+     * Supports relative dates in the following format:
+     * - A `+` or `-` sign, then number and unit (`y`, `m`, `w` and `d` for years, months, weeks and days), e.g. `+1d` or `-1y`.
+     * - Multiple number and unit pairs can be specified, e.g. `+1y1d` or `-1y1d` which is evaluated from left to right
+     * (order matters because the months unit may result in different date due to various days in different month).
+     * - Different signs can also be specified for each number and unit pair, e.g. `+1y-1d`.
+     */
+    static getDate(str: string, base?: string | number | Date): string;
 
     readonly defaultValue: string;
 

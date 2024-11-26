@@ -10,32 +10,39 @@ const units = {
 };
 units.w = units.d;
 
-function parseRelativeDate(str) {
-    var date = new Date();
+function parseRelativeDate(str, date) {
+    var re = /([+-]?)(\d+)([dwmy])/g, m;
     var dir = str[0] === '-' ? -1 : 1;
-    str.toLowerCase().replace(/([+-]?)(\d+)([dwmy])/g, function (v, a, b, c) {
-        date[units[c][1]](date[units[c][0]]() + (b * (a === '-' ? -1 : a === '+' ? 1 : dir) * (c === 'w' ? 7 : 1)));
-    });
-    return date;
+    var pos = 0;
+    while (m = re.exec(str)) {
+        if (m.index !== pos) {
+            break;
+        }
+        pos += m[0].length;
+        date[units[m[3]][1]](date[units[m[3]][0]]() + (m[2] * (m[1] === '-' ? -1 : m[1] === '+' ? 1 : dir) * (m[3] === 'w' ? 7 : 1)));
+    }
+    return pos !== str.length ? undefined : date;
 }
 
-function normalizeDate(date) {
+function normalizeDate(date, base) {
     if (typeof date === 'string') {
         if (re.test(date)) {
             return Date.parse(date + 'T00:00');
         }
-        date = date[0] === '+' || date[0] === '-' ? parseRelativeDate(date) : Date.parse(date);
+        if (base !== false && date.length) {
+            date = parseRelativeDate(date.toLowerCase(), base || new Date()) || date;
+        }
     }
     return new Date(date).setHours(0, 0, 0, 0);
 }
 
 function clampValue(date, min, max) {
-    var ts = normalizeDate(date);
+    var ts = normalizeDate(date, false);
     return ts < min ? min : ts > max ? max : date;
 }
 
 function toDateObject(str) {
-    var ts = normalizeDate(str);
+    var ts = normalizeDate(str, false);
     return isNaN(ts) ? null : new Date(ts);
 }
 
@@ -53,13 +60,17 @@ export default function DateField() { }
 
 define(DateField, {
     toDateString: toDateString,
-    toDateObject: toDateObject
+    toDateObject: toDateObject,
+    getDate: function (input, base) {
+        base = base !== undefined ? normalizeDate(base, false) : Date.now();
+        return isNaN(base) ? '' : toDateString(normalizeDate(input, new Date(base)));
+    }
 });
 
 definePrototype(DateField, {
     defaultValue: '',
     normalizeValue: function (value) {
-        return toDateString(normalizeDate(value));
+        return toDateString(normalizeDate(value, false));
     },
     postHook: function (state, props, hook) {
         var setValue = state.setValue;
