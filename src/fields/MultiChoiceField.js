@@ -1,4 +1,4 @@
-import { definePrototype, either, extend, freeze, isArray, isUndefinedOrNull, makeArray, splice } from "zeta-dom/util";
+import { definePrototype, each, either, extend, freeze, grep, isArray, isUndefinedOrNull, makeArray, splice } from "zeta-dom/util";
 import ChoiceField from "./ChoiceField.js";
 
 export default function MultiChoiceField() { }
@@ -20,20 +20,20 @@ definePrototype(MultiChoiceField, {
             });
         };
         var toggleValue = hook.callback(function (value, selected) {
-            if (allowCustomValues || !isUnknown(value)) {
-                state.setValue(function (arr) {
-                    var index = arr.indexOf(value);
+            state.setValue(function (arr) {
+                var newArr = makeArray(arr);
+                var updated = grep(makeArray(value), function (v) {
+                    var index = newArr.indexOf(v);
                     if (isUndefinedOrNull(selected) || either(index >= 0, selected)) {
-                        arr = makeArray(arr);
-                        if (index < 0) {
-                            arr.push(value);
-                        } else {
-                            arr.splice(index, 1);
+                        if (index >= 0) {
+                            return newArr.splice(index, 1);
+                        } else if (allowCustomValues || !isUnknown(v)) {
+                            return newArr.push(v);
                         }
                     }
-                    return arr;
                 });
-            }
+                return updated.length ? newArr : arr;
+            });
         });
         var value = hook.memo(function () {
             return makeArray(state.value);

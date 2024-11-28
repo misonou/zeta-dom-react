@@ -1392,6 +1392,28 @@ describe('useFormField - multiChoice', () => {
         expect(result.current.value).toEqual([]);
     });
 
+    it('should toggle existence of multiple values in array', () => {
+        const { result } = renderHook(() => useFormField(MultiChoiceField, { items: ['foo', 'bar'] }, ['foo']));
+        expect(result.current.value).toEqual(['foo']);
+
+        act(() => result.current.toggleValue(['foo', 'bar']));
+        expect(result.current.value).toEqual(['bar']);
+    });
+
+    it('should toggle existence of multiple values in array with specific state', () => {
+        const { result } = renderHook(() => useFormField(MultiChoiceField, { items: ['foo', 'bar'] }, []));
+        expect(result.current.value).toEqual([]);
+
+        act(() => result.current.toggleValue(['foo', 'bar'], false));
+        expect(result.current.value).toEqual([]);
+
+        act(() => result.current.toggleValue(['foo', 'bar'], true));
+        expect(result.current.value).toEqual(['foo', 'bar']);
+
+        act(() => result.current.toggleValue(['foo', 'bar'], false));
+        expect(result.current.value).toEqual([]);
+    });
+
     it('should not touch the previous array', () => {
         const { result } = renderHook(() => useFormField(MultiChoiceField, { items: ['foo', 'bar'] }, []));
         const prevValue = result.current.value;

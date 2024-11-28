@@ -19,17 +19,17 @@ export interface MultiChoiceFieldState<T extends ChoiceItem = ChoiceItem> extend
      */
     readonly items: T[];
     /**
-     * Toggles the presence of the specified item in the value array associated with the field.
+     * Toggles the presence of the specified item(s) in the value array associated with the field.
      * If the item is already present, the item will be removed; otherwise the item will be added.
-     * @param value Item value.
+     * @param value Item value or an array of values.
      */
-    toggleValue(value: ChoiceItemValueType<T>): void;
+    toggleValue(value: ChoiceItemValueType<T> | readonly ChoiceItemValueType<T>[]): void;
     /**
-     * Adds or removes the specified item to/from the value array associated with the field.
-     * @param value Item value.
+     * Adds or removes the specified item(s) to/from the value array associated with the field.
+     * @param value Item value or an array of values.
      * @param selected If true, the item is added to the array if it is not present; otherwise the item is removed from the array if it is present.
      */
-    toggleValue(value: ChoiceItemValueType<T>, selected: boolean): void;
+    toggleValue(value: ChoiceItemValueType<T> | readonly ChoiceItemValueType<T>[], selected: boolean): void;
 }
 
 export default class MultiChoiceField implements FieldType<MultiChoiceFieldProps, MultiChoiceFieldState> {
