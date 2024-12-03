@@ -1980,16 +1980,16 @@ describe('FormContext', () => {
 
     it('should update correctly when assigning object', async () => {
         const dataChange = mockFn();
-        const { form, unmount } = createFormContext({ obj: { foo: 1, bar: 2 } });
+        const { form, unmount } = createFormContext({ obj: { foo: 1, bar: 2, fuz: 4 } });
         form.on('dataChange', dataChange);
 
         const obj = form.data.obj;
         await act(async () => {
-            form.data.obj = { foo: 0, baz: 3 };
+            form.data.obj = { foo: 0, baz: 3, fuz: 4 };
         });
         expect(form.data.obj).toBe(obj);
-        expect(form.data.obj).toEqual({ foo: 0, baz: 3 });
-        verifyCalls(dataChange, [[expect.objectContaining({ data: ['obj.foo', 'obj.bar', 'obj.baz', 'obj'] }), _]]);
+        expect(form.data.obj).toEqual({ foo: 0, baz: 3, fuz: 4 });
+        verifyCalls(dataChange, [[expect.objectContaining({ data: ['obj.bar', 'obj.foo', 'obj.baz', 'obj'] }), _]]);
         unmount();
     });
 

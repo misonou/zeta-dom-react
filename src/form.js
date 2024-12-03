@@ -223,7 +223,7 @@ function createDataObject(context, initialData) {
                         return true;
                     }
                     if (isPlainObject(v) && _(prev)) {
-                        for (var i in exclude(prev, v)) {
+                        for (var i in exclude(prev, keys(v))) {
                             delete prev[i];
                         }
                         extend(prev, v);
