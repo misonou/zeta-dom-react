@@ -146,8 +146,8 @@ function emitDataChangeEvent() {
 }
 
 function handleDataChange(field) {
-    field.version++;
-    if (!field.controlled || !('nextValue' in field) || sameValueZero(field.value, field.nextValue)) {
+    if (!field.controlled || field.committing) {
+        field.version++;
         changedFields.add(field);
     } else {
         field.onChange(field.value);
@@ -642,10 +642,9 @@ export function useFormField(type, props, defaultValue, prop) {
     if (!existing && field.isEmpty(value)) {
         _(dict).set(name, value);
     } else {
-        if (controlled && (!sameValueZero(value, field.lastValue) || !('nextValue' in field))) {
-            field.nextValue = value;
-        }
+        field.committing = true;
         dict[name] = value;
+        field.committing = false;
     }
     field.lastValue = value;
     field.value = dict[name];
@@ -657,7 +656,9 @@ export function useFormField(type, props, defaultValue, prop) {
         combineFn(effects.splice(0))();
     });
     useObservableProperty(field, 'error');
-    useObservableProperty(field, 'version');
+    useObservableProperty(field, 'version', function () {
+        return field.committing;
+    });
     return (preset.postHook || pipe).call(preset, {
         form: context && _(context).state.form,
         key: field.form ? field.key : '',

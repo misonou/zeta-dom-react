@@ -828,6 +828,16 @@ describe('useFormField', () => {
         }
     });
 
+    it('should not call onChange callback when controlled field is being rendered', async () => {
+        const cb = mockFn();
+        const { rerender, unmount } = renderHook(({ value }) => useFormField({ value, onChange: cb }, ''), { initialProps: { value: {} } });
+        expect(cb).not.toBeCalled();
+
+        rerender({ value: { foo: 'a' } });
+        expect(cb).not.toBeCalled();
+        unmount();
+    });
+
     it('should not call onChange callback after controlled field is unmounted', async () => {
         const cb = mockFn();
         const { result, unmount } = renderHook(() => useFormField({ value: 'foo', onChange: cb }, ''));
@@ -1030,6 +1040,18 @@ describe('useFormField', () => {
 
         act(() => result.current.setValue([1, 2]));
         expect(result.current.value).toBe(foo);
+        expect(result.all.length).toBe(2);
+        unmount();
+    });
+
+    it('should not trigger additional update after controlled field is rerendered with new value', () => {
+        const { result, rerender, unmount } = renderHook(({ value }) => useFormField({ value }, ''), {
+            initialProps: { value: '' }
+        });
+        expect(result.all.length).toBe(1);
+
+        rerender({ value: 'bar' });
+        expect(result.current.value).toBe('bar');
         expect(result.all.length).toBe(2);
         unmount();
     });
