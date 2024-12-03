@@ -295,8 +295,9 @@ export function useMemoizedFunction<T extends Zeta.AnyFunction>(callback: T | un
  * The component is refreshed when the property has been updated.
  * @param obj An object which its property will be listened.
  * @param key Property name.
+ * @param comparer An optional callback that compares if two values are equal. Component will be updated only when it returns `false`. Default is `Object.is`.
  */
-export function useObservableProperty<T extends object, P extends keyof T>(obj: T, key: P): T[P];
+export function useObservableProperty<T extends object, P extends keyof T>(obj: T, key: P, comparer?: (currentValue: T[P], value: T[P]) => boolean): T[P];
 
 /**
  * Gets asynchronous data and refreshes the components once data is ready or error has occurred.

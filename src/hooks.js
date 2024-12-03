@@ -121,7 +121,8 @@ export function useUpdateTrigger() {
 
 export function useValueTrigger(value, comparer) {
     var state = useEagerReducer(function (ref, value) {
-        return (comparer || sameValue)(ref.current, value) ? ref : { current: value };
+        var current = ref.current;
+        return sameValue(current, value) || (comparer && comparer(current, value)) ? ref : { current: value };
     }, {});
     state[0].current = value;
     return state[1];
@@ -145,9 +146,9 @@ export function useMemoizedFunction(callback) {
     }, []);
 }
 
-export function useObservableProperty(obj, key) {
+export function useObservableProperty(obj, key, comparer) {
     const value = obj[key];
-    const notifyChange = useValueTrigger(value);
+    const notifyChange = useValueTrigger(value, comparer);
     useEffect(function () {
         notifyChange(obj[key]);
         return watch(obj, key, notifyChange);

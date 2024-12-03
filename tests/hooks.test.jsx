@@ -299,6 +299,27 @@ describe('useObservableProperty', () => {
         expect(result.all).toEqual(['foo', 'bar']);
     });
 
+    it('should cause render when comparer returns falsy values', async () => {
+        const cb = mockFn(() => false);
+        const obj = { prop: 'foo' };
+        const { result, waitForNextUpdate } = renderHook(() => useObservableProperty(obj, 'prop', cb));
+        expect(result.current).toBe('foo');
+        expect(result.all.length).toBe(1);
+
+        obj.prop = 'bar';
+        await waitForNextUpdate();
+        expect(result.all.length).toBe(2);
+
+        cb.mockReturnValueOnce(true);
+        obj.prop = 'baz';
+        await expect(() => waitForNextUpdate()).rejects.toBeDefined();
+
+        verifyCalls(cb, [
+            ['foo', 'bar'],
+            ['bar', 'baz'],
+        ]);
+    });
+
     it('should cause component to render once when used multiple times', async () => {
         const obj = { prop1: 'foo', prop2: 'bar' };
         const { result, waitForNextUpdate } = renderHook(() => {
