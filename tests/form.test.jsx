@@ -1713,6 +1713,8 @@ describe('DateField.toDateObject', () => {
     it('should return midnight local time', () => {
         expect(toDateComponent(DateField.toDateObject('2020-02-02'))).toEqual(toDateComponent(2020, 2, 2));
         expect(toDateComponent(DateField.toDateObject('2020/02/02 12:34:56'))).toEqual(toDateComponent(2020, 2, 2));
+        expect(toDateComponent(DateField.toDateObject('+002020-02-02'))).toEqual(toDateComponent(2020, 2, 2));
+        expect(toDateComponent(DateField.toDateObject('-002020-02-02'))).toEqual(toDateComponent(-2020, 2, 2));
     });
 
     it('should return null for invalid date', () => {
