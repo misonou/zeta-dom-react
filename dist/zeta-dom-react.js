@@ -1,4 +1,4 @@
-/*! zeta-dom-react v0.5.14 | (c) misonou | https://misonou.github.io */
+/*! zeta-dom-react v0.5.15 | (c) misonou | https://misonou.github.io */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory(require("zeta-dom"), require("react"), require("react-dom"));
@@ -389,7 +389,8 @@ function useUpdateTrigger() {
 }
 function useValueTrigger(value, comparer) {
   var state = useEagerReducer(function (ref, value) {
-    return (comparer || sameValue)(ref.current, value) ? ref : {
+    var current = ref.current;
+    return sameValue(current, value) || comparer && comparer(current, value) ? ref : {
       current: value
     };
   }, {});
@@ -412,9 +413,9 @@ function useMemoizedFunction(callback) {
     return (isFunction(ref.current) || noop).apply(this, arguments);
   }, []);
 }
-function useObservableProperty(obj, key) {
+function useObservableProperty(obj, key, comparer) {
   var value = obj[key];
-  var notifyChange = useValueTrigger(value);
+  var notifyChange = useValueTrigger(value, comparer);
   useEffect(function () {
     notifyChange(obj[key]);
     return watch(obj, key, notifyChange);
@@ -1061,7 +1062,7 @@ definePrototype(ChoiceField, {
 });
 ;// CONCATENATED MODULE: ./src/fields/DateField.js
 
-var re = /^-?\d{4,}-\d{2}-\d{2}$/;
+var re = /^(\d{4}|[+-]\d{6})-\d{2}-\d{2}$/;
 
 // method mapping for relative date units
 var units = {
@@ -1070,29 +1071,37 @@ var units = {
   d: ['getDate', 'setDate']
 };
 units.w = units.d;
-function parseRelativeDate(str) {
-  var date = new Date();
+function parseRelativeDate(str, date) {
+  var re = /([+-]?)(\d+)([dwmy])/g,
+    m;
   var dir = str[0] === '-' ? -1 : 1;
-  str.toLowerCase().replace(/([+-]?)(\d+)([dwmy])/g, function (v, a, b, c) {
-    date[units[c][1]](date[units[c][0]]() + b * (a === '-' ? -1 : a === '+' ? 1 : dir) * (c === 'w' ? 7 : 1));
-  });
-  return date;
+  var pos = 0;
+  while (m = re.exec(str)) {
+    if (m.index !== pos) {
+      break;
+    }
+    pos += m[0].length;
+    date[units[m[3]][1]](date[units[m[3]][0]]() + m[2] * (m[1] === '-' ? -1 : m[1] === '+' ? 1 : dir) * (m[3] === 'w' ? 7 : 1));
+  }
+  return pos !== str.length ? undefined : date;
 }
-function normalizeDate(date) {
+function normalizeDate(date, base) {
   if (typeof date === 'string') {
     if (re.test(date)) {
       return Date.parse(date + 'T00:00');
     }
-    date = date[0] === '+' || date[0] === '-' ? parseRelativeDate(date) : Date.parse(date);
+    if (base !== false && date.length) {
+      date = parseRelativeDate(date.toLowerCase(), base || new Date()) || date;
+    }
   }
   return new Date(date).setHours(0, 0, 0, 0);
 }
 function clampValue(date, min, max) {
-  var ts = normalizeDate(date);
+  var ts = normalizeDate(date, false);
   return ts < min ? min : ts > max ? max : date;
 }
 function toDateObject(str) {
-  var ts = normalizeDate(str);
+  var ts = normalizeDate(str, false);
   return isNaN(ts) ? null : new Date(ts);
 }
 function toDateString(date) {
@@ -1107,12 +1116,16 @@ function toDateString(date) {
 function DateField() {}
 util_define(DateField, {
   toDateString: toDateString,
-  toDateObject: toDateObject
+  toDateObject: toDateObject,
+  getDate: function getDate(input, base) {
+    base = base !== undefined ? normalizeDate(base, false) : Date.now();
+    return isNaN(base) ? '' : toDateString(normalizeDate(input, new Date(base)));
+  }
 });
 definePrototype(DateField, {
   defaultValue: '',
   normalizeValue: function normalizeValue(value) {
-    return toDateString(normalizeDate(value));
+    return toDateString(normalizeDate(value, false));
   },
   postHook: function postHook(state, props, hook) {
     var setValue = state.setValue;
@@ -1168,20 +1181,20 @@ definePrototype(MultiChoiceField, {
       });
     };
     var toggleValue = hook.callback(function (value, selected) {
-      if (allowCustomValues || !isUnknown(value)) {
-        state.setValue(function (arr) {
-          var index = arr.indexOf(value);
+      state.setValue(function (arr) {
+        var newArr = makeArray(arr);
+        var updated = grep(makeArray(value), function (v) {
+          var index = newArr.indexOf(v);
           if (isUndefinedOrNull(selected) || either(index >= 0, selected)) {
-            arr = makeArray(arr);
-            if (index < 0) {
-              arr.push(value);
-            } else {
-              arr.splice(index, 1);
+            if (index >= 0) {
+              return newArr.splice(index, 1);
+            } else if (allowCustomValues || !isUnknown(v)) {
+              return newArr.push(v);
             }
           }
-          return arr;
         });
-      }
+        return updated.length ? newArr : arr;
+      });
     });
     var value = hook.memo(function () {
       return makeArray(state.value);
@@ -1412,8 +1425,8 @@ function emitDataChangeEvent() {
   });
 }
 function handleDataChange(field) {
-  field.version++;
-  if (!field.controlled || !('nextValue' in field) || sameValueZero(field.value, field.nextValue)) {
+  if (!field.controlled || field.committing) {
+    field.version++;
     changedFields.add(field);
   } else {
     field.onChange(field.value);
@@ -1488,7 +1501,7 @@ function createDataObject(context, initialData) {
             return true;
           }
           if (isPlainObject(v) && form_(prev)) {
-            for (var i in exclude(prev, v)) {
+            for (var i in exclude(prev, keys(v))) {
               delete prev[i];
             }
             extend(prev, v);
@@ -1896,10 +1909,9 @@ function useFormField(type, props, defaultValue, prop) {
   if (!existing && field.isEmpty(value)) {
     form_(dict).set(name, value);
   } else {
-    if (controlled && (!sameValueZero(value, field.lastValue) || !('nextValue' in field))) {
-      field.nextValue = value;
-    }
+    field.committing = true;
     dict[name] = value;
+    field.committing = false;
   }
   field.lastValue = value;
   field.value = dict[name];
@@ -1911,7 +1923,9 @@ function useFormField(type, props, defaultValue, prop) {
     combineFn(effects.splice(0))();
   });
   useObservableProperty(field, 'error');
-  useObservableProperty(field, 'version');
+  useObservableProperty(field, 'version', function () {
+    return field.committing;
+  });
   return (preset.postHook || pipe).call(preset, {
     form: context && form_(context).state.form,
     key: field.form ? field.key : '',
