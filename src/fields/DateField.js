@@ -1,14 +1,12 @@
 import { define, definePrototype, extend, isFunction } from "zeta-dom/util";
 
 const re = /^(\d{4}|[+-]\d{6})-\d{2}-\d{2}$/;
-
-// method mapping for relative date units
-const units = {
-    y: ['getFullYear', 'setFullYear'],
-    m: ['getMonth', 'setMonth'],
-    d: ['getDate', 'setDate']
+const fn = {
+    y: function (d, n) { d.setFullYear(d.getFullYear() + n) },
+    m: function (d, n) { d.setMonth(d.getMonth() + n) },
+    d: function (d, n) { d.setDate(d.getDate() + n) },
+    w: function (d, n) { fn.d(d, n * 7) }
 };
-units.w = units.d;
 
 function parseRelativeDate(str, date) {
     var re = /([+-]?)(\d+)([dwmy])/g, m;
@@ -19,17 +17,20 @@ function parseRelativeDate(str, date) {
             break;
         }
         pos += m[0].length;
-        date[units[m[3]][1]](date[units[m[3]][0]]() + (m[2] * (m[1] === '-' ? -1 : m[1] === '+' ? 1 : dir) * (m[3] === 'w' ? 7 : 1)));
+        fn[m[3]](date, m[2] * (m[1] === '-' ? -1 : m[1] === '+' ? 1 : dir));
     }
     return pos !== str.length ? undefined : date;
 }
 
 function normalizeDate(date, base) {
     if (typeof date === 'string') {
+        if (!date) {
+            return NaN;
+        }
         if (re.test(date)) {
             return Date.parse(date + 'T00:00');
         }
-        if (base !== false && date.length) {
+        if (base !== false) {
             date = parseRelativeDate(date.toLowerCase(), base || new Date()) || date;
         }
     }
@@ -47,11 +48,14 @@ function toDateObject(str) {
 }
 
 function toDateString(date) {
+    function pad(v, d) {
+        v = String(v);
+        return v.length >= d ? v : ('00000' + v).slice(-d);
+    }
+    date = new Date(date);
     if (!isNaN(date)) {
-        // counter UTC conversion due to toISOString
-        var tz = new Date(date).getTimezoneOffset() * 60000;
-        var str = new Date(date - tz).toISOString();
-        return str.slice(0, str.indexOf('T', 10));
+        var y = date.getFullYear();
+        return (y < 0 ? '-' + pad(Math.abs(y), 6) : y > 9999 ? '+' + pad(y, 6) : pad(y, 4)) + '-' + pad(date.getMonth() + 1, 2) + '-' + pad(date.getDate(), 2);
     }
     return '';
 }

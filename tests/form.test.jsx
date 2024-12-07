@@ -1791,6 +1791,7 @@ describe('DateField.toDateObject', () => {
     });
 
     it('should return null for invalid date', () => {
+        expect(DateField.toDateObject('')).toBeNull();
         expect(DateField.toDateObject('Invalid')).toBeNull();
     });
 });
@@ -1798,6 +1799,11 @@ describe('DateField.toDateObject', () => {
 describe('DateField.toDateString', () => {
     it('should return string in standard format', () => {
         expect(DateField.toDateString(new Date(2020, 1, 2, 12, 34, 56))).toBe('2020-02-02');
+        expect(DateField.toDateString(new Date(2020, 11, 22, 12, 34, 56))).toBe('2020-12-22');
+        expect(DateField.toDateString(new Date(100, 1, 2, 12, 34, 56))).toBe('0100-02-02');
+        expect(DateField.toDateString(new Date(9999, 1, 2, 12, 34, 56))).toBe('9999-02-02');
+        expect(DateField.toDateString(new Date(10000, 1, 2, 12, 34, 56))).toBe('+010000-02-02');
+        expect(DateField.toDateString(new Date(-1, 1, 2, 12, 34, 56))).toBe('-000001-02-02');
     });
 
     it('should return empty string for invalid date', () => {
