@@ -714,7 +714,7 @@ describe('useFormField', () => {
     it('should call setValue callback with pending value for controlled field', async () => {
         const onChange = mockFn();
         const setValue = mockFn();
-        const { result, unmount } = renderHook(() => useFormField({ value: 'foo', onChange }, ''));
+        const { result, rerender, unmount } = renderHook(() => useFormField({ value: 'foo', onChange }, ''));
 
         setValue.mockReturnValueOnce('bar');
         setValue.mockReturnValueOnce('baz');
@@ -728,6 +728,7 @@ describe('useFormField', () => {
         ]);
         expect(onChange).toHaveBeenLastCalledWith('baz');
         setValue.mockClear();
+        rerender();
 
         // pending value is discarded after current loop
         await act(async () => result.current.setValue(setValue));
@@ -843,6 +844,7 @@ describe('useFormField', () => {
         const { result, unmount } = renderHook(() => useFormField({ value: 'foo', onChange: cb }, ''));
         act(() => {
             result.current.setValue(() => 'bar');
+            cb.mockClear();
             unmount();
         });
         await 0;
@@ -1222,6 +1224,28 @@ describe('useFormField', () => {
         expect(state.memoResult).toBe(100);
         expect(state.callback()).toBe('bar');
         expect(state.callback).toBe(resultCallback);
+        unmount();
+    });
+
+    it('should allow setting value synchronously in postHook for controlled field', async () => {
+        class TestField {
+            postHook(state) {
+                if (state.value === 'foo') {
+                    state.setValue('bar');
+                }
+                return state;
+            }
+        }
+        const onChange = mockFn((value) => {
+            rerender({ value });
+        });
+        const { result, rerender, unmount } = renderHook(({ value }) => useFormField(TestField, { value, onChange }, ''), {
+            initialProps: { value: '' }
+        });
+        rerender({ value: 'foo' })
+        expect(onChange).toBeCalledTimes(1);
+        await delay();
+        expect(result.current.value).toBe('bar');
         unmount();
     });
 
@@ -3092,6 +3116,8 @@ describe('FormContext#reset', () => {
 
         act(() => {
             result.current.setValue('baz');
+            onChange.mockClear();
+            rerender();
             form.reset();
         });
         verifyCalls(onChange, [['foo']]);
