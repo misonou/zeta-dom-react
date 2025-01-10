@@ -1,4 +1,4 @@
-/*! zeta-dom-react v0.5.15 | (c) misonou | https://misonou.github.io */
+/*! zeta-dom-react v0.5.16 | (c) misonou | https://misonou.github.io */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory(require("zeta-dom"), require("react"), require("react-dom"));
@@ -1539,23 +1539,22 @@ function createFieldState(initialValue) {
     error: '',
     preset: {},
     onChange: function onChange(v, committed) {
-      delete field.nextValue;
       if (field.props.onChange && (!field.controlled || !committed)) {
         field.props.onChange(cloneValue(v));
       }
     },
     setValue: function setValue(v) {
-      v = isFunction(v) ? v('nextValue' in field ? field.nextValue : field.value) : v;
+      var currentValue = 'nextValue' in field ? field.nextValue : field.value;
+      v = isFunction(v) ? v(currentValue) : v;
       if (!field.controlled) {
         field.dict[field.name] = v;
       } else {
-        field.nextValue = field.normalizeValue(v);
+        v = field.normalizeValue(v);
+        field.nextValue = v;
         changedFields["delete"](field);
-        setImmediate(function () {
-          if ('nextValue' in field && !sameValueZero(field.nextValue, field.lastValue)) {
-            field.onChange(field.nextValue);
-          }
-        });
+        if (!sameValueZero(currentValue, v)) {
+          field.onChange(v);
+        }
       }
     },
     setError: function setError(v) {
@@ -1615,7 +1614,6 @@ function useFormFieldInternal(state, field, preset, props, controlled, dict, nam
     return function () {
       if (state.fields[key] === field) {
         delete state.fields[key];
-        delete field.nextValue;
         if (field.props.clearWhenUnmount || !form) {
           setImmediate(function () {
             if (!state.fields[key]) {
@@ -1913,7 +1911,7 @@ function useFormField(type, props, defaultValue, prop) {
     dict[name] = value;
     field.committing = false;
   }
-  field.lastValue = value;
+  delete field.nextValue;
   field.value = dict[name];
   if (!existing) {
     field.version = 0;
