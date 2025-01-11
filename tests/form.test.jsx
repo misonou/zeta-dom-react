@@ -2451,6 +2451,23 @@ describe('FormContext#focus', () => {
         unmount();
     });
 
+    it('should set focus to element of field associated with nested path in document order', async () => {
+        const Field = function (props) {
+            const { elementRef } = useFormField(props, '');
+            return (<input ref={elementRef} />);
+        };
+        const renderForm = createFormComponent(() => (
+            <FormObject name="obj">
+                <Field name="foo" />
+                <Field name="bar" />
+            </FormObject>
+        ));
+        const { form, unmount } = renderForm();
+        form.focus('obj');
+        expect(dom.activeElement).toBe(form.element('obj.foo'));
+        unmount();
+    });
+
     it('should set focus to element of first error field in document order', async () => {
         const Field = function (props) {
             const { elementRef } = useFormField(props, '');

@@ -92,6 +92,11 @@ function resolvePathInfo(form, path) {
     };
 }
 
+function pathContains(path, prefix) {
+    var len = prefix.length;
+    return path.slice(0, len) === prefix && (!path[len] || path[len] === '.');
+}
+
 function getField(form, path) {
     var prop = resolvePathInfo(form, path);
     var key = keyFor(prop.parent);
@@ -476,13 +481,18 @@ definePrototype(FormContext, {
         return key ? (getField(this, key) || '').element : _(this).ref;
     },
     focus: function (key) {
+        var self = this;
         var element;
         if (typeof key === 'number') {
-            element = map(_(this).fields, function (v) {
+            element = map(_(self).fields, function (v) {
                 return (v.error && (key & 1)) || (v.isEmpty(v.value) && (key & 2)) ? v.element : null;
             }).sort(comparePosition)[0];
+        } else if (key) {
+            element = self.element(key) || map(_(self).fields, function (v) {
+                return pathContains(v.path, key) ? v.element : null;
+            }).sort(comparePosition)[0];
         } else {
-            element = this.element(key);
+            element = self.element();
         }
         return !!element && focus(element);
     },
@@ -564,8 +574,7 @@ definePrototype(FormContext, {
         }
         return validateFields(self, grep(fields, function (v) {
             return any(prefix, function (w) {
-                var len = w.length;
-                return v.path.slice(0, len) === w && (!v.path[len] || v.path[len] === '.');
+                return pathContains(v.path, w);
             });
         }));
     },
