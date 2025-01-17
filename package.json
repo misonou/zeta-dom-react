@@ -16,7 +16,7 @@
     "test:react17": "cross-env NODE_OPTIONS=--experimental-vm-modules REACT_VERSION=17 npx jest",
     "test:react18": "cross-env NODE_OPTIONS=--experimental-vm-modules REACT_VERSION=18 npx jest",
     "test:react19": "cross-env NODE_OPTIONS=--experimental-vm-modules REACT_VERSION=19 npx jest",
-    "test:dts": "npx check-dts tests/*.ts",
+    "test:dts": "npx @misonou/test-utils check-type",
     "version": "npm run build && git add -A dist",
     "release": "npx @misonou/build-utils publish"
   },
@@ -36,7 +36,7 @@
     "@babel/preset-react": "^7.16.7",
     "@jest/globals": "^26.6.2",
     "@misonou/build-utils": "^1.3.1",
-    "@misonou/test-utils": "^1.0.2",
+    "@misonou/test-utils": "^1.4.2",
     "@testing-library/dom": "^8.11.3",
     "@testing-library/react": "^12.1.2",
     "@testing-library/react-hooks": "^7.0.2",
