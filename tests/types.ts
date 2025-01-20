@@ -1,6 +1,6 @@
 import { expectTypeOf } from "expect-type";
 import { Dispatch, DispatchWithoutAction, SetStateAction } from "react";
-import { createDependency, Dependency, DependencyConsumer, DependencyProvider, useDependency, useEagerReducer, useEagerState, useEventTrigger, useRefInitCallback } from "../src/hooks";
+import { createDependency, Dependency, DependencyConsumer, DependencyProvider, DependencyProviderContext, useDependency, useEagerReducer, useEagerState, useEventTrigger, useRefInitCallback } from "../src/hooks";
 import { ChoiceField, ChoiceFieldProps, ChoiceFieldState, ChoiceItem, DateField, DateFieldState, FieldType, FormContext, FormFieldProps, FormFieldState, FormObject, FormValidateEvent, FormValidationChangeEvent, MultiChoiceField, MultiChoiceFieldProps, MultiChoiceFieldState, NumericField, NumericFieldState, TextField, TextFieldState, ToggleField, ToggleFieldState, ValidateResult, ValidationError, useFormContext, useFormField } from "../src/form";
 import { DataView } from "../src/dataView";
 import React from "react";
@@ -65,10 +65,21 @@ useRefInitCallback<Element>((_1, _2) => {
 
 const dep1 = createDependency(0);
 const dep2 = createDependency<number>();
+
 expectTypeOf(useDependency(dep1)).toEqualTypeOf<number>();
 expectTypeOf(useDependency(dep2)).toEqualTypeOf<number | undefined>();
 expectTypeOf(useDependency(dep1.Consumer)).toEqualTypeOf<number>();
 expectTypeOf(useDependency(dep2.Consumer)).toEqualTypeOf<number | undefined>();
+
+expectTypeOf(useDependency(dep1.Provider, 1)).toEqualTypeOf<DependencyProviderContext<number>>();
+expectTypeOf(useDependency(dep2.Provider, 1)).toEqualTypeOf<DependencyProviderContext<number>>();
+expectTypeOf(useDependency(dep1.Provider, () => 1)).toEqualTypeOf<DependencyProviderContext<number>>();
+expectTypeOf(useDependency(dep2.Provider, () => 1)).toEqualTypeOf<DependencyProviderContext<number>>();
+
+expectTypeOf(useDependency(dep1.Provider, <number | undefined>_)).toEqualTypeOf<DependencyProviderContext<number | undefined>>();
+expectTypeOf(useDependency(dep2.Provider, <number | undefined>_)).toEqualTypeOf<DependencyProviderContext<number | undefined>>();
+expectTypeOf(useDependency(dep1.Provider, () => <number | undefined>_)).toEqualTypeOf<DependencyProviderContext<number | undefined>>();
+expectTypeOf(useDependency(dep2.Provider, () => <number | undefined>_)).toEqualTypeOf<DependencyProviderContext<number | undefined>>();
 
 expectTypeOf(<DependencyConsumer<number>>_).not.toMatchTypeOf<DependencyProvider<number>>();
 expectTypeOf(<DependencyProvider<number>>_).not.toMatchTypeOf<DependencyConsumer<number>>();

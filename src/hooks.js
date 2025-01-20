@@ -3,7 +3,7 @@ import dom, { reportError } from "zeta-dom/dom";
 import { notifyAsync } from "zeta-dom/domLock";
 import { bind } from "zeta-dom/domUtil";
 import { ZetaEventContainer } from "zeta-dom/events";
-import { always, any, arrRemove, catchAsync, clearImmediateOnce, combineFn, createPrivateStore, defineObservableProperty, defineOwnProperty, delay, each, equal, errorWithCode, extend, fill, freeze, hasOwnProperty, is, isArray, isErrorWithCode, isFunction, makeArray, makeAsync, map, mapRemove, noop, pick, pipe, resolve, sameValue, sameValueZero, setAdd, setImmediateOnce, watch } from "zeta-dom/util";
+import { always, any, arrRemove, catchAsync, clearImmediateOnce, combineFn, createPrivateStore, defineOwnProperty, delay, each, equal, errorWithCode, extend, fill, freeze, is, isArray, isErrorWithCode, isFunction, isUndefinedOrNull, makeArray, makeAsync, map, mapRemove, noop, pick, pipe, resolve, sameValue, sameValueZero, setAdd, setImmediateOnce, watch } from "zeta-dom/util";
 import * as ErrorCode from "zeta-dom/errorCode";
 import { IS_DEV } from "./env.js";
 
@@ -370,10 +370,15 @@ export function createDependency(defaultValue) {
     var Provider = freeze({});
     var Consumer = freeze({});
     var dependency = { Provider, Consumer };
-    var values = _(dependency, extend([], dependency));
-    defineObservableProperty(values, 'current', defaultValue, function () {
-        return values[0] ? values[0].value : defaultValue;
-    });
+    var values = _(dependency, extend([], dependency, {
+        current: defaultValue,
+        update: function () {
+            var matched = any(values, function (v) {
+                return !isUndefinedOrNull(v.value);
+            });
+            values.current = matched ? matched.value : defaultValue;
+        }
+    }));
     _(Provider, values);
     _(Consumer, values);
     return freeze(dependency);
@@ -387,14 +392,11 @@ export function useDependency(dependency, value, deps) {
             return values.push(obj) && obj;
         }, [values], function () {
             arrRemove(values, wrapper);
-            values.current = null;
+            values.update();
         });
         useMemo(function () {
-            value = isFunction(value) ? value() : value;
-            if (wrapper.value !== value || !hasOwnProperty(wrapper, 'value')) {
-                defineOwnProperty(wrapper, 'value', value, true);
-                values.current = null;
-            }
+            defineOwnProperty(wrapper, 'value', isFunction(value) ? value() : value, true);
+            values.update();
         }, [wrapper].concat(deps || [value]));
         return wrapper;
     } else {

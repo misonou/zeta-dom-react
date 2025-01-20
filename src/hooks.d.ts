@@ -457,15 +457,15 @@ export function useDependency<T>(dependency: DependencyConsumer<T> | Dependency<
 /**
  * Provides data to consumer.
  * @param dependency A dependency provider object returned from {@link Dependency.Provider}.
- * @param value Data to be sent to consumer.
+ * @param value Data to be sent to consumer. When it is `undefined` or `null`, it disables the provider as if it is not mounted.
  * @param deps If present, new data is only sent to consumer if the values in the list change.
  */
-export function useDependency<T>(dependency: DependencyProvider<T>, value: T, deps?: React.DependencyList): DependencyProviderContext<T>;
+export function useDependency<T>(dependency: DependencyProvider<Exclude<T, undefined | null>>, value: T, deps?: React.DependencyList): DependencyProviderContext<T>;
 
 /**
  * Provides data to consumer.
  * @param dependency A dependency provider object returned from {@link Dependency.Provider}.
- * @param factory A callback that computes data to be sent to consumer.
+ * @param factory A callback that computes data to be sent to consumer. When `undefined` or `null` is returned, it disables the provider as if it is not mounted.
  * @param deps If present, new data is only sent to consumer if the values in the list change.
  */
-export function useDependency<T>(dependency: DependencyProvider<T>, factory: () => T, deps?: React.DependencyList): DependencyProviderContext<T>;
+export function useDependency<T>(dependency: DependencyProvider<Exclude<T, undefined | null>>, factory: () => T, deps?: React.DependencyList): DependencyProviderContext<T>;

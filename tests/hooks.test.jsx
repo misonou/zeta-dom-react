@@ -1260,8 +1260,8 @@ describe('useDependency', () => {
         expect(result.current).toBe(1);
     });
 
-    it('should return value from earliest mounted producer', () => {
-        const dep = createDependency();
+    it('should return value from earliest mounted producer that is not undefined', () => {
+        const dep = createDependency(42);
         const Producer = ({ value }) => {
             useDependency(dep.Provider, value);
             return <></>;
@@ -1280,8 +1280,14 @@ describe('useDependency', () => {
         });
         expect(result.current).toBe(1);
 
-        rerender({ value: 3 });
-        expect(result.current).toBe(3);
+        rerender({ value: 0 });
+        expect(result.current).toBe(0);
+
+        rerender({ value: undefined });
+        expect(result.current).toBe(2);
+
+        rerender({ value: null });
+        expect(result.current).toBe(2);
     });
 
     it('should treat dependency object as consumer', () => {
