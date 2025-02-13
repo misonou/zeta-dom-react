@@ -1,5 +1,5 @@
 import React, { createRef, StrictMode, useEffect, useRef, useState } from "react";
-import { act as renderAct, render, screen } from "@testing-library/react";
+import { act as renderAct, render, screen, waitFor } from "@testing-library/react";
 import { act, renderHook } from '@testing-library/react-hooks'
 import { ViewStateProvider } from "src/viewState";
 import { ChoiceField, combineValidators, DateField, Form, FormArray, FormContext, FormContextProvider, FormObject, HiddenField, MultiChoiceField, NumericField, TextField, ToggleField, useFormContext, useFormField, ValidationError } from "src/form";
@@ -736,6 +736,23 @@ describe('useFormField', () => {
         unmount();
     });
 
+    it('should call setValue callback pending value for controlled field involving deferred action', async () => {
+        const onChange = mockFn();
+        const setValue = mockFn(() => 'bar');
+        class CustomField {
+            postHook(state) {
+                state.setValue('foo');
+                return state;
+            }
+        }
+        const { result } = renderHook(() => useFormField(CustomField, { value: '', onChange }, ''));
+        expect(onChange).not.toBeCalled();
+
+        await act(async () => result.current.setValue(setValue));
+        verifyCalls(setValue, [['foo']]);
+        verifyCalls(onChange, [['bar']]);
+    });
+
     it('should call onChange callback for controlled field', async () => {
         let value = '';
         const cb = mockFn(v => (value = v));
@@ -1243,8 +1260,8 @@ describe('useFormField', () => {
             initialProps: { value: '' }
         });
         rerender({ value: 'foo' })
-        expect(onChange).toBeCalledTimes(1);
-        await delay();
+        expect(onChange).not.toBeCalled();
+        await waitFor(() => expect(onChange).toBeCalledTimes(1));
         expect(result.current.value).toBe('bar');
         unmount();
     });
