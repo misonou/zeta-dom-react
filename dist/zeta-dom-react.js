@@ -1,4 +1,4 @@
-/*! zeta-dom-react v0.5.16 | (c) misonou | https://misonou.github.io */
+/*! zeta-dom-react v0.5.17 | (c) misonou | https://misonou.github.io */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory(require("zeta-dom"), require("react"), require("react-dom"));
@@ -1544,15 +1544,24 @@ function createFieldState(initialValue) {
       }
     },
     setValue: function setValue(v) {
-      var currentValue = 'nextValue' in field ? field.nextValue : field.value;
+      var currentValue = (field.pending || field).value;
       v = isFunction(v) ? v(currentValue) : v;
       if (!field.controlled) {
         field.dict[field.name] = v;
       } else {
         v = field.normalizeValue(v);
-        field.nextValue = v;
+        field.pending = {
+          value: v
+        };
         changedFields["delete"](field);
-        if (!sameValueZero(currentValue, v)) {
+        if (field.updating) {
+          var pending = field.pending;
+          setImmediate(function () {
+            if (field.pending === pending && !sameValueZero(field.value, v)) {
+              field.onChange(v);
+            }
+          });
+        } else if (!sameValueZero(currentValue, v)) {
           field.onChange(v);
         }
       }
@@ -1614,6 +1623,7 @@ function useFormFieldInternal(state, field, preset, props, controlled, dict, nam
     return function () {
       if (state.fields[key] === field) {
         delete state.fields[key];
+        field.pending = false;
         if (field.props.clearWhenUnmount || !form) {
           setImmediate(function () {
             if (!state.fields[key]) {
@@ -1911,7 +1921,7 @@ function useFormField(type, props, defaultValue, prop) {
     dict[name] = value;
     field.committing = false;
   }
-  delete field.nextValue;
+  field.pending = false;
   field.value = dict[name];
   if (!existing) {
     field.version = 0;
@@ -1924,18 +1934,23 @@ function useFormField(type, props, defaultValue, prop) {
   useObservableProperty(field, 'version', function () {
     return field.committing;
   });
-  return (preset.postHook || pipe).call(preset, {
-    form: context && form_(context).state.form,
-    key: field.form ? field.key : '',
-    path: field.path,
-    value: field.value,
-    error: String(field.error),
-    version: field.version,
-    setValue: field.setValue,
-    setError: field.setError,
-    validate: field.validate,
-    elementRef: field.elementRef
-  }, props, hook[1]);
+  try {
+    field.updating = true;
+    return (preset.postHook || pipe).call(preset, {
+      form: context && form_(context).state.form,
+      key: field.form ? field.key : '',
+      path: field.path,
+      value: field.value,
+      error: String(field.error),
+      version: field.version,
+      setValue: field.setValue,
+      setError: field.setError,
+      validate: field.validate,
+      elementRef: field.elementRef
+    }, props, hook[1]);
+  } finally {
+    field.updating = false;
+  }
 }
 function combineValidators() {
   var validators = grep(makeArray(arguments), isFunction);
