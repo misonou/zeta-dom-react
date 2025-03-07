@@ -28,9 +28,16 @@ function toDateComponent(y, m, d, h = 0, n = 0, s = 0, ms = 0) {
 
 function fromRelativeDate(y, m, w, d) {
     var date = new Date();
+    var day = date.getDate();
     date.setHours(0, 0, 0, 0);
     date.setFullYear(date.getFullYear() + y);
+    if (date.getDate() !== day) {
+        date.setDate(0);
+    }
     date.setMonth(date.getMonth() + m);
+    if (date.getDate() !== day) {
+        date.setDate(0);
+    }
     date.setDate(date.getDate() + (w * 7));
     date.setDate(date.getDate() + d);
     return date;
@@ -1824,6 +1831,13 @@ describe('DateField.getDate', () => {
         expect(DateField.getDate('+1m', '2020/02/02 12:34:56')).toBe('2020-03-02');
         expect(DateField.getDate('+1m', new Date(2020, 1, 2, 12, 34, 56))).toBe('2020-03-02');
         expect(DateField.getDate('+1m', 1580618096000)).toBe('2020-03-02');
+
+        expect(DateField.getDate('+1y', '2020-02-29')).toBe('2021-02-28');
+        expect(DateField.getDate('-1y', '2020-02-29')).toBe('2019-02-28');
+        expect(DateField.getDate('+1m', '2020-01-31')).toBe('2020-02-29');
+        expect(DateField.getDate('-1m', '2020-03-31')).toBe('2020-02-29');
+        expect(DateField.getDate('+13m', '2020-01-31')).toBe('2021-02-28');
+        expect(DateField.getDate('-13m', '2020-03-31')).toBe('2019-02-28');
     });
 
     it('should return empty string for invalid base date', () => {

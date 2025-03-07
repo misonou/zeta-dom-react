@@ -2,11 +2,17 @@ import { define, definePrototype, extend, isFunction } from "zeta-dom/util";
 
 const re = /^(\d{4}|[+-]\d{6})-\d{2}-\d{2}$/;
 const fn = {
-    y: function (d, n) { d.setFullYear(d.getFullYear() + n) },
-    m: function (d, n) { d.setMonth(d.getMonth() + n) },
+    y: function (d, n) { adjustMonth(d, d.getDate(), d.setFullYear(d.getFullYear() + n)) },
+    m: function (d, n) { adjustMonth(d, d.getDate(), d.setMonth(d.getMonth() + n)) },
     d: function (d, n) { d.setDate(d.getDate() + n) },
     w: function (d, n) { fn.d(d, n * 7) }
 };
+
+function adjustMonth(d, v, _) {
+    if (v > 28 && d.getDate() !== v) {
+        d.setDate(0);
+    }
+}
 
 function parseRelativeDate(str, date) {
     var re = /([+-]?)(\d+)([dwmy])/g, m;
