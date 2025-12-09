@@ -1876,6 +1876,49 @@ describe('DateField.getDate', () => {
         expect(DateField.getDate('-1m', '2020-03-31')).toBe('2020-02-29');
         expect(DateField.getDate('+13m', '2020-01-31')).toBe('2021-02-28');
         expect(DateField.getDate('-13m', '2020-03-31')).toBe('2019-02-28');
+
+        expect(DateField.getDate('year-start', '2020-02-02')).toBe('2020-01-01');
+        expect(DateField.getDate('year-start(-2m)', '2020-02-02')).toBe('2019-01-01');
+        expect(DateField.getDate('year-end', '2020-02-02')).toBe('2020-12-31');
+        expect(DateField.getDate('year-end(-2m)', '2020-02-02')).toBe('2019-12-31');
+
+        expect(DateField.getDate('month-start', '2020-02-02')).toBe('2020-02-01');
+        expect(DateField.getDate('month-start(-2m)', '2020-02-02')).toBe('2019-12-01');
+        expect(DateField.getDate('month-end', '2020-02-02')).toBe('2020-02-29');
+        expect(DateField.getDate('month-end(-2m)', '2020-02-02')).toBe('2019-12-31');
+
+        expect(DateField.getDate('week-start', '2020-02-02')).toBe('2020-02-02');
+        expect(DateField.getDate('week-start(+1d)', '2020-02-02')).toBe('2020-02-02');
+        expect(DateField.getDate('week-start(-1d)', '2020-02-02')).toBe('2020-01-26');
+        expect(DateField.getDate('week-end', '2020-02-02')).toBe('2020-02-08');
+        expect(DateField.getDate('week-end(+1d)', '2020-02-02')).toBe('2020-02-08');
+        expect(DateField.getDate('week-end(-1d)', '2020-02-02')).toBe('2020-02-01');
+
+        expect(DateField.getDate('nth-of-year(1, sun)', '2020-02-02')).toBe('2020-01-05');
+        expect(DateField.getDate('nth-of-year(1, sun, -2m)', '2020-02-02')).toBe('2019-01-06');
+        expect(DateField.getDate('nth-of-month(1, sun)', '2020-02-02')).toBe('2020-02-02');
+        expect(DateField.getDate('nth-of-month(1, sat)', '2020-02-02')).toBe('2020-02-01');
+        expect(DateField.getDate('nth-of-month(1, sun, -1m)', '2020-02-02')).toBe('2020-01-05');
+
+        expect(DateField.getDate('nth-last-of-year(1, sun)', '2020-02-02')).toBe('2020-12-27');
+        expect(DateField.getDate('nth-last-of-year(1, sun, -2m)', '2020-02-02')).toBe('2019-12-29');
+        expect(DateField.getDate('nth-last-of-month(1, sun)', '2020-02-02')).toBe('2020-02-23');
+        expect(DateField.getDate('nth-last-of-month(1, sat)', '2020-02-02')).toBe('2020-02-29');
+        expect(DateField.getDate('nth-last-of-month(1, sat, -1m)', '2020-02-02')).toBe('2020-01-25');
+
+        expect(DateField.getDate('nth-after(1, sun)', '2020-02-02')).toBe('2020-02-09');
+        expect(DateField.getDate('nth-after(1, sat)', '2020-02-02')).toBe('2020-02-08');
+        expect(DateField.getDate('nth-after(2, sun)', '2020-02-02')).toBe('2020-02-16');
+        expect(DateField.getDate('nth-after(1, sat, -1d)', '2020-02-02')).toBe('2020-02-08');
+        expect(DateField.getDate('nth-after(1, sat, -2d)', '2020-02-02')).toBe('2020-02-01');
+        expect(DateField.getDate('nth-after(2, sun, -1d)', '2020-02-02')).toBe('2020-02-09');
+
+        expect(DateField.getDate('nth-before(1, sun)', '2020-02-02')).toBe('2020-01-26');
+        expect(DateField.getDate('nth-before(1, sat)', '2020-02-02')).toBe('2020-02-01');
+        expect(DateField.getDate('nth-before(2, sun)', '2020-02-02')).toBe('2020-01-19');
+        expect(DateField.getDate('nth-before(1, sat, -1d)', '2020-02-02')).toBe('2020-01-25');
+        expect(DateField.getDate('nth-before(1, sat, -2d)', '2020-02-02')).toBe('2020-01-25');
+        expect(DateField.getDate('nth-before(2, sun, +1d)', '2020-02-02')).toBe('2020-01-26');
     });
 
     it('should return empty string for invalid base date', () => {
@@ -1887,6 +1930,9 @@ describe('DateField.getDate', () => {
     it('should return empty string for invalid relative date', () => {
         expect(DateField.getDate('dummy')).toBe('');
         expect(DateField.getDate('+1m  ')).toBe('');
+        expect(DateField.getDate('year-start(dummy)')).toBe('');
+        expect(DateField.getDate('nth-of-year')).toBe('');
+        expect(DateField.getDate('nth-of-year(1, ddd)')).toBe('');
     });
 
     it('should return absolute date if first argument is a valid date', () => {

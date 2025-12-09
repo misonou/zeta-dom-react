@@ -65,6 +65,26 @@ export default class DateField implements FieldType<DateFieldProps, DateFieldSta
      * - Multiple number and unit pairs can be specified, e.g. `+1y1d` or `-1y1d` which is evaluated from left to right
      * (order matters because the months unit may result in different date due to various days in different month).
      * - Different signs can also be specified for each number and unit pair, e.g. `+1y-1d`.
+     *
+     * Also supports the following functions:
+     * - `year-start`
+     * - `year-end`
+     * - `month-start`
+     * - `month-end`
+     * - `week-start`
+     * - `week-end`
+     * - `nth-after(n, day)`
+     * - `nth-before(n, day)`
+     * - `nth-of-year(n, day)`
+     * - `nth-of-month(n, day)`
+     * - `nth-last-of-year(n, day)`
+     * - `nth-last-of-month(n, day)`
+     *
+     * where
+     * - `n` is an integer (1 means first, 2 means second etc) and
+     * - `day` is weekday in three letters e.g. `sun`.
+     *
+     * In addition all functions accept an extra argument, e.g. `month-start(-1m)` or `nth-of-month(1, sun, -1m)`.
      */
     static getDate(str: string, base?: string | number | Date): string;
 
