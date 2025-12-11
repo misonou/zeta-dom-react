@@ -85,8 +85,8 @@ definePrototype(DateField, {
     postHook: function (state, props, hook) {
         var setValue = state.setValue;
         var value = state.value;
-        var min = normalizeDate(props.min);
-        var max = normalizeDate(props.max);
+        var min = hook.memo(normalizeDate, [props.min]);
+        var max = hook.memo(normalizeDate, [props.max]);
         var formatDisplay = props.formatDisplay;
         var displayText = hook.memo(function () {
             return value && formatDisplay ? formatDisplay(toDateObject(value)) : value;
