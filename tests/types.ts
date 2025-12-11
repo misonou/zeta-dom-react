@@ -1,7 +1,7 @@
 import { expectTypeOf } from "expect-type";
 import { Dispatch, DispatchWithoutAction, SetStateAction } from "react";
 import { createDependency, Dependency, DependencyConsumer, DependencyProvider, DependencyProviderContext, useDependency, useEagerReducer, useEagerState, useEventTrigger, useRefInitCallback } from "../src/hooks";
-import { ChoiceField, ChoiceFieldProps, ChoiceFieldState, ChoiceItem, DateField, DateFieldState, FieldType, FormContext, FormFieldProps, FormFieldState, FormObject, FormValidateEvent, FormValidationChangeEvent, MultiChoiceField, MultiChoiceFieldProps, MultiChoiceFieldState, NumericField, NumericFieldState, TextField, TextFieldState, ToggleField, ToggleFieldState, ValidateResult, ValidationError, useFormContext, useFormField } from "../src/form";
+import { ChoiceField, ChoiceFieldProps, ChoiceFieldState, ChoiceItem, DateField, DateFieldState, FieldHookHelper, FieldType, FormContext, FormFieldProps, FormFieldState, FormObject, FormValidateEvent, FormValidationChangeEvent, MultiChoiceField, MultiChoiceFieldProps, MultiChoiceFieldState, NumericField, NumericFieldState, TextField, TextFieldState, ToggleField, ToggleFieldState, ValidateResult, ValidationError, useFormContext, useFormField } from "../src/form";
 import { DataView } from "../src/dataView";
 import React from "react";
 
@@ -185,6 +185,11 @@ expectTypeOf(formContext.setError('x', <ValidateResult>_)).toBeVoid();
 expectTypeOf(formContext.focus('x')).toEqualTypeOf<boolean>();
 expectTypeOf(formContext.element('x')).toEqualTypeOf<HTMLElement | undefined>();
 expectTypeOf(formContext.validate('x')).toEqualTypeOf<Promise<boolean>>();
+
+// FieldHookHelper
+
+expectTypeOf((<FieldHookHelper>_).memo(() => 1, [])).toEqualTypeOf<number>();
+expectTypeOf((<FieldHookHelper>_).memo((a, b, c) => expectTypeOf([a, b, c] as const).toEqualTypeOf<readonly [number, string, boolean]>(), [1, "2", true])).toEqualTypeOf<true>();
 
 // Value and specific members
 

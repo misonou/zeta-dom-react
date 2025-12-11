@@ -34,7 +34,7 @@ function createHookHelper(effects) {
     var states = [];
     var push = function (callback, deps) {
         var i = effects.i++;
-        states[i] = !deps || !states[i] || !equal(states[i][0], deps) ? [deps, callback()] : states[i];
+        states[i] = !deps || !states[i] || !equal(states[i][0], deps) ? [deps, callback.apply(null, deps)] : states[i];
         return states[i][1];
     };
     return {

@@ -134,9 +134,9 @@ export interface FieldTypeOptions {
 export interface FieldHookHelper {
     /**
      * Recompute the memoized value when one of the deps has changed.
-     * Similar to {@link React.useMemo}.
+     * Similar to {@link React.useMemo}, but callback is invoked with the dependency list as arguments.
      */
-    memo<T>(factory: () => T, deps: React.DependencyList): T;
+    memo<T extends readonly any[], V>(factory: (...args: T) => V, deps: [...T]): V;
     /**
      * Creates a stable callback.
      * @param callback Callback implementation.

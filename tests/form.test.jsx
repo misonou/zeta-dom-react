@@ -1181,7 +1181,7 @@ describe('useFormField', () => {
         class CustomField {
             postHook(state, props, hook) {
                 const { memoInput, callback } = props;
-                state.memoResult = hook.memo(() => memoInput * 2, [memoInput]);
+                state.memoResult = hook.memo(v => v * 2, [memoInput]);
                 state.callback = hook.callback(callback);
                 hook.effect(() => cb(memoInput), [memoInput]);
                 return state;
@@ -1220,7 +1220,7 @@ describe('useFormField', () => {
         class CustomField {
             postHook(state, props, hook) {
                 const { memoInput, callback } = props;
-                state.memoResult = hook.memo(() => memoInput * 2, [memoInput]);
+                state.memoResult = hook.memo(v => v * 2, [memoInput]);
                 state.callback = hook.callback(callback);
                 hook.effect(() => cb(memoInput), [memoInput]);
                 return state;
