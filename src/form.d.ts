@@ -2,7 +2,7 @@ export const FormContextProvider: React.Provider<FormContext>;
 export const Form: <T extends object>(props: FormProps<T>) => JSX.Element;
 
 export type ValidateResult = null | undefined | string | Stringifiable | ValidationError | ((props: FormFieldProps<any>) => string);
-export type ValidateCallback<T = any> = (value: T, name: string, form: FormContext) => ValidateResult | Promise<ValidateResult>;
+export type ValidateCallback<T = any> = (value: T, name: string, form: FormContext, meta: FieldMeta) => ValidateResult | Promise<ValidateResult>;
 export type FormatErrorCallback = (err: ValidationError, name: string | null, props: FormFieldProps & Zeta.Dictionary, form: FormContext | null) => string | undefined;
 
 type WithFallback<T, U> = [T] extends [never] ? U : T;
@@ -121,6 +121,16 @@ export interface HiddenFieldProps extends FormFieldProps<any> {
  */
 export const HiddenField: React.FC<HiddenFieldProps>;
 
+export interface FieldMeta {
+    /**
+     * Whether the field is currently empty.
+     *
+     * By default a field is empty if its associated value is `undefined`, `null`, the empty string or an empty array.
+     * This behavior can be overriden by {@link FieldType.isEmpty} and {@link FormFieldProps.isEmpty}.
+     */
+    readonly empty: boolean;
+}
+
 /**
  * Represent internal working of a custom field type.
  * @deprecated Custom field type is now implemented by writing a class implementing the {@link FieldType} inferface and pass it as the first argument to {@link useFormField} instead.
@@ -178,12 +188,19 @@ export interface FieldType<P extends FormFieldProps, S extends FormFieldState> {
      */
     normalizeValue?(value: any, props: P): FieldValueType<P>;
     /**
+     * Provides additional information about current field value for validation purpose.
+     * @param meta Default meta object.
+     * @param value Current field value.
+     * @param props Props passed to {@link useFormField}.
+     */
+    getMeta?(meta: FieldMeta, value: FieldValueType<P>, props: P): S['meta'];
+    /**
      * Applies additional logic and modification to field state.
      * @param state Untouched field state returned from hook.
      * @param props Props passed to {@link useFormField}.
      * @param hook A helper object that provides utitlies similar to React hooks.
      */
-    postHook(state: FormFieldState<FieldValueType<P>>, props: P, hook: FieldHookHelper): S;
+    postHook(state: FormFieldState<FieldValueType<P>, S['meta']>, props: P, hook: FieldHookHelper): S;
 }
 
 export interface FormFieldProps<T = any, V = T> {
@@ -264,7 +281,7 @@ export interface FormFieldProps<T = any, V = T> {
     formatError?: FormatErrorCallback;
 }
 
-export interface FormFieldState<T = any> {
+export interface FormFieldState<T = any, S = FieldMeta> {
     /**
      * Gets the parent form context if exists.
      */
@@ -293,6 +310,10 @@ export interface FormFieldState<T = any> {
      * Gets a version number that changes whenever value or nested values changes.
      */
     readonly version: number;
+    /**
+     * Gets supplementary detail about current state, for example, soft validation result on current value.
+     */
+    readonly meta: S;
     /**
      * Sets field value.
      */
@@ -335,6 +356,7 @@ export interface DataChangeEvent<T extends object = Zeta.Dictionary<any>> extend
 export interface FormValidateEvent<T extends object = Zeta.Dictionary<any>> extends Zeta.ZetaAsyncHandleableEvent<any, FormContext<T>> {
     readonly name: string;
     readonly value: any;
+    readonly meta: FieldMeta;
 }
 
 export interface FormValidationChangeEvent<T extends object = Zeta.Dictionary<any>> extends Zeta.ZetaEventBase<FormContext<T>> {

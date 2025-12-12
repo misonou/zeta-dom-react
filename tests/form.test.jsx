@@ -269,9 +269,9 @@ describe('useFormContext', () => {
         const cb = mockFn();
         const { form, wrapper, unmount } = createFormContext();
         const { result, rerender } = renderHook(({ barValue }) => [
-            useFormField({ name: 'foo', onValidate: cb }, 'foo'),
-            useFormField({ name: 'baz', onValidate: cb }, 'baz'),
-            useFormField({ name: 'bar', onValidate: cb, value: barValue, onChange: v => rerender({ barValue: v }) }, 'bar'),
+            useFormField({ name: 'foo', onValidate: cb }, ''),
+            useFormField({ name: 'baz', onValidate: cb }, ''),
+            useFormField({ name: 'bar', onValidate: cb, value: barValue, onChange: v => rerender({ barValue: v }) }, ''),
         ], {
             wrapper,
             initialProps: { barValue: 'bar' }
@@ -283,8 +283,8 @@ describe('useFormContext', () => {
             result.current[2].setValue('bar_new');
         });
         verifyCalls(cb, [
-            ['foo_new', 'foo', form],
-            ['bar_new', 'bar', form],
+            ['foo_new', 'foo', form, { empty: false }],
+            ['bar_new', 'bar', form, { empty: false }],
         ]);
         unmount();
     });
@@ -293,8 +293,8 @@ describe('useFormContext', () => {
         const cb = mockFn();
         const { form, wrapper, unmount } = createFormContext({}, false);
         renderHook(() => [
-            useFormField({ name: 'foo', onValidate: cb, validateOnChange: true }, 'foo'),
-            useFormField({ name: 'baz', onValidate: cb }, 'baz'),
+            useFormField({ name: 'foo', onValidate: cb, validateOnChange: true }, ''),
+            useFormField({ name: 'baz', onValidate: cb }, ''),
         ], { wrapper });
 
         expect(form.validateOnChange).toBe(false);
@@ -302,7 +302,7 @@ describe('useFormContext', () => {
             form.data.foo = 'bar';
         });
         verifyCalls(cb, [
-            ['bar', 'foo', form],
+            ['bar', 'foo', form, { empty: false }],
         ]);
         unmount();
     });
@@ -517,7 +517,7 @@ describe('useFormField', () => {
         });
         expect(result.current.error).toBe('error');
         verifyCalls(onValidate, [
-            ['', '', null]
+            ['', '', null, { empty: true }]
         ]);
     });
 
@@ -531,7 +531,7 @@ describe('useFormField', () => {
         });
         expect(result.current.error).toBe('error');
         verifyCalls(onValidate, [
-            ['', 'foo', form]
+            ['', 'foo', form, { empty: true }]
         ]);
     });
 
@@ -1155,13 +1155,17 @@ describe('useFormField', () => {
             normalizeValue(value) {
                 return value;
             }
+            getMeta(meta) {
+                return meta;
+            }
             postHook(state) {
                 return state;
             }
         }
-        const [isEmpty, normalizeValue, postHook] = [
+        const [isEmpty, normalizeValue, getMeta, postHook] = [
             jest.spyOn(CustomField.prototype, 'isEmpty'),
             jest.spyOn(CustomField.prototype, 'normalizeValue'),
+            jest.spyOn(CustomField.prototype, 'getMeta'),
             jest.spyOn(CustomField.prototype, 'postHook')
         ];
         const { unmount, wrapper } = createFormContext();
@@ -1173,6 +1177,40 @@ describe('useFormField', () => {
         expect(normalizeValue.mock.instances[0]).toBeInstanceOf(CustomField);
         expect(postHook).toBeCalled();
         expect(postHook.mock.instances[0]).toBeInstanceOf(CustomField);
+        expect(getMeta).toBeCalled();
+        expect(getMeta.mock.instances[0]).toBeInstanceOf(CustomField);
+        unmount();
+    });
+
+    it('should recompute meta object on render', () => {
+        const getMeta = mockFn().mockImplementation((meta, value, props) => ({ ...meta, custom: value === props.matchCustom }));
+        class CustomField {
+            getMeta = getMeta;
+            postHook(state) {
+                return state;
+            }
+        }
+        const { result, rerender, unmount } = renderHook((props) => useFormField(CustomField, props, ''), {
+            initialProps: { matchCustom: 'y' }
+        });
+        verifyCalls(getMeta, [
+            [{ empty: true }, '', { matchCustom: 'y' }]
+        ]);
+        expect(result.current.meta).toEqual({ empty: true, custom: false });
+
+        getMeta.mockClear();
+        act(() => result.current.setValue('x'));
+        expect(result.current.meta).toEqual({ empty: false, custom: false });
+        verifyCalls(getMeta, [
+            [{ empty: false }, 'x', { matchCustom: 'y' }]
+        ]);
+
+        getMeta.mockClear();
+        rerender({ matchCustom: 'x' });
+        expect(result.current.meta).toEqual({ empty: false, custom: true });
+        verifyCalls(getMeta, [
+            [{ empty: false }, 'x', { matchCustom: 'x' }]
+        ]);
         unmount();
     });
 
@@ -2698,8 +2736,8 @@ describe('FormContext#validate', () => {
 
         await act(async () => void await form.validate());
         verifyCalls(cb, [
-            ['foo_value', 'foo', form],
-            ['bar_value', 'bar', form],
+            ['foo_value', 'foo', form, { empty: false }],
+            ['bar_value', 'bar', form, { empty: false }],
         ]);
         unmount();
     });
@@ -2714,7 +2752,7 @@ describe('FormContext#validate', () => {
 
         await act(async () => void await form.validate());
         verifyCalls(cb, [
-            ['foo_value', 'foo', form],
+            ['foo_value', 'foo', form, { empty: false }],
         ]);
         unmount();
     });
@@ -2728,7 +2766,7 @@ describe('FormContext#validate', () => {
         ], { wrapper });
 
         await act(async () => void await form.validate('foo'));
-        verifyCalls(cb, [['foo_value', 'foo', form]]);
+        verifyCalls(cb, [['foo_value', 'foo', form, { empty: false }]]);
         unmount();
     });
 
@@ -2748,8 +2786,8 @@ describe('FormContext#validate', () => {
 
         await act(async () => void await form.validate('inner'));
         verifyCalls(cb, [
-            ['foo_value', 'inner.foo', form],
-            ['bar_value', 'inner.bar', form],
+            ['foo_value', 'inner.foo', form, { empty: false }],
+            ['bar_value', 'inner.bar', form, { empty: false }],
         ]);
         unmount();
     });
@@ -2899,8 +2937,8 @@ describe('FormContext#validate', () => {
         form.on('validate', cb);
         await act(async () => void await form.validate());
         verifyCalls(cb, [
-            [expect.objectContaining({ type: 'validate', name: 'foo', value: 'foo_value' }), form],
-            [expect.objectContaining({ type: 'validate', name: 'bar', value: 'bar_value' }), form],
+            [expect.objectContaining({ type: 'validate', name: 'foo', value: 'foo_value', meta: { empty: false } }), form],
+            [expect.objectContaining({ type: 'validate', name: 'bar', value: 'bar_value', meta: { empty: false } }), form],
         ])
         unmount();
     });
@@ -2992,8 +3030,8 @@ describe('FormContext#validate', () => {
             [expect.objectContaining({ type: 'validationChange', name: 'bar', isValid: false, message: '2' }), form]
         ]);
         verifyCalls(cbBar, [
-            ['1', 'bar', form],
-            ['2', 'bar', form],
+            ['1', 'bar', form, { empty: false }],
+            ['2', 'bar', form, { empty: false }],
         ]);
         unmount();
     });
@@ -3481,7 +3519,7 @@ describe('FormObject component', () => {
             form.data.foo.inner = 'bar';
         });
         verifyCalls(cb, [
-            [expect.sameObject(form.data.foo), 'foo', form],
+            [expect.sameObject(form.data.foo), 'foo', form, { empty: false }],
         ]);
         unmount();
     });
@@ -3533,7 +3571,7 @@ describe('FormObject component', () => {
             form.data.foo.bar = 2;
         });
         verifyCalls(validate, [
-            [expect.sameObject(form.data.foo), 'foo', form],
+            [expect.sameObject(form.data.foo), 'foo', form, { empty: false }],
         ]);
         unmountForm();
         unmount();
@@ -3675,7 +3713,7 @@ describe('FormArray component', () => {
             form.data.foo.inner = 'bar';
         });
         verifyCalls(cb, [
-            [expect.sameObject(form.data.foo), 'foo', form],
+            [expect.sameObject(form.data.foo), 'foo', form, { empty: true }],
         ]);
         unmount();
     });
@@ -3815,7 +3853,7 @@ describe('combineValidators', () => {
         const { result } = renderHook(() => useFormField({ name: 'foo', onValidate: combineValidators(cb) }, ''), { wrapper });
 
         await result.current.validate();
-        verifyCalls(cb, [['', 'foo', expect.sameObject(form)]]);
+        verifyCalls(cb, [['', 'foo', expect.sameObject(form), { empty: true }]]);
     });
 
     it('should execute validators sequentially', async () => {

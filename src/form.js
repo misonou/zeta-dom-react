@@ -1,5 +1,5 @@
 import { createContext, createElement, forwardRef, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { always, any, combineFn, createPrivateStore, define, defineGetterProperty, defineObservableProperty, definePrototype, each, equal, exclude, extend, grep, hasOwnProperty, is, isArray, isFunction, isPlainObject, isUndefinedOrNull, keys, makeArray, map, mapGet, mapRemove, noop, pick, pipe, randomId, resolve, resolveAll, sameValueZero, setImmediate, setImmediateOnce, single, throwNotFunction, throws, watch } from "zeta-dom/util";
+import { always, any, combineFn, createPrivateStore, define, defineGetterProperty, defineObservableProperty, definePrototype, each, equal, exclude, extend, freeze, grep, hasOwnProperty, is, isArray, isFunction, isPlainObject, isUndefinedOrNull, keys, makeArray, map, mapGet, mapRemove, noop, pick, pipe, randomId, resolve, resolveAll, sameValueZero, setImmediate, setImmediateOnce, single, throwNotFunction, throws, watch } from "zeta-dom/util";
 import { ZetaEventContainer } from "zeta-dom/events";
 import dom, { focus } from "zeta-dom/dom";
 import { preventLeave } from "zeta-dom/domLock";
@@ -153,6 +153,7 @@ function emitDataChangeEvent() {
 function handleDataChange(field) {
     if (!field.controlled || field.committing) {
         field.version++;
+        field.meta = null;
         changedFields.add(field);
     } else {
         field.onChange(field.value);
@@ -298,6 +299,12 @@ function createFieldState(initialValue) {
         validate: function () {
             return validateFields(field.form, [field]);
         },
+        getMeta: function (value) {
+            var meta = {
+                empty: field.isEmpty(value)
+            };
+            return freeze((field.preset.getMeta || pipe).call(field.preset, meta, value, field.props));
+        },
         isEmpty: function (value) {
             return (field.props.isEmpty || (field.preset.isEmpty || isEmpty).bind(field.preset))(value);
         },
@@ -371,11 +378,12 @@ function validateFields(form, fields) {
     var validate = function (field) {
         var name = field.path;
         var value = field.value;
-        var result = emitter.emit('validate', form, { name, value });
+        var meta = field.meta || (field.meta = field.getMeta(value));
+        var result = emitter.emit('validate', form, { name, value, meta });
         if (result || !field.props) {
             return result;
         }
-        return (field.props.onValidate || noop)(value, name, form) || (hasImplicitError(field) && new ValidationError('required', 'Required'));
+        return (field.props.onValidate || noop)(value, name, form, meta) || (hasImplicitError(field) && new ValidationError('required', 'Required'));
     };
     var promises = fields.map(function (v) {
         var locks = v.locks || (v.locks = []);
@@ -532,6 +540,7 @@ definePrototype(FormContext, {
             } else if (prop.exists) {
                 v.value = prop.value;
                 v.version = 0;
+                v.meta = null;
             }
             v.error = null;
         });
@@ -663,6 +672,7 @@ export function useFormField(type, props, defaultValue, prop) {
     }
     field.pending = false;
     field.value = dict[name];
+    field.meta = field.getMeta(field.value);
     if (!existing) {
         field.version = 0;
     }
@@ -683,6 +693,7 @@ export function useFormField(type, props, defaultValue, prop) {
             value: field.value,
             error: String(field.error),
             version: field.version,
+            meta: field.meta,
             setValue: field.setValue,
             setError: field.setError,
             validate: field.validate,
@@ -695,10 +706,10 @@ export function useFormField(type, props, defaultValue, prop) {
 
 export function combineValidators() {
     var validators = grep(makeArray(arguments), isFunction);
-    return function (value, name, form) {
+    return function (value, name, form, meta) {
         return validators.reduce(function (prev, next) {
             return prev.then(function (result) {
-                return result || next(value, name, form);
+                return result || next(value, name, form, meta);
             });
         }, resolve());
     };

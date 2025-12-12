@@ -1,7 +1,7 @@
 import { expectTypeOf } from "expect-type";
 import { Dispatch, DispatchWithoutAction, SetStateAction } from "react";
 import { createDependency, Dependency, DependencyConsumer, DependencyProvider, DependencyProviderContext, useDependency, useEagerReducer, useEagerState, useEventTrigger, useRefInitCallback } from "../src/hooks";
-import { ChoiceField, ChoiceFieldProps, ChoiceFieldState, ChoiceItem, DateField, DateFieldState, FieldHookHelper, FieldType, FormContext, FormFieldProps, FormFieldState, FormObject, FormValidateEvent, FormValidationChangeEvent, MultiChoiceField, MultiChoiceFieldProps, MultiChoiceFieldState, NumericField, NumericFieldState, TextField, TextFieldState, ToggleField, ToggleFieldState, ValidateResult, ValidationError, useFormContext, useFormField } from "../src/form";
+import { ChoiceField, ChoiceFieldProps, ChoiceFieldState, ChoiceItem, DateField, DateFieldState, FieldHookHelper, FieldMeta, FieldType, FormContext, FormFieldProps, FormFieldState, FormObject, FormValidateEvent, FormValidationChangeEvent, MultiChoiceField, MultiChoiceFieldProps, MultiChoiceFieldState, NumericField, NumericFieldState, TextField, TextFieldState, ToggleField, ToggleFieldState, ValidateResult, ValidationError, useFormContext, useFormField } from "../src/form";
 import { DataView } from "../src/dataView";
 import React from "react";
 
@@ -136,9 +136,13 @@ interface DropdownItem<T> {
 interface DropdownProps<T> extends ChoiceFieldProps<DropdownItem<T>> { }
 interface MultiDropdownProps<T> extends MultiChoiceFieldProps<DropdownItem<T>> { }
 
-interface CustomFieldState extends FormFieldState<string[]> {
+interface CustomFieldMeta extends FieldMeta {
+    custom: boolean;
+}
+
+interface CustomFieldState extends FormFieldState<string[], CustomFieldMeta> {
     customState: any;
-};
+}
 
 declare class CustomField implements FieldType<FormFieldProps<string[]>, CustomFieldState> {
     defaultValue: string[];
@@ -292,6 +296,7 @@ expectTypeOf(useFormField(NumericField, {}).setValue((_1: number) => 0)).toBeVoi
 expectTypeOf(useFormField(CustomField, {})).toEqualTypeOf<CustomFieldState>();
 expectTypeOf(useFormField(CustomField, {}, ['a'])).toEqualTypeOf<CustomFieldState>();
 expectTypeOf(useFormField(CustomField, {}).value).toEqualTypeOf<string[]>();
+expectTypeOf(useFormField(CustomField, {}).meta).toEqualTypeOf<CustomFieldMeta>();
 expectTypeOf(useFormField(CustomField, {}).setValue([''])).toBeVoid();
 expectTypeOf(useFormField(CustomField, {}).setValue((_1: string[]) => [''])).toBeVoid();
 
