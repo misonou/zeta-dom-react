@@ -115,7 +115,17 @@ function getPath(form, obj, name) {
     return resolvePathInfo(form, path)[name ? 'parent' : 'value'] === obj ? path.join('.') : '';
 }
 
+function getAllAncestorPaths(props) {
+    for (var i in props) {
+        while (i = i.replace(/(^|\.)[^.]+$/, '')) {
+            props[i] = true;
+        }
+    }
+    return keys(props);
+}
+
 function emitDataChangeEvent() {
+    var lastChangedFields = makeArray(changedFields);
     each(changedFields, function (i, v) {
         v.onChange(v.value, true);
     });
@@ -123,16 +133,13 @@ function emitDataChangeEvent() {
     each(changedProps, function (form) {
         var state = _(form);
         var props = mapRemove(changedProps, form);
-        for (var i in props) {
-            while (i = i.replace(/(^|\.)[^.]+$/, '')) {
-                props[i] = true;
-            }
-        }
         var element = state.ref || dom.root;
-        var updatedFields = grep(state.fields, function (v) {
-            return props[v.path];
+        var updatedFields = grep(lastChangedFields, function (v) {
+            return (v.form || rootForm) === form;
         });
-        emitter.emit('dataChange', form, keys(props));
+        if (form !== rootForm) {
+            emitter.emit('dataChange', form, getAllAncestorPaths(props));
+        }
         validateFields(form, grep(updatedFields, function (v) {
             return v.version && (v.props.validateOnChange + 1 || form.validateOnChange + 1) > 1;
         }));
@@ -177,9 +184,7 @@ function createDataObject(context, initialData) {
                     handleDataChange(state.fields[key]);
                 }
             }
-            if (context !== rootForm) {
-                mapGet(changedProps, context, Object)[path] = true;
-            }
+            mapGet(changedProps, context, Object)[path] = true;
             setImmediateOnce(emitDataChangeEvent);
         }
     };
@@ -375,6 +380,9 @@ function useFormFieldInternal(state, field, preset, props, controlled, dict, nam
 }
 
 function validateFields(form, fields) {
+    if (form === rootForm) {
+        form = null;
+    }
     var validate = function (field) {
         var name = field.path;
         var value = field.value;

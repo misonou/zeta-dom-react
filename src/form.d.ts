@@ -2,7 +2,7 @@ export const FormContextProvider: React.Provider<FormContext>;
 export const Form: <T extends object>(props: FormProps<T>) => JSX.Element;
 
 export type ValidateResult = null | undefined | string | Stringifiable | ValidationError | ((props: FormFieldProps<any>) => string);
-export type ValidateCallback<T = any> = (value: T, name: string, form: FormContext, meta: FieldMeta) => ValidateResult | Promise<ValidateResult>;
+export type ValidateCallback<T = any> = (value: T, name: string, form: FormContext | null, meta: FieldMeta) => ValidateResult | Promise<ValidateResult>;
 export type FormatErrorCallback = (err: ValidationError, name: string | null, props: FormFieldProps & Zeta.Dictionary, form: FormContext | null) => string | undefined;
 
 type WithFallback<T, U> = [T] extends [never] ? U : T;

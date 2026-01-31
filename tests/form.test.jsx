@@ -535,6 +535,22 @@ describe('useFormField', () => {
         ]);
     });
 
+    it('should trigger validation for field without form context', async () => {
+        const onValidate = mockFn();
+        const { result } = renderHook(() => useFormField({ onValidate }, ''), {});
+        await act(async () => result.current.setValue('foo'));
+        verifyCalls(onValidate, [
+            ['foo', '', null, { empty: false }]
+        ]);
+    });
+
+    it('should not trigger validation for field without form context when validateOnChange is set to false', async () => {
+        const onValidate = mockFn();
+        const { result } = renderHook(() => useFormField({ onValidate, validateOnChange: false }, ''), {});
+        await act(async () => result.current.setValue('foo'));
+        expect(onValidate).not.toBeCalled();
+    });
+
     it('should update error with error message from ValidationError object by default', () => {
         const { result } = renderHook(() => useFormField({}, ''));
         expect(result.current.error).toBe('');
@@ -3584,18 +3600,18 @@ describe('FormObject component', () => {
         unmount();
     });
 
-    it('should not trigger validation when there is no parent form context', async () => {
+    it('should trigger validation when there is no parent form context', async () => {
         const onChange = mockFn();
         const onValidate = mockFn();
         const wrapper = ({ children }) => (
-            <FormObject value={{ foo: '1' }} onChange={onChange} onValidate={onValidate} validateOnChange>{children}</FormObject>
+            <FormObject value={{ foo: '1' }} onChange={onChange} onValidate={onValidate}>{children}</FormObject>
         );
         const { result, unmount } = renderHook(() => useFormField(TextField, { name: 'foo' }, ''), { wrapper })
         expect(result.current.value).toBe('1');
 
         await act(() => result.current.setValue('2'));
-        expect(onChange).toBeCalledTimes(1)
-        expect(onValidate).not.toBeCalled();
+        expect(onChange).toBeCalledTimes(1);
+        expect(onValidate).toBeCalledTimes(1);
         unmount();
     });
 
@@ -3778,11 +3794,11 @@ describe('FormArray component', () => {
         unmount();
     });
 
-    it('should not trigger validation when there is no parent form context', async () => {
+    it('should trigger validation when there is no parent form context', async () => {
         const onChange = mockFn();
         const onValidate = mockFn();
         const wrapper = ({ children }) => (
-            <FormArray value={[{ foo: '1' }]} onChange={onChange}>
+            <FormArray value={[{ foo: '1' }]} onChange={onChange} onValidate={onValidate}>
                 {v => v.map((v) => <FormObject value={v}>{children}</FormObject>)}
             </FormArray>
         );
@@ -3790,8 +3806,8 @@ describe('FormArray component', () => {
         expect(result.current.value).toBe('1');
 
         await act(() => result.current.setValue('2'));
-        expect(onChange).toBeCalledTimes(1)
-        expect(onValidate).not.toBeCalled();
+        expect(onChange).toBeCalledTimes(1);
+        expect(onValidate).toBeCalledTimes(1);
         unmount();
     });
 
