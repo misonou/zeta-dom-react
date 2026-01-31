@@ -3,6 +3,18 @@ import { combineFn, each, extend, isFunction, isPlainObject, kv, makeArray, mapG
 import dom from "zeta-dom/dom";
 
 const boundEvents = new WeakMap();
+const partialCallbacks = new WeakMap();
+
+function setPartialState(setState, key, value) {
+    setState(function (current) {
+        if (typeof key === 'string') {
+            key = kv(key, isFunction(value) ? value(current[key], current) : value);
+        }
+        return single(key, function (v, i) {
+            return !sameValue(v, current[i]) && extend({}, current, key);
+        }) || current;
+    });
+}
 
 export function domEventRef(event, handler) {
     var arr;
@@ -60,17 +72,10 @@ export function innerTextOrHTML(text) {
 }
 
 export function partial(setState, key) {
-    var fn = function (key, value) {
-        setState(function (current) {
-            if (typeof key === 'string') {
-                key = kv(key, isFunction(value) ? value(current[key], current) : value);
-            }
-            return single(key, function (v, i) {
-                return !sameValue(v, current[i]) && extend({}, current, key);
-            }) || current;
-        });
-    };
-    return key ? fn.bind(0, key) : fn;
+    var map = mapGet(partialCallbacks, setState, Map);
+    return mapGet(map, key, function () {
+        return key !== undefined ? setPartialState.bind(0, setState, key) : setPartialState.bind(0, setState);
+    });
 }
 
 export function combineRef() {

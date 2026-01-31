@@ -301,6 +301,20 @@ describe('partial', () => {
         act(() => partial(result.current[1])('zero', -0));
         expect(result.all.length).toBe(2);
     });
+
+    it('should return a stable callback', () => {
+        const { result } = renderHook(() => useState({ ...partialInitialState }));
+        const cb1 = partial(result.current[1]);
+        const cb2 = partial(result.current[1]);
+        expect(cb1).toBe(cb2);
+    });
+
+    it('should return a stable callback for a particular property', () => {
+        const { result } = renderHook(() => useState({ ...partialInitialState }));
+        const cb1 = partial(result.current[1], 'prop1');
+        const cb2 = partial(result.current[1], 'prop1');
+        expect(cb1).toBe(cb2);
+    });
 });
 
 describe('toRefCallback', () => {
