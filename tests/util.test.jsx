@@ -292,6 +292,15 @@ describe('partial', () => {
         act(() => partial(result.current[1], 'prop1')(() => partialInitialState.prop1));
         expect(result.all.length).toBe(1);
     });
+
+    it('should perform same value comparison', () => {
+        const { result } = renderHook(() => useState({ NaN: NaN, zero: 0 }));
+        act(() => partial(result.current[1])('NaN', NaN));
+        expect(result.all.length).toBe(1);
+
+        act(() => partial(result.current[1])('zero', -0));
+        expect(result.all.length).toBe(2);
+    });
 });
 
 describe('toRefCallback', () => {

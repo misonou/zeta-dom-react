@@ -1,5 +1,5 @@
 import { createElement, Fragment, lazy, Suspense } from "react";
-import { combineFn, each, extend, isFunction, isPlainObject, kv, makeArray, mapGet, noop, single, throwNotFunction } from "zeta-dom/util";
+import { combineFn, each, extend, isFunction, isPlainObject, kv, makeArray, mapGet, noop, sameValue, single, throwNotFunction } from "zeta-dom/util";
 import dom from "zeta-dom/dom";
 
 const boundEvents = new WeakMap();
@@ -66,7 +66,7 @@ export function partial(setState, key) {
                 key = kv(key, isFunction(value) ? value(current[key], current) : value);
             }
             return single(key, function (v, i) {
-                return v !== current[i] && extend({}, current, key);
+                return !sameValue(v, current[i]) && extend({}, current, key);
             }) || current;
         });
     };
