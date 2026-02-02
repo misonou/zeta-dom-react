@@ -478,6 +478,37 @@ describe('useFormField', () => {
         unmount();
     });
 
+    it('should return empty path property for unbounded field', () => {
+        const tryRender = (wrapper) => {
+            const { result, unmount } = renderHook(() => useFormField({}, ''), { wrapper });
+            expect(result.current.path).toBe('');
+            unmount();
+        };
+
+        const { form, unmount } = createFormContext();
+        expect.assertions(3);
+        tryRender(({ children }) => children);
+        tryRender(({ children }) => <FormObject name="">{children}</FormObject>);
+        tryRender(({ children }) => <FormContextProvider value={form}>{children}</FormContextProvider>);
+        unmount();
+    });
+
+    it('should return closest form context or null', () => {
+        const tryRender = (wrapper, expected = null) => {
+            const { result, unmount } = renderHook(() => useFormField({}, ''), { wrapper });
+            expect(result.current.form).toBe(expected);
+            unmount();
+        };
+
+        const { form, unmount } = createFormContext();
+        expect.assertions(4);
+        tryRender(({ children }) => children);
+        tryRender(({ children }) => <FormObject name="">{children}</FormObject>);
+        tryRender(({ children }) => <FormObject value={form.data}>{children}</FormObject>, form);
+        tryRender(({ children }) => <FormContextProvider value={form}>{children}</FormContextProvider>, form);
+        unmount();
+    });
+
     it('should set initial error to empty string', () => {
         const { result } = renderHook(() => useFormField({}, ''));
         expect(result.current.error).toBe('');

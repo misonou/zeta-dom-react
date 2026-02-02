@@ -285,7 +285,7 @@ export interface FormFieldState<T = any, S = FieldMeta> {
     /**
      * Gets the parent form context if exists.
      */
-    readonly form: FormContext | undefined;
+    readonly form: FormContext | null;
     /**
      * Gets a unique key identifying the field.
      * If there is no parent form context, an empty string will be returned.

@@ -14,6 +14,7 @@ const instances = new WeakMap();
 const changedProps = new Map();
 const changedFields = new Set();
 const rootForm = new FormContext({}, {}, { get: noop });
+const rootContext = _(rootForm.data);
 const fieldTypes = {
     text: TextField,
     toggle: ToggleField,
@@ -21,7 +22,7 @@ const fieldTypes = {
 };
 
 /** @type {React.Context<any>} */
-const FormObjectContext = createContext(null);
+const FormObjectContext = createContext(rootContext);
 const FormObjectProvider = FormObjectContext.Provider;
 
 export function ValidationError(kind, message, args) {
@@ -257,6 +258,8 @@ function createDataObject(context, initialData) {
     _(proxy, {
         state,
         uniqueId,
+        form: context,
+        dict: proxy,
         set: setValue,
         delete: deleteValue
     });
@@ -645,7 +648,7 @@ export function useFormField(type, props, defaultValue, prop) {
         type = '';
     }
     const uniqueId = useState(randomId)[0];
-    const context = useContext(FormObjectContext);
+    const parentContext = useContext(FormObjectContext);
     const effects = useState([])[0];
     const hook = useMemo(function () {
         return type ? [new type(), createHookHelper(effects)] : [{}];
@@ -653,26 +656,24 @@ export function useFormField(type, props, defaultValue, prop) {
     const preset = hook[0];
     prop = prop || preset.valueProperty || 'value';
 
-    var dict = context;
-    var name = props.name;
-    if (!dict || !name) {
-        dict = rootForm.data;
-        name = uniqueId;
-    }
+    const context = props.name ? parentContext : rootContext;
+    const name = context === rootContext ? uniqueId : props.name;
+    const dict = context.dict;
     const existing = name in dict;
     const controlled = prop in props;
     const field = useState(function () {
         return createFieldState(controlled ? props[prop] : defaultValue !== undefined ? defaultValue : preset.defaultValue);
     })[0];
     const previousKey = field.key;
-    useFormFieldInternal(_(dict).state, field, preset, props, controlled, dict, name);
+    useFormFieldInternal(context.state, field, preset, props, controlled, dict, name);
 
+    var form = field.form || parentContext.form;
     var value = controlled ? props[prop] : existing ? dict[name] : field.initialValue;
     if (previousKey !== field.key) {
         value = field.normalizeValue(value);
     }
     if (!existing && field.isEmpty(value)) {
-        _(dict).set(name, value);
+        context.set(name, value);
     } else {
         field.committing = true;
         dict[name] = value;
@@ -684,6 +685,7 @@ export function useFormField(type, props, defaultValue, prop) {
     if (!existing) {
         field.version = 0;
     }
+    (_(field.value) || {}).form = form;
     effects.i = 0;
     useEffect(function () {
         combineFn(effects.splice(0))();
@@ -695,7 +697,7 @@ export function useFormField(type, props, defaultValue, prop) {
     try {
         field.updating = true;
         return (preset.postHook || pipe).call(preset, {
-            form: context && _(context).state.form,
+            form: form === rootForm ? null : form,
             key: field.form ? field.key : '',
             path: field.path,
             value: field.value,
@@ -748,12 +750,12 @@ export const Form = forwardRef(function (props, ref) {
         (props.onReset || noop).call(this, e);
     };
     extend(form, pick(props, ['enterKeyHint', 'preventLeave', 'formatError']));
-    return createElement(FormObjectProvider, { value: form.data },
+    return createElement(FormObjectProvider, { value: _(form.data) },
         createElement('form', extend(exclude(props, ['context', 'enterKeyHint', 'preventLeave', 'formatError']), { ref: combineRef(ref, form.ref), onSubmit, onReset })));
 });
 
 export function FormContextProvider(props) {
-    return createElement(FormObjectProvider, { value: props.value.data }, props.children);
+    return createElement(FormObjectProvider, { value: _(props.value.data) }, props.children);
 }
 
 export function FormArray(props) {
@@ -762,26 +764,26 @@ export function FormArray(props) {
 
 export function FormObject(props) {
     var uniqueId = useState(randomId)[0];
-    var name = props.name;
-    var dict = useContext(FormObjectContext);
-    if (!dict) {
-        dict = rootForm.data;
-        name = uniqueId;
-    }
+    var context = useContext(FormObjectContext);
     var fieldRef = useRef();
+    var dict = context.dict;
+    var name = context === rootContext ? uniqueId : props.name;
     var value = props.value;
-    if ((_(value) || '').state) {
+    var childContext = _(value);
+    if (childContext && childContext.state) {
         dict = value;
         name = '';
     } else if (name) {
         value = 'value' in props ? value : isPlainObject(dict[name]) || isArray(dict[name]) || props.defaultValue || {};
-        value = _(dict).set(name, value);
+        value = context.set(name, value);
+        childContext = _(value);
+        childContext.form = context.form;
     } else {
         throws('Value must be a data object or array');
     }
     // field state registered by useFormField has a higher priority
     // create own field state only when needed
-    var state = _(dict).state;
+    var state = childContext.state;
     var field = state.fields[state.paths[keyFor(value)]];
     if (!field || field.controlled === 0) {
         field = fieldRef.current || (fieldRef.current = createFieldState(value));
@@ -795,7 +797,7 @@ export function FormObject(props) {
     if (isFunction(children)) {
         children = children(value);
     }
-    return createElement(FormObjectProvider, { value }, children);
+    return createElement(FormObjectProvider, { value: childContext }, children);
 }
 
 export function HiddenField(props) {
