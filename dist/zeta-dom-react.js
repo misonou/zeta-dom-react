@@ -1,4 +1,4 @@
-/*! zeta-dom-react v0.5.17 | (c) misonou | https://misonou.github.io */
+/*! zeta-dom-react v0.6.0 | (c) misonou | https://misonou.github.io */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory(require("zeta-dom"), require("react"), require("react-dom"));
@@ -646,10 +646,15 @@ function createDependency(defaultValue) {
     Provider: Provider,
     Consumer: Consumer
   };
-  var values = _(dependency, extend([], dependency));
-  defineObservableProperty(values, 'current', defaultValue, function () {
-    return values[0] ? values[0].value : defaultValue;
-  });
+  var values = _(dependency, extend([], dependency, {
+    current: defaultValue,
+    update: function update() {
+      var matched = any(values, function (v) {
+        return !isUndefinedOrNull(v.value);
+      });
+      values.current = matched ? matched.value : defaultValue;
+    }
+  }));
   _(Provider, values);
   _(Consumer, values);
   return freeze(dependency);
@@ -662,14 +667,11 @@ function useDependency(dependency, value, deps) {
       return values.push(obj) && obj;
     }, [values], function () {
       arrRemove(values, wrapper);
-      values.current = null;
+      values.update();
     });
     useMemo(function () {
-      value = isFunction(value) ? value() : value;
-      if (wrapper.value !== value || !util_hasOwnProperty(wrapper, 'value')) {
-        defineOwnProperty(wrapper, 'value', value, true);
-        values.current = null;
-      }
+      defineOwnProperty(wrapper, 'value', isFunction(value) ? value() : value, true);
+      values.update();
     }, [wrapper].concat(deps || [value]));
     return wrapper;
   } else {
@@ -929,6 +931,17 @@ function useDataView(persistKey, filters, sortBy, sortOrder, pageSize) {
 
 
 var boundEvents = new WeakMap();
+var partialCallbacks = new WeakMap();
+function setPartialState(setState, key, value) {
+  setState(function (current) {
+    if (typeof key === 'string') {
+      key = kv(key, isFunction(value) ? value(current[key], current) : value);
+    }
+    return single(key, function (v, i) {
+      return !sameValue(v, current[i]) && extend({}, current, key);
+    }) || current;
+  });
+}
 function domEventRef(event, handler) {
   var arr;
   handler = isPlainObject(event) || kv(event, handler);
@@ -988,17 +1001,10 @@ function innerTextOrHTML(text) {
   };
 }
 function partial(setState, key) {
-  var fn = function fn(key, value) {
-    setState(function (current) {
-      if (typeof key === 'string') {
-        key = kv(key, isFunction(value) ? value(current[key], current) : value);
-      }
-      return single(key, function (v, i) {
-        return v !== current[i] && extend({}, current, key);
-      }) || current;
-    });
-  };
-  return key ? fn.bind(0, key) : fn;
+  var map = mapGet(partialCallbacks, setState, Map);
+  return mapGet(map, key, function () {
+    return key !== undefined ? setPartialState.bind(0, setState, key) : setPartialState.bind(0, setState);
+  });
 }
 function combineRef() {
   return combineFn(makeArray(arguments).map(toRefCallback));
@@ -1041,6 +1047,7 @@ util_define(ChoiceField, {
 definePrototype(ChoiceField, {
   defaultValue: '',
   postHook: function postHook(state, props, hook) {
+    var allowCustomValues = !props.items;
     var items = hook.memo(function () {
       return normalizeChoiceItems(props.items);
     }, [props.items]);
@@ -1049,10 +1056,10 @@ definePrototype(ChoiceField, {
       return v.value === state.value;
     });
     hook.memo(function () {
-      if (selectedIndex < 0) {
+      if (!allowCustomValues && selectedIndex < 0) {
         state.setValue(allowUnselect ? '' : items[0].value);
       }
-    }, [state.version, selectedIndex, allowUnselect]);
+    }, [state.version, selectedIndex, allowUnselect, allowCustomValues]);
     return extend(state, {
       items: items,
       selectedIndex: selectedIndex,
@@ -1063,15 +1070,76 @@ definePrototype(ChoiceField, {
 ;// CONCATENATED MODULE: ./src/fields/DateField.js
 
 var re = /^(\d{4}|[+-]\d{6})-\d{2}-\d{2}$/;
-
-// method mapping for relative date units
-var units = {
-  y: ['getFullYear', 'setFullYear'],
-  m: ['getMonth', 'setMonth'],
-  d: ['getDate', 'setDate']
+var fn = {
+  y: function y(d, n) {
+    adjustMonth(d, d.getDate(), d.setFullYear(d.getFullYear() + n));
+  },
+  m: function m(d, n) {
+    adjustMonth(d, d.getDate(), d.setMonth(d.getMonth() + n));
+  },
+  d: function d(_d, n) {
+    _d.setDate(_d.getDate() + n);
+  },
+  w: function w(d, n) {
+    fn.d(d, n * 7);
+  }
 };
-units.w = units.d;
-function parseRelativeDate(str, date) {
+var fn1 = {
+  ys: function ys(d) {
+    d.setMonth(0, 1);
+  },
+  ye: function ye(d) {
+    d.setMonth(11, 31);
+  },
+  ms: function ms(d) {
+    d.setDate(1);
+  },
+  me: function me(d) {
+    d.setMonth(d.getMonth() + 1, 0);
+  },
+  nb: function nb(d, k, n, b) {
+    fn.d(d, -((7 - k + d.getDay()) % 7 || b || 0) - 7 * (n - 1));
+  },
+  na: function na(d, k, n, b) {
+    fn.d(d, +((7 + k - d.getDay()) % 7 || b || 0) + 7 * (n - 1));
+  }
+};
+var fn2 = {
+  "year-start": fn1.ys,
+  "year-end": fn1.ye,
+  "month-start": fn1.ms,
+  "month-end": fn1.me,
+  "week-start": function weekStart(d) {
+    fn.d(d, -d.getDay());
+  },
+  "week-end": function weekEnd(d) {
+    fn.d(d, -d.getDay() + 6);
+  },
+  "nth-after": function nthAfter(d, n, k) {
+    fn1.na(d, k, n, 7);
+  },
+  "nth-before": function nthBefore(d, n, k) {
+    fn1.nb(d, k, n, 7);
+  },
+  "nth-of-year": function nthOfYear(d, n, k) {
+    fn1.ys(d), fn1.na(d, k, n);
+  },
+  "nth-of-month": function nthOfMonth(d, n, k) {
+    fn1.ms(d), fn1.na(d, k, n);
+  },
+  "nth-last-of-year": function nthLastOfYear(d, n, k) {
+    fn1.ye(d), fn1.nb(d, k, n);
+  },
+  "nth-last-of-month": function nthLastOfMonth(d, n, k) {
+    fn1.me(d), fn1.nb(d, k, n);
+  }
+};
+function adjustMonth(d, v, _) {
+  if (v > 28 && d.getDate() !== v) {
+    d.setDate(0);
+  }
+}
+function parseRelativeDateSimple(str, date) {
   var re = /([+-]?)(\d+)([dwmy])/g,
     m;
   var dir = str[0] === '-' ? -1 : 1;
@@ -1081,16 +1149,56 @@ function parseRelativeDate(str, date) {
       break;
     }
     pos += m[0].length;
-    date[units[m[3]][1]](date[units[m[3]][0]]() + m[2] * (m[1] === '-' ? -1 : m[1] === '+' ? 1 : dir) * (m[3] === 'w' ? 7 : 1));
+    fn[m[3]](date, m[2] * (m[1] === '-' ? -1 : m[1] === '+' ? 1 : dir));
   }
   return pos !== str.length ? undefined : date;
 }
+function parseRelativeDate(str, date) {
+  if (str.length < 8 || /^[0-9+-]/.test(str)) {
+    return parseRelativeDateSimple(str, date);
+  }
+  var pos = str.indexOf('(');
+  var d = pos < 0 ? str : str.slice(0, pos);
+  if (!util_hasOwnProperty(fn2, d)) {
+    return;
+  }
+  var r,
+    n,
+    k = 0;
+  if (pos > 0) {
+    r = str.slice(pos + 1, str.lastIndexOf(')'));
+  }
+  if (r && d[0] === 'n') {
+    r = r.split(/\s*,\s*/);
+    n = +r[0];
+    k = {
+      sun: 0,
+      mon: 1,
+      tue: 2,
+      wed: 3,
+      thu: 4,
+      fri: 5,
+      sat: 6
+    }[r[1]];
+    r = r[2];
+  }
+  if (r) {
+    date = parseRelativeDateSimple(r, date);
+  }
+  if (date && k !== undefined) {
+    fn2[d](date, n, k);
+    return date;
+  }
+}
 function normalizeDate(date, base) {
   if (typeof date === 'string') {
+    if (!date) {
+      return NaN;
+    }
     if (re.test(date)) {
       return Date.parse(date + 'T00:00');
     }
-    if (base !== false && date.length) {
+    if (base !== false) {
       date = parseRelativeDate(date.toLowerCase(), base || new Date()) || date;
     }
   }
@@ -1105,11 +1213,14 @@ function toDateObject(str) {
   return isNaN(ts) ? null : new Date(ts);
 }
 function toDateString(date) {
+  function pad(v, d) {
+    v = String(v);
+    return v.length >= d ? v : ('00000' + v).slice(-d);
+  }
+  date = new Date(date);
   if (!isNaN(date)) {
-    // counter UTC conversion due to toISOString
-    var tz = new Date(date).getTimezoneOffset() * 60000;
-    var str = new Date(date - tz).toISOString();
-    return str.slice(0, str.indexOf('T', 10));
+    var y = date.getFullYear();
+    return (y < 0 ? '-' + pad(Math.abs(y), 6) : y > 9999 ? '+' + pad(y, 6) : pad(y, 4)) + '-' + pad(date.getMonth() + 1, 2) + '-' + pad(date.getDate(), 2);
   }
   return '';
 }
@@ -1130,8 +1241,8 @@ definePrototype(DateField, {
   postHook: function postHook(state, props, hook) {
     var setValue = state.setValue;
     var value = state.value;
-    var min = normalizeDate(props.min);
-    var max = normalizeDate(props.max);
+    var min = hook.memo(normalizeDate, [props.min]);
+    var max = hook.memo(normalizeDate, [props.max]);
     var formatDisplay = props.formatDisplay;
     var displayText = hook.memo(function () {
       return value && formatDisplay ? formatDisplay(toDateObject(value)) : value;
@@ -1322,7 +1433,7 @@ function createHookHelper(effects) {
   var states = [];
   var push = function push(callback, deps) {
     var i = effects.i++;
-    states[i] = !deps || !states[i] || !equal(states[i][0], deps) ? [deps, callback()] : states[i];
+    states[i] = !deps || !states[i] || !equal(states[i][0], deps) ? [deps, callback.apply(null, deps)] : states[i];
     return states[i][1];
   };
   return {
@@ -1374,6 +1485,10 @@ function resolvePathInfo(form, path) {
     parent: parent
   };
 }
+function pathContains(path, prefix) {
+  var len = prefix.length;
+  return path.slice(0, len) === prefix && (!path[len] || path[len] === '.');
+}
 function getField(form, path) {
   var prop = resolvePathInfo(form, path);
   var key = keyFor(prop.parent);
@@ -1390,7 +1505,16 @@ function getPath(form, obj, name) {
   }
   return resolvePathInfo(form, path)[name ? 'parent' : 'value'] === obj ? path.join('.') : '';
 }
+function getAllAncestorPaths(props) {
+  for (var i in props) {
+    while (i = i.replace(/(^|\.)[^.]+$/, '')) {
+      props[i] = true;
+    }
+  }
+  return keys(props);
+}
 function emitDataChangeEvent() {
+  var lastChangedFields = makeArray(changedFields);
   each(changedFields, function (i, v) {
     v.onChange(v.value, true);
   });
@@ -1398,16 +1522,13 @@ function emitDataChangeEvent() {
   each(changedProps, function (form) {
     var state = form_(form);
     var props = mapRemove(changedProps, form);
-    for (var i in props) {
-      while (i = i.replace(/(^|\.)[^.]+$/, '')) {
-        props[i] = true;
-      }
-    }
     var element = state.ref || zeta_dom_dom.root;
-    var updatedFields = grep(state.fields, function (v) {
-      return props[v.path];
+    var updatedFields = grep(lastChangedFields, function (v) {
+      return (v.form || rootForm) === form;
     });
-    form_emitter.emit('dataChange', form, keys(props));
+    if (form !== rootForm) {
+      form_emitter.emit('dataChange', form, getAllAncestorPaths(props));
+    }
     validateFields(form, grep(updatedFields, function (v) {
       return v.version && (v.props.validateOnChange + 1 || form.validateOnChange + 1) > 1;
     }));
@@ -1418,8 +1539,10 @@ function emitDataChangeEvent() {
           resolve();
         };
       });
-      preventLeave(element, promise, function () {
-        return form_emitter.emit('beforeLeave', form) || resolve();
+      preventLeave(element, promise, function (reason) {
+        return form_emitter.emit('beforeLeave', form, {
+          reason: reason
+        }) || resolve();
       });
     }
   });
@@ -1427,6 +1550,7 @@ function emitDataChangeEvent() {
 function handleDataChange(field) {
   if (!field.controlled || field.committing) {
     field.version++;
+    field.meta = null;
     changedFields.add(field);
   } else {
     field.onChange(field.value);
@@ -1449,9 +1573,7 @@ function createDataObject(context, initialData) {
           handleDataChange(state.fields[key]);
         }
       }
-      if (context !== rootForm) {
-        mapGet(changedProps, context, Object)[path] = true;
-      }
+      mapGet(changedProps, context, Object)[path] = true;
       setImmediateOnce(emitDataChangeEvent);
     }
   };
@@ -1572,6 +1694,12 @@ function createFieldState(initialValue) {
     validate: function validate() {
       return validateFields(field.form, [field]);
     },
+    getMeta: function getMeta(value) {
+      var meta = {
+        empty: field.isEmpty(value)
+      };
+      return freeze((field.preset.getMeta || pipe).call(field.preset, meta, value, field.props));
+    },
     isEmpty: function isEmpty(value) {
       return (field.props.isEmpty || (field.preset.isEmpty || _isEmpty).bind(field.preset))(value);
     },
@@ -1640,17 +1768,22 @@ function useFormFieldInternal(state, field, preset, props, controlled, dict, nam
   }, [state, field.error, props.disabled, props.required]);
 }
 function validateFields(form, fields) {
+  if (form === rootForm) {
+    form = null;
+  }
   var validate = function validate(field) {
     var name = field.path;
     var value = field.value;
+    var meta = field.meta || (field.meta = field.getMeta(value));
     var result = form_emitter.emit('validate', form, {
       name: name,
-      value: value
+      value: value,
+      meta: meta
     });
     if (result || !field.props) {
       return result;
     }
-    return (field.props.onValidate || noop)(value, name, form) || hasImplicitError(field) && new ValidationError('required', 'Required');
+    return (field.props.onValidate || noop)(value, name, form, meta) || hasImplicitError(field) && new ValidationError('required', 'Required');
   };
   var promises = fields.map(function (v) {
     var locks = v.locks || (v.locks = []);
@@ -1750,13 +1883,18 @@ definePrototype(FormContext, {
     return key ? (getField(this, key) || '').element : form_(this).ref;
   },
   focus: function focus(key) {
+    var self = this;
     var element;
     if (typeof key === 'number') {
-      element = map(form_(this).fields, function (v) {
+      element = map(form_(self).fields, function (v) {
         return v.error && key & 1 || v.isEmpty(v.value) && key & 2 ? v.element : null;
       }).sort(comparePosition)[0];
+    } else if (key) {
+      element = self.element(key) || map(form_(self).fields, function (v) {
+        return pathContains(v.path, key) ? v.element : null;
+      }).sort(comparePosition)[0];
     } else {
-      element = this.element(key);
+      element = self.element();
     }
     return !!element && dom_focus(element);
   },
@@ -1796,6 +1934,7 @@ definePrototype(FormContext, {
       } else if (prop.exists) {
         v.value = prop.value;
         v.version = 0;
+        v.meta = null;
       }
       v.error = null;
     });
@@ -1838,8 +1977,7 @@ definePrototype(FormContext, {
     }
     return validateFields(self, grep(fields, function (v) {
       return any(prefix, function (w) {
-        var len = w.length;
-        return v.path.slice(0, len) === w && (!v.path[len] || v.path[len] === '.');
+        return pathContains(v.path, w);
       });
     }));
   },
@@ -1923,6 +2061,7 @@ function useFormField(type, props, defaultValue, prop) {
   }
   field.pending = false;
   field.value = dict[name];
+  field.meta = field.getMeta(field.value);
   if (!existing) {
     field.version = 0;
   }
@@ -1943,6 +2082,7 @@ function useFormField(type, props, defaultValue, prop) {
       value: field.value,
       error: String(field.error),
       version: field.version,
+      meta: field.meta,
       setValue: field.setValue,
       setError: field.setError,
       validate: field.validate,
@@ -1954,10 +2094,10 @@ function useFormField(type, props, defaultValue, prop) {
 }
 function combineValidators() {
   var validators = grep(makeArray(arguments), isFunction);
-  return function (value, name, form) {
+  return function (value, name, form, meta) {
     return validators.reduce(function (prev, next) {
       return prev.then(function (result) {
-        return result || next(value, name, form);
+        return result || next(value, name, form, meta);
       });
     }, resolve());
   };
