@@ -3422,7 +3422,17 @@ describe('FormContext#restore', () => {
     });
 });
 
+describe('FormContextProvider component', () => {
+    it('should throw when context is not a FormContext object', () => {
+        expect(() => render(<FormContextProvider value={{}} />)).toThrow();
+    });
+});
+
 describe('Form component', () => {
+    it('should throw when context is not a FormContext object', () => {
+        expect(() => render(<Form context={{}} />)).toThrow();
+    });
+
     it('should handle native submit event', async () => {
         const cb1 = mockFn();
         const ref = createRef();

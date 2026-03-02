@@ -55,6 +55,10 @@ function createHookHelper(effects) {
     };
 }
 
+function assertFormContext(props, param) {
+    return is(props[param], FormContext) || throws(param + ' must be a FormContext object');
+}
+
 function isEmpty(value) {
     return isUndefinedOrNull(value) || value === '' || (isArray(value) && !value.length);
 }
@@ -737,7 +741,7 @@ export function registerFieldType(type, options) {
 }
 
 export const Form = forwardRef(function (props, ref) {
-    const form = props.context;
+    const form = assertFormContext(props, 'context');
     const onSubmit = function (e) {
         if (!props.action) {
             e.preventDefault();
@@ -755,7 +759,8 @@ export const Form = forwardRef(function (props, ref) {
 });
 
 export function FormContextProvider(props) {
-    return createElement(FormObjectProvider, { value: _(props.value.data) }, props.children);
+    const form = assertFormContext(props, 'value');
+    return createElement(FormObjectProvider, { value: _(form.data) }, props.children);
 }
 
 export function FormArray(props) {
