@@ -5,9 +5,9 @@ import { bind } from "zeta-dom/domUtil";
 import { ZetaEventContainer } from "zeta-dom/events";
 import { always, any, arrRemove, catchAsync, clearImmediateOnce, combineFn, createPrivateStore, defineOwnProperty, delay, each, equal, errorWithCode, extend, fill, freeze, is, isArray, isErrorWithCode, isFunction, isUndefinedOrNull, makeArray, makeAsync, map, mapRemove, noop, pick, pipe, resolve, sameValue, sameValueZero, setAdd, setImmediateOnce, watch } from "zeta-dom/util";
 import * as ErrorCode from "zeta-dom/errorCode";
-import { IS_DEV } from "./env.js";
 
 const _ = /*#__PURE__*/ createPrivateStore();
+const IS_DEV = process.env.NODE_ENV !== 'production';
 const container = new ZetaEventContainer();
 const singletons = new Map();
 const disposedSingletons = new WeakSet();
