@@ -509,6 +509,17 @@ describe('useFormField', () => {
         unmount();
     });
 
+    it('should return unique key', () => {
+        const { result } = renderHook(() => [
+            useFormField({}, ''),
+            useFormField({}, '')
+        ]);
+        const [f1, f2] = result.current;
+        expect(f1.key).not.toBe('');
+        expect(f2.key).not.toBe('');
+        expect(f1.key).not.toBe(f2.key);
+    });
+
     it('should set initial error to empty string', () => {
         const { result } = renderHook(() => useFormField({}, ''));
         expect(result.current.error).toBe('');

@@ -698,7 +698,7 @@ export function useFormField(type, props, defaultValue, prop) {
         field.updating = true;
         return (preset.postHook || pipe).call(preset, {
             form: form === rootForm ? null : form,
-            key: field.form ? field.key : '',
+            key: field.key,
             path: field.path,
             value: field.value,
             error: String(field.error),
