@@ -9,6 +9,7 @@ import { combineRef } from "./util.js";
 import { useViewState } from "./viewState.js";
 
 const _ = createPrivateStore();
+const IS_DEV = process.env.NODE_ENV !== 'production';
 const emitter = new ZetaEventContainer();
 const instances = new WeakMap();
 const changedProps = new Map();
@@ -346,6 +347,17 @@ function createFieldState(initialValue) {
     return field;
 }
 
+function clearUnusedFields() {
+    // before React 19 unbounded field will register an extra field on root data
+    // with the dropped unique ID in development strict mode
+    each(_(rootForm).fields, function (i, v) {
+        if (v.dict === rootContext.dict && !v.mounted) {
+            delete this[i];
+            rootContext.delete(v.name);
+        }
+    });
+}
+
 function useFormFieldInternal(state, field, preset, props, controlled, dict, name) {
     var form = state.form === rootForm ? null : state.form;
     var key = name ? keyFor(dict) + '.' + name : state.paths[keyFor(dict)];
@@ -366,6 +378,10 @@ function useFormFieldInternal(state, field, preset, props, controlled, dict, nam
     state.fields[key] = field;
     useEffect(function () {
         state.fields[key] = field;
+        if (IS_DEV && dict === rootContext.dict && !field.mounted) {
+            field.mounted = true;
+            setImmediateOnce(clearUnusedFields);
+        }
         return function () {
             if (state.fields[key] === field) {
                 delete state.fields[key];
