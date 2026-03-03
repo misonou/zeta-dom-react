@@ -1,4 +1,4 @@
-/*! zeta-dom-react v0.6.0 | (c) misonou | https://misonou.github.io */
+/*! zeta-dom-react v0.6.1 | (c) misonou | https://misonou.github.io */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory(require("zeta-dom"), require("react"), require("react-dom"));
@@ -1415,6 +1415,7 @@ var changedFields = new Set();
 var rootForm = new FormContext({}, {}, {
   get: noop
 });
+var rootContext = form_(rootForm.data);
 var fieldTypes = {
   text: TextField,
   toggle: ToggleField,
@@ -1422,7 +1423,7 @@ var fieldTypes = {
 };
 
 /** @type {React.Context<any>} */
-var FormObjectContext = /*#__PURE__*/createContext(null);
+var FormObjectContext = /*#__PURE__*/createContext(rootContext);
 var FormObjectProvider = FormObjectContext.Provider;
 function ValidationError(kind, message, args) {
   this.kind = kind;
@@ -1451,6 +1452,9 @@ function createHookHelper(effects) {
       }, deps);
     }
   };
+}
+function assertFormContext(props, param) {
+  return is(props[param], FormContext) || _throws(param + ' must be a FormContext object');
 }
 function _isEmpty(value) {
   return isUndefinedOrNull(value) || value === '' || isArray(value) && !value.length;
@@ -1646,6 +1650,8 @@ function createDataObject(context, initialData) {
   form_(proxy, {
     state: state,
     uniqueId: uniqueId,
+    form: context,
+    dict: proxy,
     set: setValue,
     "delete": deleteValue
   });
@@ -1728,6 +1734,16 @@ function createFieldState(initialValue) {
   });
   return field;
 }
+function clearUnusedFields() {
+  // before React 19 unbounded field will register an extra field on root data
+  // with the dropped unique ID in development strict mode
+  each(form_(rootForm).fields, function (i, v) {
+    if (v.dict === rootContext.dict && !v.mounted) {
+      delete this[i];
+      rootContext["delete"](v.name);
+    }
+  });
+}
 function useFormFieldInternal(state, field, preset, props, controlled, dict, name) {
   var form = state.form === rootForm ? null : state.form;
   var key = name ? keyFor(dict) + '.' + name : state.paths[keyFor(dict)];
@@ -1748,6 +1764,10 @@ function useFormFieldInternal(state, field, preset, props, controlled, dict, nam
   state.fields[key] = field;
   useEffect(function () {
     state.fields[key] = field;
+    if (IS_DEV && dict === rootContext.dict && !field.mounted) {
+      field.mounted = true;
+      setImmediateOnce(clearUnusedFields);
+    }
     return function () {
       if (state.fields[key] === field) {
         delete state.fields[key];
@@ -2027,33 +2047,31 @@ function useFormField(type, props, defaultValue, prop) {
     props = type;
     type = '';
   }
-  var uniqueId = useState(randomId)[0];
-  var context = useContext(FormObjectContext);
+  var uniqueId = useMemo(randomId, []);
+  var parentContext = useContext(FormObjectContext);
   var effects = useState([])[0];
   var hook = useMemo(function () {
     return type ? [new type(), createHookHelper(effects)] : [{}];
   }, [type]);
   var preset = hook[0];
   prop = prop || preset.valueProperty || 'value';
-  var dict = context;
-  var name = props.name;
-  if (!dict || !name) {
-    dict = rootForm.data;
-    name = uniqueId;
-  }
+  var context = props.name ? parentContext : rootContext;
+  var name = context === rootContext ? uniqueId : props.name;
+  var dict = context.dict;
   var existing = (name in dict);
   var controlled = (prop in props);
   var field = useState(function () {
     return createFieldState(controlled ? props[prop] : defaultValue !== undefined ? defaultValue : preset.defaultValue);
   })[0];
   var previousKey = field.key;
-  useFormFieldInternal(form_(dict).state, field, preset, props, controlled, dict, name);
+  useFormFieldInternal(context.state, field, preset, props, controlled, dict, name);
+  var form = field.form || parentContext.form;
   var value = controlled ? props[prop] : existing ? dict[name] : field.initialValue;
   if (previousKey !== field.key) {
     value = field.normalizeValue(value);
   }
   if (!existing && field.isEmpty(value)) {
-    form_(dict).set(name, value);
+    context.set(name, value);
   } else {
     field.committing = true;
     dict[name] = value;
@@ -2065,6 +2083,7 @@ function useFormField(type, props, defaultValue, prop) {
   if (!existing) {
     field.version = 0;
   }
+  (form_(field.value) || {}).form = form;
   effects.i = 0;
   useEffect(function () {
     combineFn(effects.splice(0))();
@@ -2076,8 +2095,8 @@ function useFormField(type, props, defaultValue, prop) {
   try {
     field.updating = true;
     return (preset.postHook || pipe).call(preset, {
-      form: context && form_(context).state.form,
-      key: field.form ? field.key : '',
+      form: form === rootForm ? null : form,
+      key: field.key,
       path: field.path,
       value: field.value,
       error: String(field.error),
@@ -2113,7 +2132,7 @@ function registerFieldType(type, options) {
   };
 }
 var Form = /*#__PURE__*/forwardRef(function (props, ref) {
-  var form = props.context;
+  var form = assertFormContext(props, 'context');
   var onSubmit = function onSubmit(e) {
     if (!props.action) {
       e.preventDefault();
@@ -2127,7 +2146,7 @@ var Form = /*#__PURE__*/forwardRef(function (props, ref) {
   };
   extend(form, pick(props, ['enterKeyHint', 'preventLeave', 'formatError']));
   return /*#__PURE__*/createElement(FormObjectProvider, {
-    value: form.data
+    value: form_(form.data)
   }, /*#__PURE__*/createElement('form', extend(exclude(props, ['context', 'enterKeyHint', 'preventLeave', 'formatError']), {
     ref: combineRef(ref, form.ref),
     onSubmit: onSubmit,
@@ -2135,8 +2154,9 @@ var Form = /*#__PURE__*/forwardRef(function (props, ref) {
   })));
 });
 function FormContextProvider(props) {
+  var form = assertFormContext(props, 'value');
   return /*#__PURE__*/createElement(FormObjectProvider, {
-    value: props.value.data
+    value: form_(form.data)
   }, props.children);
 }
 function FormArray(props) {
@@ -2145,27 +2165,27 @@ function FormArray(props) {
   }));
 }
 function FormObject(props) {
-  var uniqueId = useState(randomId)[0];
-  var name = props.name;
-  var dict = useContext(FormObjectContext);
-  if (!dict) {
-    dict = rootForm.data;
-    name = uniqueId;
-  }
+  var uniqueId = useMemo(randomId, []);
+  var context = useContext(FormObjectContext);
   var fieldRef = useRef();
+  var dict = context.dict;
+  var name = context === rootContext ? uniqueId : props.name;
   var value = props.value;
-  if ((form_(value) || '').state) {
+  var childContext = form_(value);
+  if (childContext && childContext.state) {
     dict = value;
     name = '';
   } else if (name) {
     value = 'value' in props ? value : isPlainObject(dict[name]) || isArray(dict[name]) || props.defaultValue || {};
-    value = form_(dict).set(name, value);
+    value = context.set(name, value);
+    childContext = form_(value);
+    childContext.form = context.form;
   } else {
     _throws('Value must be a data object or array');
   }
   // field state registered by useFormField has a higher priority
   // create own field state only when needed
-  var state = form_(dict).state;
+  var state = childContext.state;
   var field = state.fields[state.paths[keyFor(value)]];
   if (!field || field.controlled === 0) {
     field = fieldRef.current || (fieldRef.current = createFieldState(value));
@@ -2180,7 +2200,7 @@ function FormObject(props) {
     children = children(value);
   }
   return /*#__PURE__*/createElement(FormObjectProvider, {
-    value: value
+    value: childContext
   }, children);
 }
 function HiddenField(props) {
@@ -2190,6 +2210,7 @@ function HiddenField(props) {
 util_define(FormObject, {
   keyFor: keyFor
 });
+
 
 
 
