@@ -91,7 +91,15 @@ export class DataView<P extends object> implements Zeta.ZetaEventDispatcher<Data
      * @param handler A callback function to be fired when the specified event is triggered.
      * @returns A function that will unregister the handlers when called.
      */
-    on<E extends keyof DataViewEventMap<any>>(event: E, handler: Zeta.ZetaEventHandler<E, DataViewEventMap<P>, DataView<P>>): Zeta.UnregisterCallback;
+    on<E extends Zeta.StringKeyOf<DataViewEventMap<P>>>(event: E, handler: Zeta.ZetaEventHandler<E, DataViewEventMap<P>, DataView<P>>): Zeta.UnregisterCallback;
+
+    /**
+     * Registers event handlers.
+     * @param event Name of the event.
+     * @param handler A callback function to be fired when the specified event is triggered.
+     * @returns A function that will unregister the handlers when called.
+     */
+    on<E extends Zeta.HintedStringKeyOf<DataViewEventMap<P>>>(event: E, handler: Zeta.ZetaEventHandler<Zeta.WhitespaceDelimited<E>, DataViewEventMap<P>, DataView<P>>): Zeta.UnregisterCallback;
 
     /**
      * Performs filtering and sorting of items.

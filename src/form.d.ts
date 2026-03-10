@@ -496,7 +496,16 @@ export class FormContext<T extends object = Zeta.Dictionary<any>> implements Zet
      * @returns A function that will unregister the handlers when called.
      * @see {@link FormEventMap}
      */
-    on<E extends keyof FormEventMap<any>>(event: E, handler: Zeta.ZetaEventHandler<E, FormEventMap<T>, FormContext<T>>): Zeta.UnregisterCallback;
+    on<E extends Zeta.StringKeyOf<FormEventMap<T>>>(event: E, handler: Zeta.ZetaEventHandler<E, FormEventMap<T>, FormContext<T>>): Zeta.UnregisterCallback;
+
+    /**
+     * Registers event handlers.
+     * @param event Name of the event.
+     * @param handler A callback function to be fired when the specified event is triggered.
+     * @returns A function that will unregister the handlers when called.
+     * @see {@link FormEventMap}
+     */
+    on<E extends Zeta.HintedStringKeyOf<FormEventMap<T>>>(event: E, handler: Zeta.ZetaEventHandler<Zeta.WhitespaceDelimited<E>, FormEventMap<T>, FormContext<T>>): Zeta.UnregisterCallback;
 
     /**
      * Persists form data to view state.
