@@ -432,6 +432,13 @@ export function useErrorHandlerRef<T extends Element = HTMLElement>(...args: Err
 export function useErrorHandler<T extends Element = HTMLElement>(...args: ErrorSource[]): ErrorHandlerWithRef<T>;
 
 /**
+ * Runs side effect, with guarantee that it is only executed once in development strict mode, for side effect that cannot be undone.
+ * @param callback A callback that contains side effect.
+ * @param deps Side effect is triggered when any values in the list changes. If the list is empty, the side effect is only triggered once when component is mounted.
+ */
+export function useSideEffect(callback: () => void, deps: React.DependencyList): void;
+
+/**
  * Registers a cleanup callback to be invoked when the component is being unmounted, or the document is being unloaded.
  * @param callback Callback to be invoked, receiving a boolean indicating if the page is still cached. The flag is always `false` if the component is being unmounted.
  */

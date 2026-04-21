@@ -5,7 +5,7 @@ import { catchAsync, errorWithCode } from "zeta-dom/util";
 import { ZetaEventContainer } from "zeta-dom/events";
 import dom, { reportError } from "zeta-dom/dom";
 import { combineRef } from "src/util";
-import { createAsyncScope, createDependency, createErrorHandler, isSingletonDisposed, useAsync, useDependency, useDispose, useEagerReducer, useEagerState, useErrorHandler, useEventTrigger, useMemoizedFunction, useObservableProperty, useRefInitCallback, useSingleton, useUnloadEffect, useUpdateTrigger, useValueTrigger } from "src/hooks";
+import { createAsyncScope, createDependency, createErrorHandler, isSingletonDisposed, useAsync, useDependency, useDispose, useEagerReducer, useEagerState, useErrorHandler, useEventTrigger, useMemoizedFunction, useObservableProperty, useRefInitCallback, useSideEffect, useSingleton, useUnloadEffect, useUpdateTrigger, useValueTrigger } from "src/hooks";
 import { delay, mockFn, verifyCalls, _, after, cleanup, root } from "@misonou/test-utils";
 
 describe('useEagerReducer', () => {
@@ -1164,6 +1164,25 @@ describe('useErrorHandler', () => {
         expect(cb).toBeCalledTimes(1);
         unmount();
         unbind();
+    });
+});
+
+describe('useSideEffect', () => {
+    it('should invoke callback exactly once in strict mode', () => {
+        const cb = mockFn();
+        renderHook(() => useSideEffect(cb, []), { wrapper: React.StrictMode });
+        expect(cb).toBeCalledTimes(1);
+    });
+
+    it('should invoke callback exactly once when dependency list changes in strict mode', () => {
+        const cb = mockFn();
+        const { rerender } = renderHook(({ deps }) => useSideEffect(cb, deps), {
+            initialProps: { deps: [1] },
+            wrapper: React.StrictMode
+        });
+        expect(cb).toBeCalledTimes(1);
+        rerender({ deps: [2] });
+        expect(cb).toBeCalledTimes(2);
     });
 });
 

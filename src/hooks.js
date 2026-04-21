@@ -357,6 +357,19 @@ export function useErrorHandler() {
     return handler;
 }
 
+export function useSideEffect(callback, deps) {
+    var ref = useRef(0);
+    ref.current = useMemo(function () {
+        return (ref.current + 2) & ~1;
+    }, deps);
+    useEffect(function () {
+        if (!(ref.current & 1)) {
+            ref.current |= 1;
+            callback();
+        }
+    }, deps);
+}
+
 export function useUnloadEffect(callback) {
     callback = useMemoizedFunction(callback);
     unloadCallbacks.add(callback);
