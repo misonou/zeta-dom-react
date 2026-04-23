@@ -445,6 +445,11 @@ export function useSideEffect(callback: () => void, deps: React.DependencyList):
 export function useUnloadEffect(callback: (persisted: boolean) => void): void;
 
 /**
+ * Returns a abort signal that is aborted when the component is unmounted.
+ */
+export function useAbortSignal(): AbortSignal;
+
+/**
  * Creates a dependency that components can provide to and read data from.
  */
 export function createDependency<T>(): Dependency<T | undefined>;

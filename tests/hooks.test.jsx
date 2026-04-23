@@ -5,7 +5,7 @@ import { catchAsync, errorWithCode } from "zeta-dom/util";
 import { ZetaEventContainer } from "zeta-dom/events";
 import dom, { reportError } from "zeta-dom/dom";
 import { combineRef } from "src/util";
-import { createAsyncScope, createDependency, createErrorHandler, isSingletonDisposed, useAsync, useDependency, useDispose, useEagerReducer, useEagerState, useErrorHandler, useEventTrigger, useMemoizedFunction, useObservableProperty, useRefInitCallback, useSideEffect, useSingleton, useUnloadEffect, useUpdateTrigger, useValueTrigger } from "src/hooks";
+import { createAsyncScope, createDependency, createErrorHandler, isSingletonDisposed, useAbortSignal, useAsync, useDependency, useDispose, useEagerReducer, useEagerState, useErrorHandler, useEventTrigger, useMemoizedFunction, useObservableProperty, useRefInitCallback, useSideEffect, useSingleton, useUnloadEffect, useUpdateTrigger, useValueTrigger } from "src/hooks";
 import { delay, mockFn, verifyCalls, _, after, cleanup, root } from "@misonou/test-utils";
 
 describe('useEagerReducer', () => {
@@ -1269,6 +1269,25 @@ describe('useUnloadEffect', () => {
         window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted: true }));
         expect(cb).toBeCalledTimes(2);
         unmount();
+    });
+});
+
+describe('useAbortSignal', () => {
+    it('should return an abort signal that is signalled when component is unmounted', async () => {
+        const { result, unmount } = renderHook(() => useAbortSignal(), { wrapper: React.StrictMode });
+        expect(result.current).toBeInstanceOf(AbortSignal);
+        expect(result.current.aborted).toBe(false);
+
+        await unmount();
+        expect(result.current.aborted).toBe(true);
+        expect(result.current.reason).toBeErrorWithCode('zeta/cancelled');
+    });
+
+    it('should return the same signal across re-renders', () => {
+        const { result, rerender } = renderHook(() => useAbortSignal(), { initialProps: { value: 0 } });
+        const signal = result.current;
+        rerender({ value: 1 });
+        expect(result.current).toBe(signal);
     });
 });
 

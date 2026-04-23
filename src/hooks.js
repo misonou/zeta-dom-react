@@ -379,6 +379,15 @@ export function useUnloadEffect(callback) {
     }, []);
 }
 
+export function useAbortSignal() {
+    var controller = useSingleton(function () {
+        return new AbortController();
+    }, [], function (controller) {
+        controller.abort(errorWithCode(ErrorCode.cancelled));
+    });
+    return controller.signal;
+}
+
 export function createDependency(defaultValue) {
     var Provider = freeze({});
     var Consumer = freeze({});
