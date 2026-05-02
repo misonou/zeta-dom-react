@@ -1,4 +1,4 @@
-/*! zeta-dom-react v0.6.1 | (c) misonou | https://misonou.github.io */
+/*! zeta-dom-react v0.6.2 | (c) misonou | https://misonou.github.io */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory(require("zeta-dom"), require("react"), require("react-dom"));
@@ -126,6 +126,7 @@ __webpack_require__.d(__webpack_exports__, {
   partial: () => (/* reexport */ partial),
   registerFieldType: () => (/* reexport */ registerFieldType),
   toRefCallback: () => (/* reexport */ toRefCallback),
+  useAbortSignal: () => (/* reexport */ useAbortSignal),
   useAsync: () => (/* reexport */ useAsync),
   useAutoSetRef: () => (/* reexport */ useAutoSetRef),
   useDataView: () => (/* reexport */ useDataView),
@@ -142,6 +143,7 @@ __webpack_require__.d(__webpack_exports__, {
   useMemoizedFunction: () => (/* reexport */ useMemoizedFunction),
   useObservableProperty: () => (/* reexport */ useObservableProperty),
   useRefInitCallback: () => (/* reexport */ useRefInitCallback),
+  useSideEffect: () => (/* reexport */ useSideEffect),
   useSingleton: () => (/* reexport */ useSingleton),
   useUnloadEffect: () => (/* reexport */ useUnloadEffect),
   useUpdateTrigger: () => (/* reexport */ useUpdateTrigger),
@@ -631,6 +633,18 @@ function useErrorHandler() {
   }, args);
   return handler;
 }
+function useSideEffect(callback, deps) {
+  var ref = useRef(0);
+  ref.current = useMemo(function () {
+    return ref.current + 2 & ~1;
+  }, deps);
+  useEffect(function () {
+    if (!(ref.current & 1)) {
+      ref.current |= 1;
+      callback();
+    }
+  }, deps);
+}
 function useUnloadEffect(callback) {
   callback = useMemoizedFunction(callback);
   unloadCallbacks.add(callback);
@@ -638,6 +652,14 @@ function useUnloadEffect(callback) {
     unloadCallbacks["delete"](callback);
     return used && callback(false);
   }, []);
+}
+function useAbortSignal() {
+  var controller = useSingleton(function () {
+    return new AbortController();
+  }, [], function (controller) {
+    controller.abort(errorWithCode(cancelled));
+  });
+  return controller.signal;
 }
 function createDependency(defaultValue) {
   var Provider = freeze({});
