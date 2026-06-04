@@ -3,7 +3,8 @@ const config = {
     "setupFilesAfterEnv": [
         "@misonou/test-utils/mock/matchMedia",
         "@misonou/test-utils/mock/scrollBy",
-        "@misonou/test-utils/mock/console"
+        "@misonou/test-utils/mock/console",
+        "@misonou/test-utils/react/hmr"
     ],
     "modulePathIgnorePatterns": [
         "<rootDir>/build/"

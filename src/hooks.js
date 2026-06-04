@@ -233,7 +233,7 @@ export function useAsync(init, deps, debounce) {
     }, [], function () {
         state.abort();
     });
-    deps = [deps !== false].concat(isArray(deps) || []);
+    deps = [deps !== false, state].concat(isArray(deps) || []);
     init = useMemoizedFunction(init);
     useEffect(function () {
         if (deps[0]) {
