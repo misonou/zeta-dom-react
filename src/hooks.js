@@ -230,8 +230,10 @@ export function useAsync(init, deps, debounce) {
                 lastTime = 0;
             }
         };
-    }, [], function () {
-        state.abort();
+    }, [], function (state, used) {
+        if (used) {
+            state.abort();
+        }
     });
     deps = [deps !== false, state].concat(isArray(deps) || []);
     init = useMemoizedFunction(init);

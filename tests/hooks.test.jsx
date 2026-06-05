@@ -423,6 +423,16 @@ describe('useAsync', () => {
         expect(state.loading).toBe(false);
     });
 
+    it('should not trigger excessive loading or updates in strict mode', async () => {
+        const cb = mockFn(() => Promise.resolve(1));
+        const { result } = renderHook(() => useAsync(cb), { wrapper: React.StrictMode });
+        expect(result.all.length).toBe(2);
+
+        await waitFor(() => expect(result.current[0]).toBe(1));
+        expect(result.all.length).toBe(4);
+        expect(cb).toBeCalledTimes(1);
+    });
+
     it('should invoke callback when calling refresh and set value to the latest value', async () => {
         const cb = mockFn().mockResolvedValueOnce('foo').mockResolvedValueOnce('bar');
         const { result } = renderHook(() => useAsync(cb));
