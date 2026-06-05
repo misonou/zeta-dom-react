@@ -846,16 +846,65 @@ describe('useSingleton', () => {
     it('should dispose object exactly once in strict mode', async () => {
         const dispose = mockFn();
         const getSingleton = mockFn(() => ({ dispose }));
-        const Component = () => {
-            useSingleton(getSingleton);
-            return null;
-        };
-        const { unmount } = render(<Component />, { wrapper: React.StrictMode });
-        const times = process.env.NODE_ENV === 'production' ? 1 : 2;
-        unmount();
-        expect(getSingleton).toBeCalledTimes(times);
+        const { unmount } = renderHook(() => useSingleton(getSingleton), { wrapper: React.StrictMode });
+
+        const [c1, c2] = getSingleton.mock.results.map(r => r.value);
+        expect(getSingleton).toBeCalledTimes(2);
+
+        const discarded = process.env.REACT_VERSION >= 19 ? c2 : c1;
+        const kept = discarded === c2 ? c1 : c2;
+        expect(kept).not.toBe(discarded);
+
         await delay();
-        expect(dispose).toBeCalledTimes(times);
+        verifyCalls(dispose, [[]]);
+        expect(dispose.mock.instances[0]).toBe(discarded);
+        dispose.mockClear();
+
+        unmount();
+        await delay();
+        verifyCalls(dispose, [[]]);
+        expect(dispose.mock.instances[0]).toBe(kept);
+    });
+
+    it('should call dispose callback with correct arguments in strict mode', async () => {
+        const shouldNotCalled = mockFn();
+        const dispose = mockFn();
+        const getSingleton = mockFn(() => ({ dispose: shouldNotCalled }));
+        const { unmount } = renderHook(() => useSingleton(getSingleton, [], dispose), { wrapper: React.StrictMode });
+
+        const [c1, c2] = getSingleton.mock.results.map(r => r.value);
+        expect(getSingleton).toBeCalledTimes(2);
+
+        const discarded = process.env.REACT_VERSION >= 19 ? c2 : c1;
+        const kept = discarded === c2 ? c1 : c2;
+        expect(kept).not.toBe(discarded);
+
+        await delay();
+        verifyCalls(dispose, [[expect.sameObject(discarded), false]]);
+        expect(dispose.mock.instances[0]).toBe(discarded);
+        dispose.mockClear();
+
+        unmount();
+        await delay();
+        verifyCalls(dispose, [[expect.sameObject(kept), true]]);
+        expect(dispose.mock.instances[0]).toBe(kept);
+        expect(shouldNotCalled).not.toBeCalled();
+    });
+
+    it('should call dispose callback after component is unmounted', async () => {
+        const dispose = mockFn();
+        const getSingleton = mockFn(() => ({}));
+        const result1 = renderHook(() => useSingleton(getSingleton, [], dispose));
+        const result2 = renderHook(() => useSingleton(getSingleton, [], dispose));
+
+        result1.unmount();
+        await delay();
+        verifyCalls(dispose, [[expect.sameObject(result1.result.current), true]]);
+        dispose.mockClear();
+
+        result2.unmount();
+        await delay();
+        verifyCalls(dispose, [[expect.sameObject(result2.result.current), true]]);
     });
 
     it('should invoke dispose callback instead if present', async () => {

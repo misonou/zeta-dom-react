@@ -29,7 +29,7 @@ function clearUnusedSingletons() {
     each(singletons, function (i, v) {
         if (clearUnusedSingletons.d & (v.d || 1)) {
             disposedSingletons.add(i);
-            mapRemove(singletons, i).call(i, i, v.d === 2);
+            mapRemove(singletons, i).dispose.call(i, i, v.d === 2);
         }
     });
     clearUnusedSingletons.d = 0;
@@ -50,7 +50,7 @@ function useSingletonEffectImplDev(factory, dispose, deps) {
     var target = useMemo(function () {
         var target = factory();
         if (!singletons.has(target)) {
-            singletons.set(target, dispose);
+            singletons.set(target, { dispose });
             clearUnusedSingletons.d = 0;
             clearImmediateOnce(clearUnusedSingletons);
         }
