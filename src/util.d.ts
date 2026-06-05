@@ -80,4 +80,4 @@ export function toRefCallback<T>(ref: React.Ref<T>): React.RefCallback<T>;
  * @param factory Callback to import the component.
  * @param fallback Fallback content before the component is ready.
  */
-export function withSuspense<T = any>(factory: () => Promise<{ default: React.ComponentType<T>; }>, fallback?: React.ComponentType | JSX.Element): React.FC<T>;
+export function withSuspense<T = any>(factory: () => Promise<{ default: React.ComponentType<T>; }>, fallback?: React.ComponentType | React.ReactElement): React.FC<T>;

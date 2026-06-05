@@ -1,5 +1,5 @@
 export const FormContextProvider: React.Provider<FormContext>;
-export const Form: <T extends object>(props: FormProps<T>) => JSX.Element;
+export const Form: <T extends object>(props: FormProps<T>) => React.ReactElement;
 
 export type ValidateResult = null | undefined | string | Stringifiable | ValidationError | ((props: FormFieldProps<any>) => string);
 export type ValidateCallback<T = any> = (value: T, name: string, form: FormContext | null, meta: FieldMeta) => ValidateResult | Promise<ValidateResult>;
