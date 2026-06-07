@@ -1,4 +1,4 @@
-/*! zeta-dom-react v0.6.2 | (c) misonou | https://misonou.github.io */
+/*! zeta-dom-react v0.6.3 | (c) misonou | https://misonou.github.io */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory(require("zeta-dom"), require("react"), require("react-dom"));
@@ -306,7 +306,7 @@ function clearUnusedSingletons() {
   each(singletons, function (i, v) {
     if (clearUnusedSingletons.d & (v.d || 1)) {
       disposedSingletons.add(i);
-      mapRemove(singletons, i).call(i, i, v.d === 2);
+      mapRemove(singletons, i).dispose.call(i, i, v.d === 2);
     }
   });
   clearUnusedSingletons.d = 0;
@@ -325,7 +325,9 @@ function useSingletonEffectImplDev(factory, dispose, deps) {
   var target = useMemo(function () {
     var target = factory();
     if (!singletons.has(target)) {
-      singletons.set(target, dispose);
+      singletons.set(target, {
+        dispose: dispose
+      });
       clearUnusedSingletons.d = 0;
       clearImmediateOnce(clearUnusedSingletons);
     }
@@ -510,10 +512,12 @@ function useAsync(init, deps, debounce) {
         lastTime = 0;
       }
     };
-  }, [], function () {
-    state.abort();
+  }, [], function (state, used) {
+    if (used) {
+      state.abort();
+    }
   });
-  deps = [deps !== false].concat(isArray(deps) || []);
+  deps = [deps !== false, state].concat(isArray(deps) || []);
   init = useMemoizedFunction(init);
   useEffect(function () {
     if (deps[0]) {
