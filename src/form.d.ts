@@ -307,6 +307,10 @@ export interface FormFieldState<T = any, S = FieldMeta> {
      */
     readonly error: string;
     /**
+     * Gets whether the field should be in disabled state.
+     */
+    readonly disabled: boolean;
+    /**
      * Gets a version number that changes whenever value or nested values changes.
      */
     readonly version: number;
@@ -337,7 +341,7 @@ export interface FormFieldState<T = any, S = FieldMeta> {
     readonly validate: () => Promise<boolean>;
 }
 
-export interface FormProps<T extends object = any> extends React.ComponentPropsWithRef<'form'>, Pick<FormContextOptions, 'enterKeyHint' | 'preventLeave' | 'formatError'> {
+export interface FormProps<T extends object = any> extends React.ComponentPropsWithRef<'form'>, Pick<FormContextOptions, 'enterKeyHint' | 'preventLeave' | 'formatError' | 'disabled'> {
     context: FormContext<T>;
 }
 
@@ -370,6 +374,13 @@ export interface FormBeforeLeaveEvent<T extends object = Zeta.Dictionary<any>> e
 }
 
 export interface FormContextOptions {
+    /**
+     * Forces all rendered fields to be in disabled state.
+     *
+     * This property does not affect the validity of the form and individual fields.
+     * It also requires field components to handle the disabled state exposed by {@link FormFieldState.disabled}.
+     */
+    disabled?: boolean;
     /**
      * Whether form data will be persisted in view state when component is unmounted.
      * Default is `true`.
@@ -405,6 +416,13 @@ export class FormContext<T extends object = Zeta.Dictionary<any>> implements Zet
     readonly data: Partial<T>;
     readonly ref: React.RefCallback<HTMLFormElement>;
 
+    /**
+     * Forces all rendered fields to be in disabled state.
+     *
+     * This property does not affect the validity of the form and individual fields.
+     * It also requires field components to handle the disabled state exposed by {@link FormFieldState.disabled}.
+     */
+    disabled: boolean;
     /**
      * Whether form data will be persisted in view state when component is unmounted.
      * Default is `true`.

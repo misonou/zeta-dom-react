@@ -530,6 +530,27 @@ describe('useFormField', () => {
         expect(result.current.error).toBe('foo');
     });
 
+    it('should return disabled if set in props', () => {
+        const { result, rerender } = renderHook(({ disabled }) => useFormField({ disabled }, ''), {
+            initialProps: { disabled: false }
+        });
+        expect(result.current.disabled).toBe(false);
+        rerender({ disabled: true });
+        expect(result.current.disabled).toBe(true);
+    });
+
+    it('should return disabled if form context is disabled', async () => {
+        const { form, wrapper, unmount } = createFormContext({}, false);
+        const { result, rerender } = renderHook(() => useFormField({}, ''), { wrapper });
+        expect(result.current.disabled).toBe(false);
+        await act(async () => {
+            form.disabled = true;
+        });
+        rerender();
+        expect(result.current.disabled).toBe(true);
+        unmount();
+    });
+
     it('should return setValue and setError callback', () => {
         const { result } = renderHook(() => useFormField({}, ''));
         expect(typeof result.current.setValue).toBe('function');
@@ -2559,6 +2580,30 @@ describe('FormContext#isValid', () => {
 
         act(() => form.reset());
         expect(form.isValid).toBe(true);
+        unmount();
+    });
+});
+
+describe('FormContext#disabled', () => {
+    it('should not affect form validity', async () => {
+        const { form, wrapper, unmount } = createFormContext();
+        renderHook(() => useFormField({ name: 'foo', required: true }, ''), { wrapper });
+        expect(form.isValid).toBe(false);
+        await act(async () => {
+            form.disabled = true
+        });
+        expect(form.isValid).toBe(false);
+        unmount();
+    });
+
+    it('should not affect field validity', async () => {
+        const { form, wrapper, unmount } = createFormContext();
+        form.disabled = true;
+        const { result } = renderHook(() => useFormField({ name: 'foo', required: true }, ''), { wrapper });
+        await act(async () => {
+            await result.current.validate();
+        });
+        expect(result.current.error).toBeTruthy();
         unmount();
     });
 });

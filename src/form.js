@@ -469,6 +469,7 @@ function normalizeOptions(options) {
         };
     }
     return extend({
+        disabled: false,
         autoPersist: true,
         preventLeave: false,
         validateOnChange: true
@@ -641,6 +642,7 @@ export function useFormContext(persistKey, initialData, options) {
     })[0];
     const forceUpdate = useUpdateTrigger();
     useObservableProperty(form, 'isValid');
+    useObservableProperty(form, 'disabled');
     useUnloadEffect(function () {
         (_(form).unlock || noop)();
         if (form.autoPersist) {
@@ -723,6 +725,7 @@ export function useFormField(type, props, defaultValue, prop) {
             path: field.path,
             value: field.value,
             error: String(field.error),
+            disabled: props.disabled || form.disabled,
             version: field.version,
             meta: field.meta,
             setValue: field.setValue,
@@ -770,9 +773,9 @@ export const Form = forwardRef(function (props, ref) {
         form.reset();
         (props.onReset || noop).call(this, e);
     };
-    extend(form, pick(props, ['enterKeyHint', 'preventLeave', 'formatError']));
+    extend(form, pick(props, ['enterKeyHint', 'preventLeave', 'formatError', 'disabled']));
     return createElement(FormObjectProvider, { value: _(form.data) },
-        createElement('form', extend(exclude(props, ['context', 'enterKeyHint', 'preventLeave', 'formatError']), { ref: combineRef(ref, form.ref), onSubmit, onReset })));
+        createElement('form', extend(exclude(props, ['context', 'enterKeyHint', 'preventLeave', 'formatError', 'disabled']), { ref: combineRef(ref, form.ref), onSubmit, onReset })));
 });
 
 export function FormContextProvider(props) {
