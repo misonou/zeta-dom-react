@@ -381,10 +381,10 @@ export function useUnloadEffect(callback) {
     }, []);
 }
 
-export function useAbortSignal() {
+export function useAbortSignal(deps) {
     var controller = useSingleton(function () {
         return new AbortController();
-    }, [], function (controller) {
+    }, deps || [], function (controller) {
         controller.abort(errorWithCode(ErrorCode.cancelled));
     });
     return controller.signal;

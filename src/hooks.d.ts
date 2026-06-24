@@ -450,6 +450,12 @@ export function useUnloadEffect(callback: (persisted: boolean) => void): void;
 export function useAbortSignal(): AbortSignal;
 
 /**
+ * Returns a abort signal that is aborted when the component is unmounted or the values in the dependency list change.
+ * @param deps A list of dependencies that will trigger the abort signal when changed.
+ */
+export function useAbortSignal(deps: React.DependencyList): AbortSignal;
+
+/**
  * Creates a dependency that components can provide to and read data from.
  */
 export function createDependency<T>(): Dependency<T | undefined>;

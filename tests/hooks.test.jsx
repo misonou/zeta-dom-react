@@ -1348,6 +1348,24 @@ describe('useAbortSignal', () => {
         rerender({ value: 1 });
         expect(result.current).toBe(signal);
     });
+
+    it('should return an abort signal that is signalled when dependency list changes', async () => {
+        const { result, rerender } = renderHook(({ deps }) => useAbortSignal(deps), {
+            initialProps: { deps: [1] }
+        });
+        const signal1 = result.current;
+        expect(signal1).toBeInstanceOf(AbortSignal);
+        expect(signal1.aborted).toBe(false);
+
+        rerender({ deps: [2] });
+        const signal2 = result.current;
+        expect(signal2).not.toBe(signal1);
+        expect(signal2).toBeInstanceOf(AbortSignal);
+        expect(signal2.aborted).toBe(false);
+
+        await 0;
+        expect(signal1.aborted).toBe(true);
+    });
 });
 
 describe('useDependency', () => {
