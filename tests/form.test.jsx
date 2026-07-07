@@ -2335,6 +2335,16 @@ describe('FormContext', () => {
         unmount();
     });
 
+    it('should not fire dataChange event after updated data is being reset', async () => {
+        const { form, unmount, dataChange } = createFormContext({ foo: 'bar' });
+        await act(async () => {
+            form.data.foo = 'baz';
+            form.reset();
+        });
+        expect(dataChange).not.toBeCalled();
+        unmount();
+    });
+
     it('should not fire dataChange event when updating detached data object', async () => {
         const renderForm = createFormComponent(() => (
             <FormObject name="obj">

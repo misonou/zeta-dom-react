@@ -577,6 +577,7 @@ definePrototype(FormContext, {
         });
         state.setValid();
         (state.unlock || noop)();
+        mapRemove(changedProps, self);
         emitter.emit('reset', self);
     },
     getValue: function (key) {
