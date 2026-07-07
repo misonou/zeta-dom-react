@@ -76,6 +76,11 @@ export function combineRef<T>(...ref: React.Ref<T>[]): React.RefCallback<T>;
 export function toRefCallback<T>(ref: React.Ref<T>): React.RefCallback<T>;
 
 /**
+ * Checks if two dependency lists are equal, similar to how React.memo compares hook inputs.
+ */
+export function areHookInputsEqual(next: React.DependencyList, prev: React.DependencyList): boolean;
+
+/**
  * Creates a lazy exotic component wrapped in a `Suspense` component.
  * @param factory Callback to import the component.
  * @param fallback Fallback content before the component is ready.

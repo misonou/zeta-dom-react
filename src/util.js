@@ -91,6 +91,12 @@ export function toRefCallback(ref) {
     return ref || noop;
 }
 
+export function areHookInputsEqual(next, prev) {
+    return next && prev && next.length === prev.length && !single(next, function (v, i) {
+        return !sameValue(prev[i], v);
+    });
+}
+
 export function withSuspense(factory, fallback) {
     fallback = fallback || Fragment;
     if (isFunction(fallback)) {

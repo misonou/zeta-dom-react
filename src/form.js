@@ -1,11 +1,11 @@
 import { createContext, createElement, forwardRef, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { always, any, combineFn, createPrivateStore, define, defineGetterProperty, defineObservableProperty, definePrototype, each, equal, exclude, extend, freeze, grep, hasOwnProperty, is, isArray, isFunction, isPlainObject, isUndefinedOrNull, keys, makeArray, map, mapGet, mapRemove, noop, pick, pipe, randomId, resolve, resolveAll, sameValueZero, setImmediate, setImmediateOnce, single, throwNotFunction, throws, watch } from "zeta-dom/util";
+import { always, any, combineFn, createPrivateStore, define, defineGetterProperty, defineObservableProperty, definePrototype, each, exclude, extend, freeze, grep, hasOwnProperty, is, isArray, isFunction, isPlainObject, isUndefinedOrNull, keys, makeArray, map, mapGet, mapRemove, noop, pick, pipe, randomId, resolve, resolveAll, sameValueZero, setImmediate, setImmediateOnce, single, throwNotFunction, throws, watch } from "zeta-dom/util";
 import { ZetaEventContainer } from "zeta-dom/events";
 import dom, { focus } from "zeta-dom/dom";
 import { preventLeave } from "zeta-dom/domLock";
 import { comparePosition, parentsAndSelf } from "zeta-dom/domUtil";
 import { useObservableProperty, useUnloadEffect, useUpdateTrigger } from "./hooks.js";
-import { combineRef } from "./util.js";
+import { areHookInputsEqual, combineRef } from "./util.js";
 import { useViewState } from "./viewState.js";
 
 const _ = createPrivateStore();
@@ -36,7 +36,7 @@ function createHookHelper(effects) {
     var states = [];
     var push = function (callback, deps) {
         var i = effects.i++;
-        states[i] = !deps || !states[i] || !equal(states[i][0], deps) ? [deps, callback.apply(null, deps)] : states[i];
+        states[i] = !deps || !states[i] || !areHookInputsEqual(deps, states[i][0]) ? [deps, callback.apply(null, deps)] : states[i];
         return states[i][1];
     };
     return {

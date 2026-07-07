@@ -1276,8 +1276,9 @@ describe('useFormField', () => {
         const cb = mockFn();
         class CustomField {
             postHook(state, props, hook) {
-                const { memoInput, callback } = props;
+                const { memoInput, zeroInput, callback } = props;
                 state.memoResult = hook.memo(v => v * 2, [memoInput]);
+                state.zeroResult = hook.memo(v => 1 / v > 0, [zeroInput]);
                 state.callback = hook.callback(callback);
                 hook.effect(() => cb(memoInput), [memoInput]);
                 return state;
@@ -1286,12 +1287,14 @@ describe('useFormField', () => {
         const { result, rerender, unmount } = renderHook((props) => useFormField(CustomField, props, ''), {
             initialProps: {
                 memoInput: 21,
+                zeroInput: 0,
                 callback: () => 'foo'
             }
         });
         const resultCallback = result.current.callback;
         verifyCalls(cb, [[21]]);
         expect(result.current.memoResult).toBe(42);
+        expect(result.current.zeroResult).toBe(true);
         expect(result.current.callback()).toBe('foo');
         cb.mockClear();
 
@@ -1301,10 +1304,12 @@ describe('useFormField', () => {
 
         rerender({
             memoInput: 50,
+            zeroInput: -0,
             callback: () => 'bar'
         });
         verifyCalls(cb, [[50]]);
         expect(result.current.memoResult).toBe(100);
+        expect(result.current.zeroResult).toBe(false);
         expect(result.current.callback()).toBe('bar');
         expect(result.current.callback).toBe(resultCallback);
         unmount();
