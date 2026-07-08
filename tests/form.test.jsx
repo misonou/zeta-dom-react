@@ -3,7 +3,7 @@ import { act as renderAct, render, screen, waitFor } from "@testing-library/reac
 import { act, renderHook } from '@testing-library/react-hooks'
 import { ViewStateProvider } from "src/viewState";
 import { ChoiceField, combineValidators, DateField, Form, FormArray, FormContext, FormContextProvider, FormObject, HiddenField, MultiChoiceField, NumericField, TextField, ToggleField, useFormContext, useFormField, ValidationError } from "src/form";
-import { body, delay, mockFn, verifyCalls, _, root } from "@misonou/test-utils";
+import { body, delay, mockFn, verifyCalls, _, root, after } from "@misonou/test-utils";
 import dom from "zeta-dom/dom";
 import { CancellationRequest, cancelLock, locked } from "zeta-dom/domLock";
 import { catchAsync, combineFn, setImmediate } from "zeta-dom/util";
@@ -442,6 +442,54 @@ describe('useFormContext', () => {
         });
         unmount();
         expect(viewState.set).not.toBeCalled();
+    });
+
+    it('should reset form data when values in dependency list changed', async () => {
+        const dataChange = mockFn();
+        const reset = mockFn();
+        const { result, rerender } = renderHook(({ foo }) => useFormContext({ foo }, [foo]), {
+            initialProps: { foo: 1 }
+        });
+        const form = result.current;
+        form.on({ dataChange, reset });
+        expect(form.data).toEqual({ foo: 1 });
+
+        rerender({ foo: 2 });
+        expect(form.data).toEqual({ foo: 2 });
+        expect(reset).toBeCalledTimes(1);
+
+        await after(() => {
+            form.data.foo = 3;
+            form.reset();
+        });
+        expect(form.data).toEqual({ foo: 2 });
+        expect(dataChange).not.toBeCalled();
+    });
+
+    it('should not reset form data when data has been restored from view state', async () => {
+        const reset = mockFn();
+        const viewState = {
+            get() { return { foo: 4 } },
+            set() { },
+        };
+        const { result, rerender } = renderHook(({ foo }) => useFormContext('persist', { foo }, [foo]), {
+            initialProps: { foo: 1 },
+            wrapper: ({ children }) => (
+                <ViewStateProvider value={{ getState: () => viewState }}>{children}</ViewStateProvider>
+            )
+        });
+        const form = result.current;
+        form.on({ reset });
+        expect(form.data).toEqual({ foo: 4 });
+
+        rerender({ foo: 3 });
+        expect(form.data).toEqual({ foo: 4 });
+        expect(reset).not.toBeCalled();
+
+        await after(() => {
+            form.reset();
+        });
+        expect(form.data).toEqual({ foo: 3 });
     });
 });
 

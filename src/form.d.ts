@@ -617,14 +617,31 @@ export class FormContext<T extends object = Zeta.Dictionary<any>> implements Zet
  * @param initialData Initial form data, or a callback that returns initial form data.
  * @param options If boolean is given, it sets the {@link FormContextOptions.validateOnChange} flag. Default is `true`.
  */
-export function useFormContext<T extends object = Zeta.Dictionary<any>>(persistKey: string, initialData?: Partial<T> | (() => Partial<T>), options?: boolean | FormContextOptions): FormContext<T>;
+export function useFormContext<T extends object = Zeta.Dictionary<any>>(persistKey: string, initialData?: Partial<T> | (() => Partial<T> | undefined), options?: boolean | FormContextOptions): FormContext<T>;
+
+/**
+ * Creates a memoized {@link FormContext} object.
+ * @param persistKey A unique key for enabling the persisting of form data in view state.
+ * @param initialData Initial form data, or a callback that returns initial form data.
+ * @param deps Resets form with new initial form data when values in the dependency list changes.
+ * @param options If boolean is given, it sets the {@link FormContextOptions.validateOnChange} flag. Default is `true`.
+ */
+export function useFormContext<T extends object = Zeta.Dictionary<any>>(persistKey: string, initialData: Partial<T> | (() => Partial<T> | undefined), deps: React.DependencyList, options?: boolean | FormContextOptions): FormContext<T>;
 
 /**
  * Creates a memoized {@link FormContext} object.
  * @param initialData Initial form data, or a callback that returns initial form data.
  * @param options If boolean is given, it sets the {@link FormContextOptions.validateOnChange} flag. Default is `true`.
  */
-export function useFormContext<T extends object = Zeta.Dictionary<any>>(initialData?: Partial<T> | (() => Partial<T>), options?: boolean | FormContextOptions): FormContext<T>;
+export function useFormContext<T extends object = Zeta.Dictionary<any>>(initialData?: Partial<T> | (() => Partial<T> | undefined), options?: boolean | FormContextOptions): FormContext<T>;
+
+/**
+ * Creates a memoized {@link FormContext} object.
+ * @param initialData Initial form data, or a callback that returns initial form data.
+ * @param deps Resets form with new initial form data when values in the dependency list changes.
+ * @param options If boolean is given, it sets the {@link FormContextOptions.validateOnChange} flag. Default is `true`.
+ */
+export function useFormContext<T extends object = Zeta.Dictionary<any>>(initialData: Partial<T> | (() => Partial<T> | undefined), deps: React.DependencyList, options?: boolean | FormContextOptions): FormContext<T>;
 
 /**
  * @deprecated Use overload where first argument is the field type constructor instead.

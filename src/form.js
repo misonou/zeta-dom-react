@@ -14,7 +14,7 @@ const emitter = new ZetaEventContainer();
 const instances = new WeakMap();
 const changedProps = new Map();
 const changedFields = new Set();
-const rootForm = new FormContext({}, {}, { get: noop });
+const rootForm = new FormContext({}, { get: noop });
 const rootContext = _(rootForm.data);
 const fieldTypes = {
     text: TextField,
@@ -209,6 +209,14 @@ function createDataObject(context, initialData) {
     var deleteValue = function (p) {
         delete target[p];
     };
+    var reset = function (data) {
+        for (var i in target) {
+            delete target[i];
+        }
+        for (var i in data) {
+            setValue(i, data[i]);
+        }
+    };
     var proxy = new Proxy(target, {
         set: function (t, p, v) {
             if (typeof p === 'string' && (!sameValueZero(t[p], v) || !(p in t))) {
@@ -266,11 +274,10 @@ function createDataObject(context, initialData) {
         form: context,
         dict: proxy,
         set: setValue,
-        delete: deleteValue
+        delete: deleteValue,
+        reset: reset
     });
-    for (var i in initialData) {
-        setValue(i, initialData[i]);
-    }
+    reset(initialData);
     return proxy;
 }
 
@@ -482,10 +489,7 @@ function formPersist(form, force) {
     }
 }
 
-export function FormContext(initialData, options, viewState) {
-    if (isFunction(initialData)) {
-        initialData = initialData();
-    }
+export function FormContext(options, viewState) {
     var self = this;
     var fields = {};
     var state = _(self, {
@@ -493,7 +497,6 @@ export function FormContext(initialData, options, viewState) {
         fields: fields,
         viewState: viewState,
         paths: {},
-        initialData: initialData,
         setValid: defineObservableProperty(self, 'isValid', true, function () {
             return !any(fields, function (v) {
                 return !v.props.disabled && (v.error || hasImplicitError(v));
@@ -507,7 +510,7 @@ export function FormContext(initialData, options, viewState) {
             instances.set(element, self);
         }
     };
-    self.data = createDataObject(self, viewState.get() || state.initialData);
+    self.data = createDataObject(self, viewState.get() || {});
 }
 
 define(FormContext, {
@@ -556,19 +559,16 @@ definePrototype(FormContext, {
     clear: function () {
         this.reset({});
     },
-    reset: function (data) {
+    reset: function (data, committing) {
         var self = this;
         var state = _(self);
-        var dict = _(self.data);
-        for (var i in self.data) {
-            dict.delete(i);
-        }
-        data = data || state.initialData;
-        for (var i in data) {
-            dict.set(i, data[i]);
+        _(self.data).reset(data || state.initialData);
+        if (!state.deps) {
+            return;
         }
         each(state.fields, function (i, v) {
             var prop = resolvePathInfo(self, v.path);
+            v.committing = committing;
             if (v.controlled) {
                 v.onChange(prop.exists ? prop.value : v.initialValue);
             } else if (prop.exists) {
@@ -577,6 +577,7 @@ definePrototype(FormContext, {
                 v.meta = null;
             }
             v.error = null;
+            v.committing = false;
         });
         state.setValid();
         (state.unlock || noop)();
@@ -634,15 +635,28 @@ defineObservableProperty(FormContext.prototype, 'preventLeave', false, function 
     return !!value;
 });
 
-export function useFormContext(persistKey, initialData, options) {
+export function useFormContext(persistKey, initialData, deps, options) {
     if (typeof persistKey !== 'string') {
-        return useFormContext('', persistKey, initialData);
+        return useFormContext('', persistKey, initialData, deps);
+    }
+    if (!isArray(deps)) {
+        options = deps;
+        deps = undefined;
     }
     const viewState = useViewState(persistKey);
     const form = useState(function () {
-        return new FormContext(initialData, options, viewState);
+        return new FormContext(options, viewState);
     })[0];
     const forceUpdate = useUpdateTrigger();
+    const state = _(form);
+    if (deps && deps.length ? !areHookInputsEqual(deps, state.deps) : !state.deps) {
+        initialData = (isFunction(initialData) ? initialData() : initialData) || {};
+        if (!viewState.get()) {
+            form.reset(initialData, true);
+        }
+        state.initialData = initialData;
+        state.deps = deps || [];
+    }
     useObservableProperty(form, 'isValid');
     useObservableProperty(form, 'disabled');
     useUnloadEffect(function () {
@@ -721,10 +735,11 @@ export function useFormField(type, props, defaultValue, prop) {
     useEffect(function () {
         combineFn(effects.splice(0))();
     });
-    useObservableProperty(field, 'error');
-    useObservableProperty(field, 'version', function () {
+    var commitGuard = function () {
         return field.committing;
-    });
+    };
+    useObservableProperty(field, 'error', commitGuard);
+    useObservableProperty(field, 'version', commitGuard);
     try {
         field.updating = true;
         return (preset.postHook || pipe).call(preset, {
