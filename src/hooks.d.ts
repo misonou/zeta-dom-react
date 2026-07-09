@@ -123,6 +123,11 @@ export interface AsyncContentState<T = any> extends Zeta.ZetaEventDispatcher<Asy
      */
     readonly loading: boolean;
     /**
+     * Gets whether current value is returned before values in dependency list are changed.
+     * It is `false` in initial state, after reset, or if dependency list is empty or not supplied.
+     */
+    readonly staled: boolean;
+    /**
      * Gets the error if the init callback has thrown error or returned a rejected promise.
      */
     readonly error: any;

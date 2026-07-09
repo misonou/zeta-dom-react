@@ -164,12 +164,13 @@ export function useAsync(init, deps, debounce) {
         var currentController;
         var nextResult;
         var reset = function (loading, value, error, reason) {
+            var staled = loading && state.staled;
             if (currentController) {
                 currentController.abort(reason);
                 currentController = null;
             }
             nextResult = null;
-            extend(state, { loading, value, error });
+            extend(state, { loading, value, error, staled });
             notifyChange([loading, value, error]);
         };
         var refresh = function () {
@@ -197,6 +198,7 @@ export function useAsync(init, deps, debounce) {
         };
         return {
             loading: false,
+            staled: undefined,
             value: undefined,
             error: undefined,
             elementRef: function (current) {
@@ -248,6 +250,8 @@ export function useAsync(init, deps, debounce) {
         if (deps[0] && !debounce) {
             state.loading = true;
         }
+        state.staled = state.staled !== undefined && !deps.d;
+        deps.d = true;
     }, deps);
     var notifyChange = useValueTrigger([state.loading, state.value, state.error], equal);
     return [state.value, state];

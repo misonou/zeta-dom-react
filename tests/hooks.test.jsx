@@ -403,6 +403,118 @@ describe('useAsync', () => {
         expect(result.current[1].error).toBeUndefined();
     });
 
+    it('should set staled state to false initially', async () => {
+        const { result } = renderHook(() => useAsync(() => 1, [1]));
+        expect(result.current[1].staled).toBe(false);
+    });
+
+    it('should set staled state to false initially in strict mode', async () => {
+        const { result } = renderHook(() => useAsync(() => 1, [1]), { wrapper: React.StrictMode });
+        expect(result.current[1].staled).toBe(false);
+    });
+
+    it('should set staled state to false if deps are not specified', async () => {
+        const { result, waitForNextUpdate } = renderHook(() => useAsync(() => 1));
+        const state = result.current[1];
+        expect(state).toMatchObject({ value: undefined, staled: false });
+        await waitForNextUpdate();
+        expect(state).toMatchObject({ value: 1, staled: false });
+    });
+
+    it('should set staled state to true when deps change', async () => {
+        const cb = mockFn(value => value);
+        const { result, rerender, waitForNextUpdate } = renderHook(({ value }) => useAsync(() => cb(value), [value]), {
+            initialProps: { value: 1 }
+        });
+        const state = result.current[1];
+        await waitForNextUpdate();
+        expect(result.all.length).toBe(2);
+        expect(state).toMatchObject({ value: 1, staled: false });
+
+        rerender({ value: 2 });
+        expect(result.all.length).toBe(3);
+        expect(state).toMatchObject({ value: 1, staled: true });
+
+        await waitForNextUpdate();
+        expect(result.all.length).toBe(4);
+        expect(state).toMatchObject({ value: 2, staled: false });
+
+        cb.mockRejectedValueOnce(new Error());
+        rerender({ value: 3 });
+
+        await waitForNextUpdate();
+        expect(result.all.length).toBe(6);
+        expect(state).toMatchObject({ error: expect.any(Error), staled: false });
+
+        rerender({ value: 4 });
+        expect(result.all.length).toBe(7);
+        expect(state).toMatchObject({ error: expect.any(Error), staled: true });
+    });
+
+    it('should set staled state to false when promise is rejected', async () => {
+        const cb = mockFn(() => 1);
+        const { result, rerender, waitForNextUpdate } = renderHook(({ value }) => useAsync(cb, [value]), {
+            initialProps: { value: 1 }
+        });
+        const state = result.current[1];
+        await waitForNextUpdate();
+        expect(result.all.length).toBe(2);
+        expect(state.staled).toBe(false);
+
+        const error = new Error();
+        cb.mockRejectedValueOnce(error);
+        rerender({ value: 2 });
+        expect(result.all.length).toBe(3);
+        expect(state.staled).toBe(true);
+
+        await waitForNextUpdate();
+        expect(result.all.length).toBe(4);
+        expect(state).toMatchObject({ error, staled: false });
+    });
+
+    it('should set staled state to false on reset', async () => {
+        const { result, rerender, waitForNextUpdate } = renderHook(({ value }) => useAsync(() => value, [value]), {
+            initialProps: { value: 1 }
+        });
+        const state = result.current[1];
+        await waitForNextUpdate();
+        expect(result.all.length).toBe(2);
+        expect(state.staled).toBe(false);
+
+        rerender({ value: 2 });
+        expect(result.all.length).toBe(3);
+        expect(state.staled).toBe(true);
+
+        act(() => state.reset());
+        expect(result.all.length).toBe(4);
+        expect(state.staled).toBe(false);
+    });
+
+    it('should not update staled state when refresh is called', async () => {
+        const { result, rerender, waitForNextUpdate } = renderHook(({ value }) => useAsync(() => delay().then(() => value), [value]), {
+            initialProps: { value: 1 }
+        });
+        const state = result.current[1];
+        await waitForNextUpdate();
+        expect(result.all.length).toBe(2);
+        expect(state.staled).toBe(false);
+
+        rerender({ value: 2 });
+        expect(result.all.length).toBe(3);
+        expect(state.staled).toBe(true);
+
+        await act(() => void state.refresh());
+        expect(result.all.length).toBe(3);
+
+        await waitForNextUpdate();
+        expect(result.all.length).toBe(4);
+        expect(state.staled).toBe(false);
+
+        await act(() => void state.refresh());
+        expect(result.all.length).toBe(5);
+        expect(state.staled).toBe(false);
+    });
+
     it('should trigger component updates at the start and end of loading', async () => {
         const promise1 = delay(100).then(() => 'foo');
         const promise2 = delay(500).then(() => 'bar');
