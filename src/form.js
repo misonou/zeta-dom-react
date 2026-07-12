@@ -668,7 +668,7 @@ export function useFormField(type, props, defaultValue, prop) {
         props = type;
         type = '';
     }
-    const uniqueId = useMemo(randomId, []);
+    const uniqueId = useState(randomId)[0];
     const parentContext = useContext(FormObjectContext);
     const effects = useState([])[0];
     const hook = useMemo(function () {
@@ -785,7 +785,7 @@ export function FormArray(props) {
 }
 
 export function FormObject(props) {
-    var uniqueId = useMemo(randomId, []);
+    var uniqueId = useState(randomId)[0];
     var context = useContext(FormObjectContext);
     var fieldRef = useRef();
     var dict = context.dict;
