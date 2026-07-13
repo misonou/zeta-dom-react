@@ -1,4 +1,4 @@
-/*! zeta-dom-react v0.6.3 | (c) misonou | https://misonou.github.io */
+/*! zeta-dom-react v0.6.4 | (c) misonou | https://misonou.github.io */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory(require("zeta-dom"), require("react"), require("react-dom"));
@@ -113,6 +113,7 @@ __webpack_require__.d(__webpack_exports__, {
   ToggleField: () => (/* reexport */ ToggleField),
   ValidationError: () => (/* reexport */ ValidationError),
   ViewStateProvider: () => (/* reexport */ ViewStateProvider),
+  areHookInputsEqual: () => (/* reexport */ areHookInputsEqual),
   classNames: () => (/* reexport */ classNames),
   combineRef: () => (/* reexport */ combineRef),
   combineValidators: () => (/* reexport */ combineValidators),
@@ -657,10 +658,10 @@ function useUnloadEffect(callback) {
     return used && callback(false);
   }, []);
 }
-function useAbortSignal() {
+function useAbortSignal(deps) {
   var controller = useSingleton(function () {
     return new AbortController();
-  }, [], function (controller) {
+  }, deps || [], function (controller) {
     controller.abort(errorWithCode(cancelled));
   });
   return controller.signal;
@@ -1042,6 +1043,11 @@ function toRefCallback(ref) {
     };
   }
   return ref || noop;
+}
+function areHookInputsEqual(next, prev) {
+  return next && prev && next.length === prev.length && !single(next, function (v, i) {
+    return !sameValue(prev[i], v);
+  });
 }
 function withSuspense(factory, fallback) {
   fallback = fallback || Fragment;
@@ -1460,7 +1466,7 @@ function createHookHelper(effects) {
   var states = [];
   var push = function push(callback, deps) {
     var i = effects.i++;
-    states[i] = !deps || !states[i] || !equal(states[i][0], deps) ? [deps, callback.apply(null, deps)] : states[i];
+    states[i] = !deps || !states[i] || !areHookInputsEqual(deps, states[i][0]) ? [deps, callback.apply(null, deps)] : states[i];
     return states[i][1];
   };
   return {
@@ -1986,6 +1992,7 @@ definePrototype(FormContext, {
     });
     state.setValid();
     (state.unlock || noop)();
+    mapRemove(changedProps, self);
     form_emitter.emit('reset', self);
   },
   getValue: function getValue(key) {
@@ -2073,7 +2080,7 @@ function useFormField(type, props, defaultValue, prop) {
     props = type;
     type = '';
   }
-  var uniqueId = useMemo(randomId, []);
+  var uniqueId = useState(randomId)[0];
   var parentContext = useContext(FormObjectContext);
   var effects = useState([])[0];
   var hook = useMemo(function () {
@@ -2191,7 +2198,7 @@ function FormArray(props) {
   }));
 }
 function FormObject(props) {
-  var uniqueId = useMemo(randomId, []);
+  var uniqueId = useState(randomId)[0];
   var context = useContext(FormObjectContext);
   var fieldRef = useRef();
   var dict = context.dict;
