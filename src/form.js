@@ -476,8 +476,10 @@ function normalizeOptions(options) {
     }, options);
 }
 
-function formPersist(form) {
-    _(form).viewState.set(form.toJSON());
+function formPersist(form, force) {
+    if (force || form.autoPersist) {
+        _(form).viewState.set(form.toJSON());
+    }
 }
 
 export function FormContext(initialData, options, viewState) {
@@ -540,7 +542,7 @@ definePrototype(FormContext, {
         return emitter.add(this, event, handler);
     },
     persist: function () {
-        formPersist(this);
+        formPersist(this, true);
         this.autoPersist = false;
     },
     restore: function () {
@@ -645,9 +647,7 @@ export function useFormContext(persistKey, initialData, options) {
     useObservableProperty(form, 'disabled');
     useUnloadEffect(function () {
         (_(form).unlock || noop)();
-        if (form.autoPersist) {
-            formPersist(form);
-        }
+        formPersist(form);
     });
     useEffect(function () {
         if (mapRemove(changedProps, form)) {
@@ -658,6 +658,14 @@ export function useFormContext(persistKey, initialData, options) {
             reset: forceUpdate
         });
     }, [form]);
+    useEffect(function () {
+        return viewState.onPopState && viewState.onPopState(function (newState) {
+            formPersist(form);
+            if (newState) {
+                form.reset(newState);
+            }
+        });
+    }, [form, viewState]);
     return form;
 }
 

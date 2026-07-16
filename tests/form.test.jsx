@@ -355,6 +355,39 @@ describe('useFormContext', () => {
         unmount();
     });
 
+    it('should persist and restore form data when view state changes', async () => {
+        const setViewState = mockFn();
+        const onPopState = mockFn();
+        const viewState = {
+            get() { },
+            set: setViewState,
+            onPopState(callback) {
+                onPopState.mockImplementation(callback);
+                return () => onPopState.mockReset();
+            }
+        };
+        const getState = mockFn().mockReturnValue(viewState);
+        const { result, unmount } = renderHook(() => useFormContext('persist', { foo: 1, bar: 0 }), {
+            wrapper: ({ children }) => (
+                <ViewStateProvider value={{ getState }}>{children}</ViewStateProvider>
+            )
+        });
+        expect(result.current.data).toEqual({ foo: 1, bar: 0 });
+        await act(async () => {
+            result.current.data.foo = 3;
+        });
+
+        onPopState({ foo: 4, baz: 'baz' });
+        verifyCalls(setViewState, [[{ foo: 3, bar: 0 }]]);
+        expect(result.current.data).toEqual({ foo: 4, baz: 'baz' });
+
+        setViewState.mockClear();
+        onPopState(undefined);
+        verifyCalls(setViewState, [[{ foo: 4, baz: 'baz' }]]);
+        expect(result.current.data).toEqual({ foo: 4, baz: 'baz' });
+        unmount();
+    });
+
     it('should persist form data when unmount when autoPersist is true', async () => {
         const viewState = {
             get: mockFn(),
@@ -373,6 +406,28 @@ describe('useFormContext', () => {
         expect(viewState.set).toBeCalledTimes(1);
         expect(viewState.set.mock.calls[0][0]).toEqual({ foo: 2, baz: 'baz' });
         expect(viewState.set.mock.calls[0][0]).not.toBe(result.current.data);
+    });
+
+    it('should not persist form data when view state changes when autoPersist is false', async () => {
+        const setViewState = mockFn();
+        const onPopState = mockFn();
+        const viewState = {
+            get() { },
+            set: setViewState,
+            onPopState(callback) {
+                onPopState.mockImplementation(callback);
+                return () => onPopState.mockReset();
+            }
+        };
+        const getState = mockFn().mockReturnValue(viewState);
+        const { unmount } = renderHook(() => useFormContext('persist', { foo: 1, bar: 0 }, { autoPersist: false }), {
+            wrapper: ({ children }) => (
+                <ViewStateProvider value={{ getState }}>{children}</ViewStateProvider>
+            )
+        });
+        onPopState({ foo: 4, baz: 'baz' });
+        expect(setViewState).not.toBeCalled();
+        unmount();
     });
 
     it('should not persist form data when unmount when autoPersist is false', async () => {
