@@ -19,5 +19,6 @@ export interface TextFieldState<T> extends FormFieldState<T> {
 export default class TextField implements FieldType<TextFieldProps, TextFieldState<string>> {
     readonly defaultValue: string;
 
+    normalizeValue(value: any, props: TextFieldProps<string>): string;
     postHook(state: FormFieldState<string>, props: TextFieldProps<string, string>): TextFieldState<string>;
 }
