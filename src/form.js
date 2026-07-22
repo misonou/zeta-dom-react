@@ -152,7 +152,7 @@ function emitDataChangeEvent() {
             emitter.emit('dataChange', form, getAllAncestorPaths(props));
         }
         validateFields(form, grep(updatedFields, function (v) {
-            return v.version && (v.props.validateOnChange + 1 || form.validateOnChange + 1) > 1;
+            return v.touched && (v.props.validateOnChange + 1 || form.validateOnChange + 1) > 1;
         }));
         if (form.preventLeave && !state.unlock && updatedFields[0] && dom.getEventSource(element) !== 'script') {
             var promise = new Promise(function (resolve) {
@@ -168,10 +168,19 @@ function emitDataChangeEvent() {
     });
 }
 
+function commitFieldValue(field, value, touched, committed) {
+    field.pending = false;
+    field.value = value;
+    field.touched = touched;
+    field.meta = committed && field.getMeta(field.value);
+    if (!committed) {
+        field.version++;
+    }
+}
+
 function handleDataChange(field) {
     if (!field.controlled || field.committing) {
-        field.version++;
-        field.meta = null;
+        commitFieldValue(field, field.value, true);
         changedFields.add(field);
     } else {
         field.onChange(field.value);
@@ -577,9 +586,7 @@ definePrototype(FormContext, {
             if (v.controlled) {
                 v.onChange(prop.exists ? prop.value : v.initialValue);
             } else if (prop.exists) {
-                v.value = prop.value;
-                v.version = 0;
-                v.meta = null;
+                commitFieldValue(v, prop.value, false);
             }
             v.error = null;
             v.committing = false;
@@ -730,12 +737,7 @@ export function useFormField(type, props, defaultValue, prop) {
         dict[name] = value;
         field.committing = false;
     }
-    field.pending = false;
-    field.value = dict[name];
-    field.meta = field.getMeta(field.value);
-    if (!existing) {
-        field.version = 0;
-    }
+    commitFieldValue(field, dict[name], existing && field.touched, true);
     (_(field.value) || {}).form = form;
     effects.i = 0;
     useEffect(function () {

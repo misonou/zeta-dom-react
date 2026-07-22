@@ -1378,6 +1378,16 @@ describe('useFormField', () => {
         unmount();
     });
 
+    it('should return a different version number when data is reset to different value', () => {
+        const { form, wrapper, unmount } = createFormContext({ foo: [1] });
+        const { result } = renderHook(() => useFormField({ name: 'foo' }, []), { wrapper });
+
+        const version = result.current.version;
+        act(() => form.reset({ foo: [2] }));
+        expect(result.current.version).toBeGreaterThan(version);
+        unmount();
+    });
+
     it('should instantiate field type class for each field', () => {
         class CustomField {
             postHook(state) {
