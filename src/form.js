@@ -138,6 +138,11 @@ function emitDataChangeEvent() {
     changedFields.clear();
     each(changedProps, function (form) {
         var state = _(form);
+        if (form !== rootForm && !state.mounted) {
+            // trigger rendering instead of dataChange event and suppress validation
+            // before form context is mounted
+            return;
+        }
         var props = mapRemove(changedProps, form);
         var element = state.ref || dom.root;
         var updatedFields = grep(lastChangedFields, function (v) {
@@ -664,6 +669,7 @@ export function useFormContext(persistKey, initialData, deps, options) {
         formPersist(form);
     });
     useEffect(function () {
+        state.mounted = true;
         if (mapRemove(changedProps, form)) {
             forceUpdate();
         }

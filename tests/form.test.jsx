@@ -1,4 +1,5 @@
 import React, { createRef, StrictMode, useEffect, useRef, useState } from "react";
+import ReactDOM from "react-dom";
 import { act as renderAct, render, screen, waitFor } from "@testing-library/react";
 import { act, renderHook } from '@testing-library/react-hooks'
 import { ViewStateProvider } from "src/viewState";
@@ -10,6 +11,19 @@ import { catchAsync, combineFn, setImmediate } from "zeta-dom/util";
 import { jest } from "@jest/globals";
 
 const getEventSource = jest.spyOn(dom, 'getEventSource');
+
+let createRoot = element => {
+    return {
+        render: (component) => ReactDOM.render(component, element),
+        unmount: () => ReactDOM.unmountComponentAtNode(element)
+    };
+};
+
+beforeAll(async () => {
+    try {
+        createRoot = (await import("react-dom/client")).createRoot;
+    } catch { }
+});
 
 function toDateComponent(y, m, d, h = 0, n = 0, s = 0, ms = 0) {
     if (y instanceof Date) {
@@ -263,6 +277,56 @@ describe('useFormContext', () => {
             [{}],
         ]);
         unmount();
+    });
+
+    it('should cause re-render but not dataChange or validation before effect is called', async () => {
+        const elm = document.createElement('div');
+        const root = createRoot(elm);
+        const renderCb = mockFn();
+        const eventCb = mockFn();
+        let addedDataChange = 0;
+        document.body.appendChild(elm);
+
+        class FieldType {
+            postHook(state) {
+                state.setValue('bar');
+                return state
+            }
+        }
+        const Field = (props) => {
+            useFormField(FieldType, props);
+            return null;
+        };
+        const Component = () => {
+            const form = useFormContext({});
+            if (!addedDataChange++) {
+                form.on('dataChange', eventCb);
+            }
+            // spin wait so that effect will be delayed
+            const t = Date.now();
+            while (Date.now() - t < 100) { }
+            renderCb(form.toJSON());
+            return (
+                <div>
+                    {addedDataChange}
+                    <Form context={form}>
+                        <Field name="foo" onValidate={eventCb} />
+                    </Form>
+                </div>
+            );
+        };
+        try {
+            root.render(<Component />);
+            await screen.findByText('2').catch(() => { });
+            expect(eventCb).not.toBeCalled();
+            verifyCalls(renderCb, [
+                [{}],
+                [{ foo: 'bar' }],
+            ]);
+        } finally {
+            root.unmount();
+            document.body.removeChild(elm);
+        }
     });
 
     it('should trigger validation for updated fields if validateOnChange is set to true', async () => {
