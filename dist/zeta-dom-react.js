@@ -1,4 +1,4 @@
-/*! zeta-dom-react v0.6.4 | (c) misonou | https://misonou.github.io */
+/*! zeta-dom-react v0.6.5 | (c) misonou | https://misonou.github.io */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory(require("zeta-dom"), require("react"), require("react-dom"));
@@ -153,11 +153,11 @@ __webpack_require__.d(__webpack_exports__, {
   withSuspense: () => (/* reexport */ withSuspense)
 });
 
-// EXTERNAL MODULE: external {"commonjs":"zeta-dom","commonjs2":"zeta-dom","amd":"zeta-dom","root":"zeta"}
-var external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_zeta_ = __webpack_require__(231);
+// EXTERNAL MODULE: zeta-dom
+var zeta_dom = __webpack_require__(231);
 ;// CONCATENATED MODULE: ./|umd|/zeta-dom/util.js
 
-var _lib$util = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_zeta_.util,
+var _lib$util = zeta_dom.util,
   always = _lib$util.always,
   any = _lib$util.any,
   arrRemove = _lib$util.arrRemove,
@@ -211,71 +211,71 @@ var _lib$util = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_
   _throws = _lib$util["throws"],
   watch = _lib$util.watch;
 
-// EXTERNAL MODULE: external {"commonjs":"react","commonjs2":"react","amd":"react","root":"React"}
-var external_commonjs_react_commonjs2_react_amd_react_root_React_ = __webpack_require__(12);
+// EXTERNAL MODULE: @misonou/hoist/react
+var react = __webpack_require__(12);
 ;// CONCATENATED MODULE: ./|umd|/react.js
 
-var Fragment = external_commonjs_react_commonjs2_react_amd_react_root_React_.Fragment,
-  StrictMode = external_commonjs_react_commonjs2_react_amd_react_root_React_.StrictMode,
-  Suspense = external_commonjs_react_commonjs2_react_amd_react_root_React_.Suspense,
-  createContext = external_commonjs_react_commonjs2_react_amd_react_root_React_.createContext,
-  createElement = external_commonjs_react_commonjs2_react_amd_react_root_React_.createElement,
-  forwardRef = external_commonjs_react_commonjs2_react_amd_react_root_React_.forwardRef,
-  lazy = external_commonjs_react_commonjs2_react_amd_react_root_React_.lazy,
-  useCallback = external_commonjs_react_commonjs2_react_amd_react_root_React_.useCallback,
-  useContext = external_commonjs_react_commonjs2_react_amd_react_root_React_.useContext,
-  useEffect = external_commonjs_react_commonjs2_react_amd_react_root_React_.useEffect,
-  useMemo = external_commonjs_react_commonjs2_react_amd_react_root_React_.useMemo,
-  useReducer = external_commonjs_react_commonjs2_react_amd_react_root_React_.useReducer,
-  useRef = external_commonjs_react_commonjs2_react_amd_react_root_React_.useRef,
-  useState = external_commonjs_react_commonjs2_react_amd_react_root_React_.useState;
+var Fragment = react.Fragment,
+  StrictMode = react.StrictMode,
+  Suspense = react.Suspense,
+  createContext = react.createContext,
+  createElement = react.createElement,
+  forwardRef = react.forwardRef,
+  lazy = react.lazy,
+  useCallback = react.useCallback,
+  useContext = react.useContext,
+  useEffect = react.useEffect,
+  useMemo = react.useMemo,
+  useReducer = react.useReducer,
+  useRef = react.useRef,
+  useState = react.useState;
 
 ;// CONCATENATED MODULE: ./|umd|/zeta-dom/domUtil.js
 
-var domUtil_lib$util = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_zeta_.util,
+var domUtil_lib$util = zeta_dom.util,
   bind = domUtil_lib$util.bind,
   comparePosition = domUtil_lib$util.comparePosition,
   parentsAndSelf = domUtil_lib$util.parentsAndSelf;
 
 ;// CONCATENATED MODULE: ./|umd|/zeta-dom/dom.js
 
-var dom = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_zeta_.dom;
+var dom = zeta_dom.dom;
 /* harmony default export */ const zeta_dom_dom = (dom);
 var dom_focus = dom.focus,
   reportError = dom.reportError;
 
 ;// CONCATENATED MODULE: ./|umd|/zeta-dom/domLock.js
 
-var _lib$dom = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_zeta_.dom,
+var _lib$dom = zeta_dom.dom,
   notifyAsync = _lib$dom.notifyAsync,
   preventLeave = _lib$dom.preventLeave;
 
 ;// CONCATENATED MODULE: ./|umd|/zeta-dom/events.js
 
-var EventContainer = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_zeta_.EventContainer;
+var EventContainer = zeta_dom.EventContainer;
 
 ;// CONCATENATED MODULE: ./|umd|/zeta-dom/errorCode.js
 
-var errorCode = external_commonjs_zeta_dom_commonjs2_zeta_dom_amd_zeta_dom_root_zeta_.ErrorCode;
+var errorCode = zeta_dom.ErrorCode;
 var cancelled = errorCode.cancelled;
 
-// EXTERNAL MODULE: external {"commonjs":"react-dom","commonjs2":"react-dom","amd":"react-dom","root":"ReactDOM"}
-var external_commonjs_react_dom_commonjs2_react_dom_amd_react_dom_root_ReactDOM_ = __webpack_require__(33);
+// EXTERNAL MODULE: react-dom
+var react_dom = __webpack_require__(33);
 ;// CONCATENATED MODULE: ./src/env.umd.js
 
 
 var extraRender = true;
-external_commonjs_react_dom_commonjs2_react_dom_amd_react_dom_root_ReactDOM_.flushSync(function () {
+react_dom.flushSync(function () {
   function TestComponent() {
     extraRender = !extraRender;
     return null;
   }
   var container = document.createElement('div');
   var element = /*#__PURE__*/createElement(StrictMode, null, /*#__PURE__*/createElement(TestComponent));
-  if (external_commonjs_react_dom_commonjs2_react_dom_amd_react_dom_root_ReactDOM_.createRoot) {
-    external_commonjs_react_dom_commonjs2_react_dom_amd_react_dom_root_ReactDOM_.createRoot(container).render(element);
+  if (react_dom.createRoot) {
+    react_dom.createRoot(container).render(element);
   } else {
-    external_commonjs_react_dom_commonjs2_react_dom_amd_react_dom_root_ReactDOM_.render(element, container);
+    react_dom.render(element, container);
   }
 });
 var IS_DEV = extraRender;
@@ -435,6 +435,7 @@ function useAsync(init, deps, debounce) {
     var currentController;
     var nextResult;
     var _reset = function reset(loading, value, error, reason) {
+      var staled = loading && state.staled;
       if (currentController) {
         currentController.abort(reason);
         currentController = null;
@@ -443,7 +444,8 @@ function useAsync(init, deps, debounce) {
       extend(state, {
         loading: loading,
         value: value,
-        error: error
+        error: error,
+        staled: staled
       });
       notifyChange([loading, value, error]);
     };
@@ -478,6 +480,7 @@ function useAsync(init, deps, debounce) {
     };
     return {
       loading: false,
+      staled: undefined,
       value: undefined,
       error: undefined,
       elementRef: function elementRef(current) {
@@ -531,6 +534,8 @@ function useAsync(init, deps, debounce) {
     if (deps[0] && !debounce) {
       state.loading = true;
     }
+    state.staled = state.staled !== undefined && !deps.d;
+    deps.d = true;
   }, deps);
   var notifyChange = useValueTrigger([state.loading, state.value, state.error], equal);
   return [state.value, state];
@@ -1444,7 +1449,7 @@ var form_emitter = new EventContainer();
 var instances = new WeakMap();
 var changedProps = new Map();
 var changedFields = new Set();
-var rootForm = new FormContext({}, {}, {
+var rootForm = new FormContext({}, {
   get: noop
 });
 var rootContext = form_(rootForm.data);
@@ -1557,6 +1562,11 @@ function emitDataChangeEvent() {
   changedFields.clear();
   each(changedProps, function (form) {
     var state = form_(form);
+    if (form !== rootForm && !state.mounted) {
+      // trigger rendering instead of dataChange event and suppress validation
+      // before form context is mounted
+      return;
+    }
     var props = mapRemove(changedProps, form);
     var element = state.ref || zeta_dom_dom.root;
     var updatedFields = grep(lastChangedFields, function (v) {
@@ -1566,7 +1576,7 @@ function emitDataChangeEvent() {
       form_emitter.emit('dataChange', form, getAllAncestorPaths(props));
     }
     validateFields(form, grep(updatedFields, function (v) {
-      return v.version && (v.props.validateOnChange + 1 || form.validateOnChange + 1) > 1;
+      return v.touched && (v.props.validateOnChange + 1 || form.validateOnChange + 1) > 1;
     }));
     if (form.preventLeave && !state.unlock && updatedFields[0] && zeta_dom_dom.getEventSource(element) !== 'script') {
       var promise = new Promise(function (resolve) {
@@ -1583,10 +1593,18 @@ function emitDataChangeEvent() {
     }
   });
 }
+function commitFieldValue(field, value, touched, committed) {
+  field.pending = false;
+  field.value = value;
+  field.touched = touched;
+  field.meta = committed && field.getMeta(field.value);
+  if (!committed) {
+    field.version++;
+  }
+}
 function handleDataChange(field) {
   if (!field.controlled || field.committing) {
-    field.version++;
-    field.meta = null;
+    commitFieldValue(field, field.value, true);
     changedFields.add(field);
   } else {
     field.onChange(field.value);
@@ -1627,6 +1645,14 @@ function createDataObject(context, initialData) {
   };
   var deleteValue = function deleteValue(p) {
     delete target[p];
+  };
+  var reset = function reset(data) {
+    for (var i in target) {
+      delete target[i];
+    }
+    for (var i in data) {
+      setValue(i, data[i]);
+    }
   };
   var proxy = new Proxy(target, {
     set: function set(t, p, v) {
@@ -1685,11 +1711,10 @@ function createDataObject(context, initialData) {
     form: context,
     dict: proxy,
     set: setValue,
-    "delete": deleteValue
+    "delete": deleteValue,
+    reset: reset
   });
-  for (var i in initialData) {
-    setValue(i, initialData[i]);
-  }
+  reset(initialData);
   return proxy;
 }
 function createFieldState(initialValue) {
@@ -1888,18 +1913,18 @@ function normalizeOptions(options) {
     };
   }
   return extend({
+    disabled: false,
     autoPersist: true,
     preventLeave: false,
     validateOnChange: true
   }, options);
 }
-function formPersist(form) {
-  form_(form).viewState.set(form.toJSON());
-}
-function FormContext(initialData, options, viewState) {
-  if (isFunction(initialData)) {
-    initialData = initialData();
+function formPersist(form, force) {
+  if (force || form.autoPersist) {
+    form_(form).viewState.set(form.toJSON());
   }
+}
+function FormContext(options, viewState) {
   var self = this;
   var fields = {};
   var state = form_(self, {
@@ -1907,7 +1932,6 @@ function FormContext(initialData, options, viewState) {
     fields: fields,
     viewState: viewState,
     paths: {},
-    initialData: initialData,
     setValid: defineObservableProperty(self, 'isValid', true, function () {
       return !any(fields, function (v) {
         return !v.props.disabled && (v.error || hasImplicitError(v));
@@ -1921,7 +1945,7 @@ function FormContext(initialData, options, viewState) {
       instances.set(element, self);
     }
   };
-  self.data = createDataObject(self, viewState.get() || state.initialData);
+  self.data = createDataObject(self, viewState.get() || {});
 }
 util_define(FormContext, {
   ERROR_FIELD: 1,
@@ -1954,7 +1978,7 @@ definePrototype(FormContext, {
     return form_emitter.add(this, event, handler);
   },
   persist: function persist() {
-    formPersist(this);
+    formPersist(this, true);
     this.autoPersist = false;
   },
   restore: function restore() {
@@ -1968,27 +1992,23 @@ definePrototype(FormContext, {
   clear: function clear() {
     this.reset({});
   },
-  reset: function reset(data) {
+  reset: function reset(data, committing) {
     var self = this;
     var state = form_(self);
-    var dict = form_(self.data);
-    for (var i in self.data) {
-      dict["delete"](i);
-    }
-    data = data || state.initialData;
-    for (var i in data) {
-      dict.set(i, data[i]);
+    form_(self.data).reset(data || state.initialData);
+    if (!state.deps) {
+      return;
     }
     each(state.fields, function (i, v) {
       var prop = resolvePathInfo(self, v.path);
+      v.committing = committing;
       if (v.controlled) {
         v.onChange(prop.exists ? prop.value : v.initialValue);
       } else if (prop.exists) {
-        v.value = prop.value;
-        v.version = 0;
-        v.meta = null;
+        commitFieldValue(v, prop.value, false);
       }
       v.error = null;
+      v.committing = false;
     });
     state.setValid();
     (state.unlock || noop)();
@@ -2044,23 +2064,36 @@ defineObservableProperty(FormContext.prototype, 'preventLeave', false, function 
   }
   return !!value;
 });
-function useFormContext(persistKey, initialData, options) {
+function useFormContext(persistKey, initialData, deps, options) {
   if (typeof persistKey !== 'string') {
-    return useFormContext('', persistKey, initialData);
+    return useFormContext('', persistKey, initialData, deps);
+  }
+  if (!isArray(deps)) {
+    options = deps;
+    deps = undefined;
   }
   var viewState = useViewState(persistKey);
   var form = useState(function () {
-    return new FormContext(initialData, options, viewState);
+    return new FormContext(options, viewState);
   })[0];
   var forceUpdate = useUpdateTrigger();
+  var state = form_(form);
+  if (deps && deps.length ? !areHookInputsEqual(deps, state.deps) : !state.deps) {
+    initialData = (isFunction(initialData) ? initialData() : initialData) || {};
+    if (!viewState.get()) {
+      form.reset(initialData, true);
+    }
+    state.initialData = initialData;
+    state.deps = deps || [];
+  }
   useObservableProperty(form, 'isValid');
+  useObservableProperty(form, 'disabled');
   useUnloadEffect(function () {
     (form_(form).unlock || noop)();
-    if (form.autoPersist) {
-      formPersist(form);
-    }
+    formPersist(form);
   });
   useEffect(function () {
+    state.mounted = true;
     if (mapRemove(changedProps, form)) {
       forceUpdate();
     }
@@ -2069,6 +2102,14 @@ function useFormContext(persistKey, initialData, options) {
       reset: forceUpdate
     });
   }, [form]);
+  useEffect(function () {
+    return viewState.onPopState && viewState.onPopState(function (newState) {
+      formPersist(form);
+      if (newState) {
+        form.reset(newState);
+      }
+    });
+  }, [form, viewState]);
   return form;
 }
 function useFormField(type, props, defaultValue, prop) {
@@ -2110,21 +2151,17 @@ function useFormField(type, props, defaultValue, prop) {
     dict[name] = value;
     field.committing = false;
   }
-  field.pending = false;
-  field.value = dict[name];
-  field.meta = field.getMeta(field.value);
-  if (!existing) {
-    field.version = 0;
-  }
+  commitFieldValue(field, dict[name], existing && field.touched, true);
   (form_(field.value) || {}).form = form;
   effects.i = 0;
   useEffect(function () {
     combineFn(effects.splice(0))();
   });
-  useObservableProperty(field, 'error');
-  useObservableProperty(field, 'version', function () {
+  var commitGuard = function commitGuard() {
     return field.committing;
-  });
+  };
+  useObservableProperty(field, 'error', commitGuard);
+  useObservableProperty(field, 'version', commitGuard);
   try {
     field.updating = true;
     return (preset.postHook || pipe).call(preset, {
@@ -2133,6 +2170,7 @@ function useFormField(type, props, defaultValue, prop) {
       path: field.path,
       value: field.value,
       error: String(field.error),
+      disabled: props.disabled || form.disabled,
       version: field.version,
       meta: field.meta,
       setValue: field.setValue,
@@ -2177,10 +2215,10 @@ var Form = /*#__PURE__*/forwardRef(function (props, ref) {
     form.reset();
     (props.onReset || noop).call(this, e);
   };
-  extend(form, pick(props, ['enterKeyHint', 'preventLeave', 'formatError']));
+  extend(form, pick(props, ['enterKeyHint', 'preventLeave', 'formatError', 'disabled']));
   return /*#__PURE__*/createElement(FormObjectProvider, {
     value: form_(form.data)
-  }, /*#__PURE__*/createElement('form', extend(exclude(props, ['context', 'enterKeyHint', 'preventLeave', 'formatError']), {
+  }, /*#__PURE__*/createElement('form', extend(exclude(props, ['context', 'enterKeyHint', 'preventLeave', 'formatError', 'disabled']), {
     ref: combineRef(ref, form.ref),
     onSubmit: onSubmit,
     onReset: onReset
