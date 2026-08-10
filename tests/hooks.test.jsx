@@ -1517,6 +1517,15 @@ describe('useDependency', () => {
         expect(result.current).toBe(2);
     });
 
+    it('should return value from producer in strict mode', async () => {
+        const dep = createDependency();
+        renderHook(() => useDependency(dep.Provider, 42), { wrapper: React.StrictMode });
+        await delay();
+
+        const { result } = renderHook(() => useDependency(dep.Consumer));
+        expect(result.current).toBe(42);
+    });
+
     it('should treat dependency object as consumer', () => {
         const dep = createDependency(1);
         const { result } = renderHook(() => useDependency(dep));

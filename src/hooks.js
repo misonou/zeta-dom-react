@@ -418,7 +418,7 @@ export function useDependency(dependency, value, deps) {
         var wrapper = useSingleton(function () {
             var obj = {};
             return values.push(obj) && obj;
-        }, [values], function () {
+        }, [values], function (wrapper) {
             arrRemove(values, wrapper);
             values.update();
         });
