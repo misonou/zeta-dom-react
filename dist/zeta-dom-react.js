@@ -1,4 +1,4 @@
-/*! zeta-dom-react v0.6.5 | (c) misonou | https://misonou.github.io */
+/*! zeta-dom-react v0.6.6 | (c) misonou | https://misonou.github.io */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory(require("zeta-dom"), require("react"), require("react-dom"));
@@ -697,7 +697,7 @@ function useDependency(dependency, value, deps) {
     var wrapper = useSingleton(function () {
       var obj = {};
       return values.push(obj) && obj;
-    }, [values], function () {
+    }, [values], function (wrapper) {
       arrRemove(values, wrapper);
       values.update();
     });
@@ -917,8 +917,15 @@ definePrototype(DataView, {
   reset: function reset(values) {
     var self = this;
     var state = dataView_(self);
+    var filters;
     delete state.itemCount;
-    return extend(self, values || state.defaults);
+    if (values) {
+      filters = pick(values.filters, keys(self.filters));
+      values = exclude(values, ['filters']);
+    }
+    return extend(self, values || state.defaults, {
+      filters: filters
+    });
   }
 });
 defineObservableProperty(proto, 'sortBy');
