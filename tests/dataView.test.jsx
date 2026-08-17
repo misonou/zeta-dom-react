@@ -655,4 +655,24 @@ describe('DataView#reset', () => {
         }));
         unmount();
     });
+
+    it('should not throw when filters contains unknown property', () => {
+        const viewState = {
+            get: mockFn().mockReturnValue({
+                filters: { foo: 2, bar: 3 },
+                pageIndex: 1,
+                pageSize: 20,
+                sortBy: 'bar',
+                sortOrder: 'desc'
+            }),
+            set: mockFn()
+        };
+        const { result, unmount } = renderHook(() => useDataView({ foo: 1 }, 'foo', 'asc'), {
+            wrapper: ({ children }) => (
+                <ViewStateProvider value={{ getState: () => viewState }}>{children}</ViewStateProvider>
+            )
+        });
+        expect(result.current.filters).toEqual({ foo: 2 });
+        unmount();
+    });
 });

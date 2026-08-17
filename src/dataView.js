@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { ZetaEventContainer } from "zeta-dom/events";
-import { combineFn, createPrivateStore, define, defineObservableProperty, definePrototype, each, extend, freeze, hasOwnProperty, isArray, isFunction, isUndefinedOrNull, keys, makeArray, noop, pick, setImmediateOnce, single, watch } from "zeta-dom/util";
+import { combineFn, createPrivateStore, define, defineObservableProperty, definePrototype, each, exclude, extend, freeze, hasOwnProperty, isArray, isFunction, isUndefinedOrNull, keys, makeArray, noop, pick, setImmediateOnce, single, watch } from "zeta-dom/util";
 import { useUpdateTrigger } from "./hooks.js";
 import { useViewState } from "./viewState.js";
 
@@ -143,8 +143,13 @@ definePrototype(DataView, {
     reset: function (values) {
         var self = this;
         var state = _(self);
+        var filters;
         delete state.itemCount;
-        return extend(self, values || state.defaults);
+        if (values) {
+            filters = pick(values.filters, keys(self.filters));
+            values = exclude(values, ['filters']);
+        }
+        return extend(self, values || state.defaults, { filters });
     }
 });
 
