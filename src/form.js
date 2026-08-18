@@ -187,12 +187,12 @@ function handleDataChange(field) {
     }
 }
 
-function createDataObject(context, initialData) {
-    var state = _(context);
+function createDataObject(state, initialData) {
+    var form = state.form;
     var target = isArray(initialData) ? [] : {};
     var uniqueId = randomId();
     var onChange = function (p, field) {
-        var path = getPath(context, proxy, p);
+        var path = getPath(form, proxy, p);
         if (path) {
             if (field) {
                 field.value = target[p];
@@ -204,7 +204,7 @@ function createDataObject(context, initialData) {
                     handleDataChange(state.fields[key]);
                 }
             }
-            mapGet(changedProps, context, Object)[path] = true;
+            mapGet(changedProps, form, Object)[path] = true;
             setImmediateOnce(emitDataChangeEvent);
         }
     };
@@ -213,7 +213,7 @@ function createDataObject(context, initialData) {
             // ensure changes to nested data objects
             // emits data change event to correct form context
             if ((_(v) || '').state !== state) {
-                v = createDataObject(context, v);
+                v = createDataObject(state, v);
             }
             state.paths[keyFor(v)] = uniqueId + '.' + p;
         }
@@ -283,9 +283,9 @@ function createDataObject(context, initialData) {
         }
     });
     _(proxy, {
+        form,
         state,
         uniqueId,
-        form: context,
         dict: proxy,
         set: setValue,
         delete: deleteValue,
@@ -524,7 +524,7 @@ export function FormContext(options, viewState) {
             instances.set(element, self);
         }
     };
-    self.data = createDataObject(self, viewState.get() || {});
+    self.data = createDataObject(state, viewState.get() || {});
 }
 
 define(FormContext, {
