@@ -299,6 +299,7 @@ function createFieldState(initialValue) {
     var field = {
         version: 0,
         initialValue: initialValue,
+        touched: false,
         error: '',
         preset: {},
         onChange: function (v, committed) {
@@ -596,6 +597,9 @@ definePrototype(FormContext, {
         mapRemove(changedProps, self);
         emitter.emit('reset', self);
     },
+    isTouched: function (key) {
+        return !!(getField(this, key) || '').touched;
+    },
     getValue: function (key) {
         return cloneValue(resolvePathInfo(this, key).value);
     },
@@ -757,6 +761,7 @@ export function useFormField(type, props, defaultValue, prop) {
             value: field.value,
             error: String(field.error),
             disabled: props.disabled || form.disabled,
+            touched: field.touched,
             version: field.version,
             meta: field.meta,
             setValue: field.setValue,

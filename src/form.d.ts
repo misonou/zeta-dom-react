@@ -311,6 +311,12 @@ export interface FormFieldState<T = any, S = FieldMeta> {
      */
     readonly disabled: boolean;
     /**
+     * Get whether the associated value on the data object has been updated.
+     * It will remain `true` even if the value is reverted to the initial value unless the field is unmounted or the form is reset.
+     * If the value is an object or array, it is considered touched if any of its nested values is touched.
+     */
+    readonly touched: boolean;
+    /**
      * Gets a version number that changes whenever value or nested values changes.
      */
     readonly version: number;
@@ -546,6 +552,13 @@ export class FormContext<T extends object = Zeta.Dictionary<any>> implements Zet
      * Resets all fields to initial values and clear all validation errors.
      */
     reset(): void;
+
+    /**
+     * Gets whether the field associated with the specified path has been touched.
+     * @param path A string containing dot-separated property names or an array containing property names.
+     * @see {@link FormFieldState.touched}
+     */
+    isTouched(path: Zeta.HintedString<HintablePath<T>> | string[]): boolean;
 
     /**
      * Gets the value accessible by the specified path.

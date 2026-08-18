@@ -1388,6 +1388,55 @@ describe('useFormField', () => {
         unmount();
     });
 
+    it('should mark field as not touched for existing value when mounted', async () => {
+        const { form, wrapper, unmount } = createFormContext({ foo: '' });
+        await after(() => {
+            form.data.foo = 'bar';
+        });
+        const { result } = renderHook(() => useFormField({ name: 'foo' }, ''), { wrapper });
+        expect(result.current.touched).toBe(false);
+        unmount();
+    });
+
+    it('should mark field as not touched for nonexistent value when mounted', async () => {
+        const { wrapper, unmount } = createFormContext({});
+        const { result } = renderHook(() => useFormField({ name: 'foo' }, 'bar'), { wrapper });
+        expect(result.current.touched).toBe(false);
+        unmount();
+    });
+
+    it('should mark field as touched when value is changed', () => {
+        const { wrapper, unmount } = createFormContext({ foo: '' });
+        const { result } = renderHook(() => useFormField({ name: 'foo' }, ''), { wrapper });
+        act(() => result.current.setValue('bar'));
+        expect(result.current.touched).toBe(true);
+
+        act(() => result.current.setValue(''));
+        expect(result.current.touched).toBe(true);
+        unmount();
+    });
+
+    it('should mark field as touched when value is changed in nested data object', async () => {
+        const { form, wrapper, unmount } = createFormContext({ foo: { bar: '' } });
+        const { result } = renderHook(() => useFormField({ name: 'foo' }, {}), { wrapper });
+        await after(() => {
+            form.data.foo.bar = 'baz';
+        });
+        expect(result.current.touched).toBe(true);
+        unmount();
+    });
+
+    it('should mark field as not touched after reset', () => {
+        const { form, wrapper, unmount } = createFormContext({ foo: '' });
+        const { result } = renderHook(() => useFormField({ name: 'foo' }, ''), { wrapper });
+        act(() => result.current.setValue('bar'));
+        expect(result.current.touched).toBe(true);
+
+        act(() => form.reset());
+        expect(result.current.touched).toBe(false);
+        unmount();
+    });
+
     it('should instantiate field type class for each field', () => {
         class CustomField {
             postHook(state) {
@@ -2934,6 +2983,42 @@ describe('FormContext#focus', () => {
         });
         form.focus(FormContext.EMPTY_FIELD | FormContext.ERROR_FIELD);
         expect(dom.activeElement).toBe(form.element('bar'));
+        unmount();
+    });
+});
+
+describe('FormContext#isTouched', () => {
+    it('should return false for path without mounted field component', async () => {
+        const { form, unmount } = createFormContext({ foo: 1 });
+        await after(() => {
+            form.data.foo = 2;
+        });
+        expect(form.isTouched('foo')).toBe(false);
+        unmount();
+    });
+
+    it('should return true for path with mounted field component that has been touched', async () => {
+        const { form, wrapper, unmount } = createFormContext({ foo: 1 });
+        const { result } = renderHook(() => useFormField({ name: 'foo' }, 1), { wrapper });
+        expect(form.isTouched('foo')).toBe(false);
+
+        act(() => result.current.setValue(2));
+        expect(form.isTouched('foo')).toBe(true);
+        unmount();
+    });
+
+    it('should return result for dot-separated path or path array', async () => {
+        const { form, unmount } = createFormContext({ obj: { foo: 1 } });
+        const { result } = renderHook(() => useFormField({ name: 'foo' }, 1), {
+            wrapper: ({ children }) => (<FormObject value={form.data.obj}>{children}</FormObject>)
+        });
+        expect(form.isTouched('obj.foo')).toBe(false);
+        act(() => result.current.setValue(2));
+
+        expect(form.isTouched('obj.foo')).toBe(true);
+        expect(form.isTouched(['obj', 'foo'])).toBe(true);
+        expect(form.isTouched('bar')).toBe(false);
+        expect(form.isTouched(['obj', 'baz'])).toBe(false);
         unmount();
     });
 });
