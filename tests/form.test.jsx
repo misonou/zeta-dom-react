@@ -1437,6 +1437,156 @@ describe('useFormField', () => {
         unmount();
     });
 
+    it('should mark field as not dirty when value is unchanged', () => {
+        const { wrapper, unmount } = createFormContext({ foo: '' });
+        const { result } = renderHook(() => useFormField({ name: 'foo' }, ''), { wrapper });
+        expect(result.current).toMatchObject({ value: '', dirty: false });
+        unmount();
+    });
+
+    it('should mark field as dirty when value is changed', () => {
+        const { wrapper, unmount } = createFormContext({ foo: '' });
+        const { result } = renderHook(() => useFormField({ name: 'foo' }, ''), { wrapper });
+        act(() => result.current.setValue('bar'));
+        expect(result.current).toMatchObject({ value: 'bar', dirty: true });
+        unmount();
+    });
+
+    it('should mark field as not dirty when value is reverted to initial value', () => {
+        const { wrapper, unmount } = createFormContext({ foo: '' });
+        const { result } = renderHook(() => useFormField({ name: 'foo' }, ''), { wrapper });
+        act(() => result.current.setValue('bar'));
+        act(() => result.current.setValue(''));
+        expect(result.current).toMatchObject({ value: '', dirty: false });
+        unmount();
+    });
+
+    it('should mark field as dirty when property is created on data object', () => {
+        const { wrapper, unmount } = createFormContext({});
+        const { result } = renderHook(() => useFormField({ name: 'foo' }, ''), { wrapper });
+        expect(result.current).toMatchObject({ value: '', dirty: true });
+        unmount();
+    });
+
+    it('should mark field as dirty when value is normalized', async () => {
+        class CustomField {
+            normalizeValue(value) {
+                return String(value);
+            }
+            postHook(state) {
+                return state;
+            }
+        }
+        const { wrapper, unmount } = createFormContext({ foo: 1 });
+        const { result } = renderHook(() => useFormField(CustomField, { name: 'foo' }, ''), { wrapper });
+        expect(result.current).toMatchObject({ value: '1', dirty: true });
+        unmount();
+    });
+
+    it('should mark field as dirty when value is changed before component is mounted', async () => {
+        const { form, wrapper, unmount } = createFormContext({ foo: '' });
+        await after(() => {
+            form.data.foo = 'bar';
+        });
+        const { result } = renderHook(() => useFormField({ name: 'foo' }, ''), { wrapper });
+        expect(result.current).toMatchObject({ value: 'bar', dirty: true });
+        unmount();
+    });
+
+    it('should mark field as not dirty when value is unchanged after reset', () => {
+        const { form, wrapper, unmount } = createFormContext({ foo: '' });
+        const { result } = renderHook(() => useFormField({ name: 'foo' }, ''), { wrapper });
+        act(() => result.current.setValue('bar'));
+        expect(result.current).toMatchObject({ value: 'bar', dirty: true });
+
+        act(() => form.reset());
+        expect(result.current).toMatchObject({ value: '', dirty: false });
+        unmount();
+    });
+
+    it('should mark field as dirty when value is changed in nested data object', async () => {
+        const { form, wrapper, unmount } = createFormContext({ foo: { bar: '' } });
+        await after(() => {
+            form.data.foo.bar = 'baz';
+        });
+        const { result } = renderHook(() => useFormField({ name: 'foo' }, {}), { wrapper });
+        expect(result.current.dirty).toBe(true);
+        unmount();
+    });
+
+    it('should mark field as dirty when value is deleted in nested data object', async () => {
+        const { form, wrapper, unmount } = createFormContext({ foo: { bar: '' } });
+        await after(() => {
+            delete form.data.foo.bar;
+        });
+        const { result } = renderHook(() => useFormField({ name: 'foo' }, {}), { wrapper });
+        expect(result.current.dirty).toBe(true);
+        unmount();
+    });
+
+
+    it('should mark field as not dirty when all nested values are reverted to initial values', async () => {
+        const { form, wrapper, unmount } = createFormContext({ foo: { bar: '', baz: '' } });
+        await after(() => {
+            form.data.foo.bar = 'baz';
+            form.data.foo.baz = 'qux';
+        });
+        const { result } = renderHook(() => useFormField({ name: 'foo' }, {}), { wrapper });
+        expect(result.current.dirty).toBe(true);
+
+        await after(() => {
+            form.data.foo.bar = '';
+            form.data.foo.baz = '';
+        });
+        expect(result.current.dirty).toBe(false);
+        unmount();
+    });
+
+    it('should mark field as dirty when array is changed', async () => {
+        const { form, wrapper, unmount } = createFormContext({ foo: ['baz', 'bar'] });
+        await after(() => {
+            form.data.foo.sort();
+        });
+        const { result } = renderHook(() => useFormField({ name: 'foo' }, []), { wrapper });
+        expect(result.current.dirty).toBe(true);
+
+        await after(() => {
+            form.data.foo.reverse();
+        });
+        expect(result.current.dirty).toBe(false);
+
+        await after(() => {
+            form.data.foo.push('qux');
+        });
+        expect(result.current.dirty).toBe(true);
+        unmount();
+    });
+
+    it('should mark field as dirty when array with objects is changed', async () => {
+        const { form, wrapper, unmount } = createFormContext({ foo: [{ id: 2 }, { id: 1 }] });
+        await after(() => {
+            form.data.foo.sort((a, b) => a.id - b.id);
+        });
+        const { result } = renderHook(() => useFormField({ name: 'foo' }, []), { wrapper });
+        expect(result.current.dirty).toBe(true);
+
+        await after(() => {
+            form.data.foo.reverse();
+        });
+        expect(result.current.dirty).toBe(false);
+
+        await after(() => {
+            form.data.foo.push({ id: 3 });
+        });
+        expect(result.current.dirty).toBe(true);
+
+        await after(() => {
+            form.data.foo.pop();
+        });
+        expect(result.current.dirty).toBe(false);
+        unmount();
+    });
+
     it('should instantiate field type class for each field', () => {
         class CustomField {
             postHook(state) {
@@ -3019,6 +3169,35 @@ describe('FormContext#isTouched', () => {
         expect(form.isTouched(['obj', 'foo'])).toBe(true);
         expect(form.isTouched('bar')).toBe(false);
         expect(form.isTouched(['obj', 'baz'])).toBe(false);
+        unmount();
+    });
+});
+
+describe('FormContext#isDirty', () => {
+    it('should return true if field value is different from initial value', async () => {
+        const { form, wrapper, unmount } = createFormContext({ foo: 1 });
+        const { result } = renderHook(() => useFormField({ name: 'foo' }, 1), { wrapper });
+        expect(form.isDirty('foo')).toBe(false);
+
+        act(() => result.current.setValue(2));
+        expect(form.isDirty('foo')).toBe(true);
+
+        await after(() => {
+            form.data.foo = 1;
+        });
+        expect(form.isDirty('foo')).toBe(false);
+        unmount();
+    });
+
+    it('should return result for dot-separated path or path array', async () => {
+        const { form, unmount } = createFormContext({ obj: { foo: 1 } });
+        await after(() => {
+            form.data.obj.foo = 2;
+        });
+        expect(form.isDirty('obj.foo')).toBe(true);
+        expect(form.isDirty(['obj', 'foo'])).toBe(true);
+        expect(form.isDirty('bar')).toBe(false);
+        expect(form.isDirty(['obj', 'baz'])).toBe(false);
         unmount();
     });
 });

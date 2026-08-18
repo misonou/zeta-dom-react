@@ -1,5 +1,5 @@
 import { createContext, createElement, forwardRef, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { always, any, combineFn, createPrivateStore, define, defineGetterProperty, defineObservableProperty, definePrototype, each, exclude, extend, freeze, grep, hasOwnProperty, is, isArray, isFunction, isPlainObject, isUndefinedOrNull, keys, makeArray, map, mapGet, mapRemove, noop, pick, pipe, randomId, resolve, resolveAll, sameValueZero, setImmediate, setImmediateOnce, single, throwNotFunction, throws, watch } from "zeta-dom/util";
+import { always, any, combineFn, createPrivateStore, define, defineGetterProperty, defineObservableProperty, definePrototype, each, equal, exclude, extend, freeze, grep, hasOwnProperty, is, isArray, isFunction, isPlainObject, isUndefinedOrNull, keys, makeArray, map, mapGet, mapRemove, noop, pick, pipe, randomId, resolve, resolveAll, sameValueZero, setAdd, setImmediate, setImmediateOnce, single, throwNotFunction, throws, watch } from "zeta-dom/util";
 import { ZetaEventContainer } from "zeta-dom/events";
 import dom, { focus } from "zeta-dom/dom";
 import { preventLeave } from "zeta-dom/domLock";
@@ -187,10 +187,11 @@ function handleDataChange(field) {
     }
 }
 
-function createDataObject(state, initialData) {
+function createDataObject(state, initialData, setParentDirty) {
     var form = state.form;
     var target = isArray(initialData) ? [] : {};
     var uniqueId = randomId();
+    var flags = new Set();
     var onChange = function (p, field) {
         var path = getPath(form, proxy, p);
         if (path) {
@@ -208,19 +209,29 @@ function createDataObject(state, initialData) {
             setImmediateOnce(emitDataChangeEvent);
         }
     };
-    var setValue = function (p, v) {
+    var setDirty = function (p, flag) {
+        var changed = p === false ? !flags.clear() : flag ? setAdd(flags, p) : flags.delete(p);
+        if (changed && state.paths[uniqueId]) {
+            setParentDirty(state.paths[uniqueId].slice(9), flags.size);
+        }
+    };
+    var setValue = function (p, v, reset) {
         if (isPlainObject(v) || isArray(v)) {
             // ensure changes to nested data objects
             // emits data change event to correct form context
             if ((_(v) || '').state !== state) {
-                v = createDataObject(state, v);
+                v = createDataObject(state, v, setDirty);
             }
             state.paths[keyFor(v)] = uniqueId + '.' + p;
+        }
+        if (!reset) {
+            setDirty(p, !sameValueZero(initialData[p], v));
         }
         target[p] = v;
         return v;
     };
     var deleteValue = function (p) {
+        setDirty(p, initialData[p] !== undefined);
         delete target[p];
     };
     var reset = function (data) {
@@ -228,8 +239,10 @@ function createDataObject(state, initialData) {
             delete target[i];
         }
         for (var i in data) {
-            setValue(i, data[i]);
+            setValue(i, data[i], true);
         }
+        initialData = isArray(target) ? target.slice() : extend({}, target);
+        setDirty(false);
     };
     var proxy = new Proxy(target, {
         set: function (t, p, v) {
@@ -248,7 +261,7 @@ function createDataObject(state, initialData) {
                         for (var index = prev - 1; index >= v; index--) {
                             onChange(index);
                         }
-                        t[p] = v;
+                        setValue(p, v);
                         return true;
                     }
                 } else {
@@ -286,6 +299,7 @@ function createDataObject(state, initialData) {
         form,
         state,
         uniqueId,
+        flags,
         dict: proxy,
         set: setValue,
         delete: deleteValue,
@@ -600,6 +614,10 @@ definePrototype(FormContext, {
     isTouched: function (key) {
         return !!(getField(this, key) || '').touched;
     },
+    isDirty: function (key) {
+        var prop = resolvePathInfo(this, key);
+        return prop.parent ? _(prop.parent).flags.has(prop.name) : false;
+    },
     getValue: function (key) {
         return cloneValue(resolvePathInfo(this, key).value);
     },
@@ -761,6 +779,7 @@ export function useFormField(type, props, defaultValue, prop) {
             value: field.value,
             error: String(field.error),
             disabled: props.disabled || form.disabled,
+            dirty: context.flags.has(field.name),
             touched: field.touched,
             version: field.version,
             meta: field.meta,
