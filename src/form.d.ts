@@ -350,6 +350,10 @@ export interface FormFieldState<T = any, S = FieldMeta> {
      * @returns A promise that resolves to `true if validation is passed and `false` otherwise.
      */
     readonly validate: () => Promise<boolean>;
+    /**
+     * A callback to reset the field to its initial value and clear validation error.
+     */
+    readonly reset: () => void;
 }
 
 export interface FormProps<T extends object = any> extends React.ComponentPropsWithRef<'form'>, Pick<FormContextOptions, 'enterKeyHint' | 'preventLeave' | 'formatError' | 'disabled'> {

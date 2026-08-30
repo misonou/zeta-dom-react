@@ -738,6 +738,70 @@ describe('useFormField', () => {
         expect(result.current.error).toBe('foo');
     });
 
+    it('should reset value to initial value by reset', () => {
+        const { unmount, wrapper } = createFormContext({});
+        const { result } = renderHook(() => useFormField({ name: 'foo' }, 'foo'), { wrapper });
+        expect(result.current.value).toBe('foo');
+
+        act(() => result.current.setValue('baz'));
+        expect(result.current.value).toBe('baz');
+
+        act(() => result.current.reset());
+        expect(result.current.value).toBe('foo');
+        unmount();
+    });
+
+    it('should reset value to initial value supplied to form context by reset', () => {
+        const { form, unmount, wrapper } = createFormContext({ foo: 'bar' });
+        const { result } = renderHook(() => useFormField({ name: 'foo' }, 'foo'), { wrapper });
+        expect(result.current.value).toBe('bar');
+
+        act(() => result.current.setValue('baz'));
+        expect(result.current.value).toBe('baz');
+
+        act(() => result.current.reset());
+        expect(result.current.value).toBe('bar');
+
+        act(() => form.reset({ foo: 'foo_new' }));
+        act(() => result.current.setValue('baz'));
+        expect(result.current.value).toBe('baz');
+
+        act(() => result.current.reset());
+        expect(result.current.value).toBe('foo_new');
+        unmount();
+    });
+
+    it('should reset value to initial value supplied to props for controlled field by reset', () => {
+        const onChange = mockFn(value => rerender({ value }));
+        const { result, rerender } = renderHook(({ value }) => useFormField({ value, onChange }, ''), {
+            initialProps: { value: 'foo' }
+        });
+        expect(result.current.value).toBe('foo');
+        act(() => result.current.setValue('baz'));
+        onChange.mockClear();
+
+        expect(result.current.value).toBe('baz');
+        act(() => result.current.reset());
+        verifyCalls(onChange, [['foo']]);
+    });
+
+    it('should reset error and touched state by reset', () => {
+        const { unmount, wrapper } = createFormContext({});
+        const { result } = renderHook(() => useFormField({ name: 'foo' }, 'foo'), { wrapper });
+        expect(result.current.touched).toBe(false);
+        expect(result.current.error).toBe('');
+
+        act(() => result.current.setValue('baz'));
+        act(() => result.current.setError('error'));
+        expect(result.current.touched).toBe(true);
+        expect(result.current.error).toBe('error');
+
+        act(() => result.current.reset());
+        expect(result.current.touched).toBe(false);
+        expect(result.current.error).toBe('');
+        unmount();
+    });
+
     it('should trigger validation by validate', async () => {
         const onValidate = mockFn().mockReturnValue('error');
         const { result } = renderHook(() => useFormField({ onValidate }, ''));

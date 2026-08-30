@@ -303,7 +303,10 @@ function createDataObject(state, initialData, setParentDirty) {
         dict: proxy,
         set: setValue,
         delete: deleteValue,
-        reset: reset
+        reset: reset,
+        getInitialValue: function (name, defaultValue) {
+            return name in initialData ? initialData[name] : defaultValue;
+        }
     });
     reset(initialData);
     return proxy;
@@ -347,6 +350,13 @@ function createFieldState(initialValue) {
         },
         validate: function () {
             return validateFields(field.form, [field]);
+        },
+        reset: function () {
+            var state = _(field.dict);
+            state.delete(field.name);
+            field.setValue(state.getInitialValue(field.name, field.initialValue));
+            field.touched = false;
+            field.error = null;
         },
         getMeta: function (value) {
             var meta = {
@@ -786,6 +796,7 @@ export function useFormField(type, props, defaultValue, prop) {
             setValue: field.setValue,
             setError: field.setError,
             validate: field.validate,
+            reset: field.reset,
             elementRef: field.elementRef
         }, props, hook[1]);
     } finally {
