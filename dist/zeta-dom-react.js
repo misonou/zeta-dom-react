@@ -1,4 +1,4 @@
-/*! zeta-dom-react v0.6.6 | (c) misonou | https://misonou.github.io */
+/*! zeta-dom-react v0.6.7 | (c) misonou | https://misonou.github.io */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory(require("zeta-dom"), require("react"), require("react-dom"));
@@ -1617,12 +1617,13 @@ function handleDataChange(field) {
     field.onChange(field.value);
   }
 }
-function createDataObject(context, initialData) {
-  var state = form_(context);
+function createDataObject(state, initialData, setParentDirty) {
+  var form = state.form;
   var target = isArray(initialData) ? [] : {};
   var uniqueId = randomId();
+  var flags = new Set();
   var onChange = function onChange(p, field) {
-    var path = getPath(context, proxy, p);
+    var path = getPath(form, proxy, p);
     if (path) {
       if (field) {
         field.value = target[p];
@@ -1634,23 +1635,33 @@ function createDataObject(context, initialData) {
           handleDataChange(state.fields[key]);
         }
       }
-      mapGet(changedProps, context, Object)[path] = true;
+      mapGet(changedProps, form, Object)[path] = true;
       setImmediateOnce(emitDataChangeEvent);
     }
   };
-  var setValue = function setValue(p, v) {
+  var setDirty = function setDirty(p, flag) {
+    var changed = p === false ? !flags.clear() : flag ? setAdd(flags, p) : flags["delete"](p);
+    if (changed && state.paths[uniqueId]) {
+      setParentDirty(state.paths[uniqueId].slice(9), flags.size);
+    }
+  };
+  var setValue = function setValue(p, v, reset) {
     if (isPlainObject(v) || isArray(v)) {
       // ensure changes to nested data objects
       // emits data change event to correct form context
       if ((form_(v) || '').state !== state) {
-        v = createDataObject(context, v);
+        v = createDataObject(state, v, setDirty);
       }
       state.paths[keyFor(v)] = uniqueId + '.' + p;
+    }
+    if (!reset) {
+      setDirty(p, !sameValueZero(initialData[p], v));
     }
     target[p] = v;
     return v;
   };
   var deleteValue = function deleteValue(p) {
+    setDirty(p, initialData[p] !== undefined);
     delete target[p];
   };
   var reset = function reset(data) {
@@ -1658,8 +1669,10 @@ function createDataObject(context, initialData) {
       delete target[i];
     }
     for (var i in data) {
-      setValue(i, data[i]);
+      setValue(i, data[i], true);
     }
+    initialData = isArray(target) ? target.slice() : extend({}, target);
+    setDirty(false);
   };
   var proxy = new Proxy(target, {
     set: function set(t, p, v) {
@@ -1678,7 +1691,7 @@ function createDataObject(context, initialData) {
             for (var index = prev - 1; index >= v; index--) {
               onChange(index);
             }
-            t[p] = v;
+            setValue(p, v);
             return true;
           }
         } else {
@@ -1713,13 +1726,17 @@ function createDataObject(context, initialData) {
     }
   });
   form_(proxy, {
+    form: form,
     state: state,
     uniqueId: uniqueId,
-    form: context,
+    flags: flags,
     dict: proxy,
     set: setValue,
     "delete": deleteValue,
-    reset: reset
+    reset: reset,
+    getInitialValue: function getInitialValue(name, defaultValue) {
+      return name in initialData ? initialData[name] : defaultValue;
+    }
   });
   reset(initialData);
   return proxy;
@@ -1728,6 +1745,7 @@ function createFieldState(initialValue) {
   var field = {
     version: 0,
     initialValue: initialValue,
+    touched: false,
     error: '',
     preset: {},
     onChange: function onChange(v, committed) {
@@ -1763,6 +1781,13 @@ function createFieldState(initialValue) {
     },
     validate: function validate() {
       return validateFields(field.form, [field]);
+    },
+    reset: function reset() {
+      var state = form_(field.dict);
+      state["delete"](field.name);
+      field.setValue(state.getInitialValue(field.name, field.initialValue));
+      field.touched = false;
+      field.error = null;
     },
     getMeta: function getMeta(value) {
       var meta = {
@@ -1952,7 +1977,7 @@ function FormContext(options, viewState) {
       instances.set(element, self);
     }
   };
-  self.data = createDataObject(self, viewState.get() || {});
+  self.data = createDataObject(state, viewState.get() || {});
 }
 util_define(FormContext, {
   ERROR_FIELD: 1,
@@ -2021,6 +2046,13 @@ definePrototype(FormContext, {
     (state.unlock || noop)();
     mapRemove(changedProps, self);
     form_emitter.emit('reset', self);
+  },
+  isTouched: function isTouched(key) {
+    return !!(getField(this, key) || '').touched;
+  },
+  isDirty: function isDirty(key) {
+    var prop = resolvePathInfo(this, key);
+    return prop.parent ? form_(prop.parent).flags.has(prop.name) : false;
   },
   getValue: function getValue(key) {
     return cloneValue(resolvePathInfo(this, key).value);
@@ -2178,11 +2210,14 @@ function useFormField(type, props, defaultValue, prop) {
       value: field.value,
       error: String(field.error),
       disabled: props.disabled || form.disabled,
+      dirty: context.flags.has(field.name),
+      touched: field.touched,
       version: field.version,
       meta: field.meta,
       setValue: field.setValue,
       setError: field.setError,
       validate: field.validate,
+      reset: field.reset,
       elementRef: field.elementRef
     }, props, hook[1]);
   } finally {
